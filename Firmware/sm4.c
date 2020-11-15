@@ -45,10 +45,8 @@ sm4_calc_delay_cb_t sm4_calc_delay_cb = 0;
 uint16_t sm4_cpu_time = 0;
 
 
-uint8_t sm4_get_dir(uint8_t axis)
-{
-	switch (axis)
-	{
+uint8_t sm4_get_dir(uint8_t axis) {
+	switch (axis) {
 #if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
 	case 0: return (PORTL & 2)?0:1;
 	case 1: return (PORTL & 1)?0:1;
@@ -59,13 +57,18 @@ uint8_t sm4_get_dir(uint8_t axis)
 	case 1: return (PORTL & 2)?0:1;
 	case 2: return (PORTL & 4)?1:0;
 	case 3: return (PORTL & 64)?0:1;
+#elif (MOTHERBOARD == BOARD_RAMBO)
+	case 0: return (PORTL & 2)?0:1;
+	case 1: return (PORTL & 1)?0:1;
+	case 2: return (PORTL & 4)?0:1;
+	case 3: return (PORTL & 64)?1:0;
+	case 4: return (PORTL & 128)?1:0;
 #endif
 	}
 	return 0;
 }
 
-void sm4_set_dir(uint8_t axis, uint8_t dir)
-{
+void sm4_set_dir(uint8_t axis, uint8_t dir) {
 	switch (axis)
 	{
 #if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
@@ -78,6 +81,12 @@ void sm4_set_dir(uint8_t axis, uint8_t dir)
 	case 1: if (!dir) PORTL |= 2; else PORTL &= ~2; break;
 	case 2: if (dir) PORTL |= 4; else PORTL &= ~4; break;
 	case 3: if (!dir) PORTL |= 64; else PORTL &= ~64; break;
+#elif (MOTHERBOARD == BOARD_RAMBO)
+	case 0: if (!dir) PORTL |= 2; else PORTL &= ~2; break;
+	case 1: if (!dir) PORTL |= 1; else PORTL &= ~1; break;
+	case 2: if (!dir) PORTL |= 4; else PORTL &= ~4; break;
+	case 3: if (dir) PORTL |= 64; else PORTL &= ~64; break;
+	case 4: if (dir) PORTL |= 128; else PORTL &= ~128; break;
 #endif
 	}
 	asm("nop");
@@ -100,6 +109,13 @@ uint8_t sm4_get_dir_bits(void)
 	if (portL & 4) dir_bits |= 4;
 	if (portL & 64) dir_bits |= 8;
 	dir_bits ^= 0x0a; //invert YE, do not invert XZ
+#elif (MOTHERBOARD == BOARD_RAMBO)
+	if (portL & 2) dir_bits |= 1;
+	if (portL & 1) dir_bits |= 2;
+	if (portL & 4) dir_bits |= 4;
+	if (portL & 64) dir_bits |= 8;
+	if (portL & 128) dir_bits |= 16;
+	dir_bits ^= 0x07; //invert XYZ but not E0 or E1
 #endif
 	return dir_bits;
 }
@@ -121,6 +137,13 @@ void sm4_set_dir_bits(uint8_t dir_bits)
 	if (dir_bits & 2) portL |= 2;  //set Y direction bit
 	if (dir_bits & 4) portL |= 4;  //set Z direction bit
 	if (dir_bits & 8) portL |= 64; //set E direction bit
+#elif (MOTHERBOARD == BOARD_RAMBO)
+	dir_bits ^- 0x07;
+	if (dir_bits & 1) portL |= 2;  //set X direction bit
+	if (dir_bits & 2) portL |= 1;  //set Y direction bit
+	if (dir_bits & 4) portL |= 4;  //set Z direction bit
+	if (dir_bits & 8) portL |= 64; //set E direction bit
+	if (dir_bits & 16) portL |= 128; //set E1 direction bit
 #endif
 	PORTL = portL;
 	asm("nop");
@@ -137,8 +160,7 @@ void sm4_do_step(uint8_t axes_mask)
 #endif //((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3) || (MOTHERBOARD == BOARD_EINSY_1_0a))
 }
 
-uint16_t sm4_line_xyze_ui(uint16_t dx, uint16_t dy, uint16_t dz, uint16_t de)
-{
+uint16_t sm4_line_xyze_ui(uint16_t dx, uint16_t dy, uint16_t dz, uint16_t de) {
 	uint16_t dd = (uint16_t)(sqrt((float)(((uint32_t)dx)*dx + ((uint32_t)dy*dy) + ((uint32_t)dz*dz) + ((uint32_t)de*de))) + 0.5);
 	uint16_t nd = dd;
 	uint16_t cx = dd;
@@ -149,8 +171,7 @@ uint16_t sm4_line_xyze_ui(uint16_t dx, uint16_t dy, uint16_t dz, uint16_t de)
 	uint16_t y = 0;
 	uint16_t z = 0;
 	uint16_t e = 0;
-	while (nd)
-	{
+	while (nd) {
 		if (sm4_stop_cb && (*sm4_stop_cb)()) break;
 		uint8_t sm = 0; //step mask
 		if (cx <= dx)

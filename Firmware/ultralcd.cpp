@@ -670,9 +670,9 @@ void lcdui_print_status_screen(void) {
 	lcd_print('/');
 	lcd_print(itostr3left(degTargetHotend(1)+0.5));
 	lcd_print(LCD_STR_DEGREE " ");
-	lcd_space(10);
+	lcd_print("          ");
 	#endif
-    lcd_set_cursor(0, 2); //line 1
+    lcd_set_cursor(0, 2); //line 3
 
 	//Print the Bed temperature (9 chars total)
 	lcd_print(LCD_STR_BEDTEMP[0]);
@@ -683,6 +683,7 @@ void lcdui_print_status_screen(void) {
 	lcd_print(LCD_STR_DEGREE);
 	lcd_space(4);
 
+	lcd_set_cursor(LCD_WIDTH - 7,2); //line 3 Col 15
 	#if defined(PINDA_THERMISTOR) && defined(TEMP_PINDA_PIN) && TEMP_PINDA_PIN > -1
 		lcd_print("P");
 		lcd_print(ftostr3(current_temperature_pinda));
@@ -1963,18 +1964,15 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
 
     {
         const FilamentAction action = eFilamentAction;
-        if (action == FilamentAction::Preheat || action == FilamentAction::Lay1Cal)
-        {
+        if (action == FilamentAction::Preheat || action == FilamentAction::Lay1Cal) {
             lcd_return_to_status();
-            if (action == FilamentAction::Lay1Cal)
-            {
+            if (action == FilamentAction::Lay1Cal) {
                 lcd_commands_type = LcdCommands::Layer1Cal;
-            }
-            else
-            {
+            } else {
                 raise_z_above(MIN_Z_FOR_PREHEAT);
-                if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE))
+                if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE)) {
                     lcd_wizard(WizState::LoadFilHot);
+				}
             }
             return;
         }
@@ -2772,8 +2770,7 @@ static void lcd_babystep_z()
 	    lcd_set_cursor(0, 1);
 		menu_draw_float13(_i("Adjusting Z:"), _md->babystepMemMMZ); ////MSG_BABYSTEPPING_Z c=15 Beware: must include the ':' as its last character
 	}
-	if (LCD_CLICKED || menu_leaving)
-	{
+	if (LCD_CLICKED || menu_leaving) {
 		// Only update the EEPROM when leaving the menu.
           uint8_t active_sheet=eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet));
 		eeprom_update_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->s[active_sheet].z_offset)),_md->babystepMemZ);

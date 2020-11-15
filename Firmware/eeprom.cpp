@@ -11,23 +11,12 @@
 
 #include "language.h"
 
-#if 0
-template <typename T>
-static T eeprom_read(T *address);
-
-template<>
-char eeprom_read<char>(char *address)
-{
-    return eeprom_read_byte(reinterpret_cast<uint8_t*>(address));
-}
-#endif
 
 template <typename T>
 static void eeprom_write(T *address, T value);
 
 template<>
-void eeprom_write<char>(char *addres, char value)
-{
+void eeprom_write<char>(char *addres, char value) {
     eeprom_write_byte(reinterpret_cast<uint8_t*>(addres), static_cast<uint8_t>(value));
 }
 
