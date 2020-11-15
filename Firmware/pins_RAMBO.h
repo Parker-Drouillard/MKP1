@@ -64,7 +64,7 @@
 #define DIGIPOTSS_PIN   38
 #define DIGIPOT_CHANNELS { 4,5,3,0,1 } // X Y Z E0 E1 digipot channels to stepper driver mapping
 #ifndef DIGIPOT_MOTOR_CURRENT
-  #define DIGIPOT_MOTOR_CURRENT { 135,135,135,135,135 } // Values 0-255 (RAMBO 135 =~ 0.75A, 185 =~ 1A)
+  #define DIGIPOT_MOTOR_CURRENT { 135,135,125,135,135 } // Values 0-255 (RAMBO 135 =~ 0.75A, 185 =~ 1A)
 #endif
 
 
@@ -80,9 +80,9 @@
 #define HEATER_1_PIN   7
 #define HEATER_BED_PIN 3
 
-#ifndef FAN_PIN
-  #define FAN_PIN      6
-#endif
+// #ifndef FAN_PIN
+//   #define FAN_PIN      6 //All fans were moved to offboard I2C Slave board
+// #endif
 
 
 
@@ -94,7 +94,7 @@
 #define SDSS 53 //PB0
 #define LED_PIN 13
 
-#define BEEPER -1
+#define BEEPER 79
 
 #define KILL_PIN -1
 #define LCD_PINS_RS     70

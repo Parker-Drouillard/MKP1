@@ -20,8 +20,8 @@
 #define DEVELOPER
 
 // Printer name
-#define CUSTOM_MENDEL_NAME "PEPCORP MK1"
-#define PRINTER_NUMBER "009"
+#define CUSTOM_MENDEL_NAME "MKP1"
+#define PRINTER_NUMBER "015"
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO
@@ -45,7 +45,7 @@
 
 // Steps per unit {X,Y,Z,E}
 //#define DEFAULT_AXIS_STEPS_PER_UNIT   {100,100,3200/8,140}
-#define DEFAULT_AXIS_STEPS_PER_UNIT   {100,100,3200/8,280}
+#define DEFAULT_AXIS_STEPS_PER_UNIT   {80,80,3200/8,143}
 //#define DEFAULT_AXIS_STEPS_PER_UNIT   {100,100,3200/8,560}
 
 // Endstop inverting
@@ -58,12 +58,12 @@
 #define INVERT_Y_DIR 1    // for Mendel set to 1, for Orca set to 0
 #define INVERT_Z_DIR 0     // for Mendel set to 0, for Orca set to 1
 #define INVERT_E0_DIR 0   // for direct drive extruder v9 set to 1, for geared extruder set to 0
-#define INVERT_E1_DIR 1    // for direct drive extruder v9 set to 1, for geared extruder set to 0
+#define INVERT_E1_DIR 0    // for direct drive extruder v9 set to 1, for geared extruder set to 0
 #define INVERT_E2_DIR 1   // for direct drive extruder v9 set to 1, for geared extruder set to 0
 
 // Home position
 #define MANUAL_X_HOME_POS -10
-#define MANUAL_Y_HOME_POS -4
+#define MANUAL_Y_HOME_POS 18
 #define MANUAL_Z_HOME_POS 0.2
 
 // Travel limits after homing
@@ -298,7 +298,7 @@
 #if BED_MINTEMP_DELAY>USHRT_MAX
 #error "Check maximal allowed value @ ShortTimer (see BED_MINTEMP_DELAY definition)"
 #endif
-#define DETECT_SUPERPINDA
+// #define DETECT_SUPERPINDA
 #define PINDA_MINTEMP BED_MINTEMP
 #define AMBIENT_MINTEMP -30
 
@@ -423,8 +423,8 @@
 #define MESH_HOME_Z_SEARCH 5.0f           // Z lift for homing, mesh bed leveling etc.
 
 #define X_PROBE_OFFSET_FROM_EXTRUDER 22     // Z probe to nozzle X offset: -left  +right
-#define Y_PROBE_OFFSET_FROM_EXTRUDER 0     // Z probe to nozzle Y offset: -front +behind
-#define Z_PROBE_OFFSET_FROM_EXTRUDER -1  // Z probe to nozzle Z offset: -below (always!)
+#define Y_PROBE_OFFSET_FROM_EXTRUDER 1     // Z probe to nozzle Y offset: -front +behind
+#define Z_PROBE_OFFSET_FROM_EXTRUDER -0.5  // Z probe to nozzle Z offset: -below (always!)
 #endif
 
 // Bed Temperature Control

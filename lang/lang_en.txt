@@ -16,6 +16,9 @@
 #MSG_IR_UNKNOWN c=18
 "unknown state"
 
+#MSG_HOTEND_OFFSET  
+"Hotend offsets:"
+
 #MSG_IMPROVE_BED_OFFSET_AND_SKEW_LINE2 c=14
 " of 4"
 

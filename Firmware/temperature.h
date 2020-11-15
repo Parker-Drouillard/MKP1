@@ -173,8 +173,7 @@ static inline void setTargetHotendSafe(const float &celsius, uint8_t extruder)
 }
 
 // Doesn't save FLASH when not inlined.
-static inline void setAllTargetHotends(const float &celsius)
-{
+static inline void setAllTargetHotends(const float &celsius) {
     for(int i=0;i<EXTRUDERS;i++) setTargetHotend(celsius,i);
 }
 

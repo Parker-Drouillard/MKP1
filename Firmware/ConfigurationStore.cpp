@@ -34,8 +34,7 @@ static bool EEPROM_writeData(uint8_t* pos, uint8_t* value, uint8_t size, const c
 #ifdef DEBUG_EEPROM_WRITE
 	printf_P(PSTR("EEPROM_WRITE_VAR addr=0x%04x size=0x%02hhx name=%s\n"), pos, size, name);
 #endif //DEBUG_EEPROM_WRITE
-	while (size--)
-	{
+	while (size--){
 
         eeprom_update_byte(pos, *value);
         if (eeprom_read_byte(pos) != *value) {
@@ -66,15 +65,13 @@ static void EEPROM_readData(uint8_t* pos, uint8_t* value, uint8_t size, const ch
     }
 }
 
-#define EEPROM_VERSION "V2"
+#define EEPROM_VERSION "V3"
 
 #ifdef EEPROM_SETTINGS
-void Config_StoreSettings()
-{
+void Config_StoreSettings() {
   strcpy(cs.version,"000"); //!< invalidate data first @TODO use erase to save one erase cycle
   
-  if (EEPROM_writeData(reinterpret_cast<uint8_t*>(EEPROM_M500_base),reinterpret_cast<uint8_t*>(&cs),sizeof(cs),0), "cs, invalid version")
-  {
+  if (EEPROM_writeData(reinterpret_cast<uint8_t*>(EEPROM_M500_base),reinterpret_cast<uint8_t*>(&cs),sizeof(cs),0), "cs, invalid version") {
       strcpy(cs.version,EEPROM_VERSION); //!< validate data if write succeed
       EEPROM_writeData(reinterpret_cast<uint8_t*>(EEPROM_M500_base->version), reinterpret_cast<uint8_t*>(cs.version), sizeof(cs.version), "cs.version valid");
   }
@@ -175,7 +172,7 @@ void Config_PrintSettings(uint8_t level)
 
 #ifdef EEPROM_SETTINGS
 
-static_assert (EXTRUDERS == 1, "ConfigurationStore M500_conf not implemented for more extruders, fix filament_size array size.");
+// static_assert (EXTRUDERS == 1, "ConfigurationStore M500_conf not implemented for more extruders, fix filament_size array size.");
 static_assert (NUM_AXIS == 4, "ConfigurationStore M500_conf not implemented for more axis."
         "Fix axis_steps_per_unit max_feedrate_normal max_acceleration_units_per_sq_second_normal max_jerk max_feedrate_silent"
         " max_acceleration_units_per_sq_second_silent array size.");
@@ -184,7 +181,7 @@ static_assert (false, "zprobe_zoffset was not initialized in printers in field t
         "0.0, if this is not acceptable, increment EEPROM_VERSION to force use default_conf");
 #endif
 
-static_assert (sizeof(M500_conf) == 192, "sizeof(M500_conf) has changed, ensure that EEPROM_VERSION has been incremented, "
+static_assert (sizeof(M500_conf) == 196, "sizeof(M500_conf) has changed, ensure that EEPROM_VERSION has been incremented, "
         "or if you added members in the end of struct, ensure that historically uninitialized values will be initialized."
         "If this is caused by change to more then 8bit processor, decide whether make this struct packed to save EEPROM,"
         "leave as it is to keep fast code, or reorder struct members to pack more tightly.");
@@ -237,30 +234,25 @@ static const M500_conf default_conf PROGMEM =
 //! @brief Read M500 configuration
 //! @retval true Succeeded. Stored settings retrieved or default settings retrieved in case EEPROM has been erased.
 //! @retval false Failed. Default settings has been retrieved, because of older version or corrupted data.
-bool Config_RetrieveSettings()
-{
+bool Config_RetrieveSettings() {
 	bool previous_settings_retrieved = true;
     char ver[4]=EEPROM_VERSION;
     EEPROM_readData(reinterpret_cast<uint8_t*>(EEPROM_M500_base->version), reinterpret_cast<uint8_t*>(cs.version), sizeof(cs.version), "cs.version"); //read stored version
     //  SERIAL_ECHOLN("Version: [" << ver << "] Stored version: [" << cs.version << "]");
-    if (strncmp(ver,cs.version,3) == 0)  // version number match
-    {
+    if (strncmp(ver,cs.version,3) == 0) {  // version number match
 
         EEPROM_readData(reinterpret_cast<uint8_t*>(EEPROM_M500_base), reinterpret_cast<uint8_t*>(&cs), sizeof(cs), "cs");
-
         
 		if (cs.max_jerk[X_AXIS] > DEFAULT_XJERK) cs.max_jerk[X_AXIS] = DEFAULT_XJERK;
 		if (cs.max_jerk[Y_AXIS] > DEFAULT_YJERK) cs.max_jerk[Y_AXIS] = DEFAULT_YJERK;
         calculate_extruder_multipliers();
 
 		//if max_feedrate_silent and max_acceleration_units_per_sq_second_silent were never stored to eeprom, use default values:
-        for (uint8_t i = 0; i < (sizeof(cs.max_feedrate_silent)/sizeof(cs.max_feedrate_silent[0])); ++i)
-        {
+        for (uint8_t i = 0; i < (sizeof(cs.max_feedrate_silent)/sizeof(cs.max_feedrate_silent[0])); ++i) {
             const uint32_t erased = 0xffffffff;
             bool initialized = false;
 
-            for(uint8_t j = 0; j < sizeof(float); ++j)
-            {
+            for(uint8_t j = 0; j < sizeof(float); ++j) {
                 if(0xff != reinterpret_cast<uint8_t*>(&(cs.max_feedrate_silent[i]))[j]) initialized = true;
             }
             if (!initialized) memcpy_P(&cs.max_feedrate_silent[i],&default_conf.max_feedrate_silent[i], sizeof(cs.max_feedrate_silent[i]));
@@ -299,16 +291,13 @@ bool Config_RetrieveSettings()
 		updatePID();
         SERIAL_ECHO_START;
         SERIAL_ECHOLNPGM("Stored settings retrieved");
-    }
-    else
-    {
+    } else {
         Config_ResetDefault();
 		//Return false to inform user that eeprom version was changed and firmware is using default hardcoded settings now.
 		//In case that storing to eeprom was not used yet, do not inform user that hardcoded settings are used.
 		if (eeprom_read_byte(reinterpret_cast<uint8_t*>(&(EEPROM_M500_base->version[0]))) != 0xFF ||
 			eeprom_read_byte(reinterpret_cast<uint8_t*>(&(EEPROM_M500_base->version[1]))) != 0xFF ||
-			eeprom_read_byte(reinterpret_cast<uint8_t*>(&(EEPROM_M500_base->version[2]))) != 0xFF)
-		{
+			eeprom_read_byte(reinterpret_cast<uint8_t*>(&(EEPROM_M500_base->version[2]))) != 0xFF) {
 			previous_settings_retrieved = false;
 		}
     }

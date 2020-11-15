@@ -2540,92 +2540,28 @@ void force_high_power_mode(bool start_high_power_section) {
 }
 #endif //TMC2130
 
-void gcode_M105(uint8_t extruder)
-{
-#if defined(TEMP_0_PIN) && TEMP_0_PIN > -1
-    SERIAL_PROTOCOLPGM("T:");
-    SERIAL_PROTOCOL_F(degHotend(extruder),1);
+//GCODE M105 : Get Extrider Temperature
+void gcode_M105(uint8_t extruder) {
+  for (int8_t cur_extruder = 0; cur_extruder < EXTRUDERS; ++cur_extruder) {
+    SERIAL_PROTOCOLPGM(" T");
+    SERIAL_PROTOCOL(cur_extruder);
+    SERIAL_PROTOCOL(':');
+    SERIAL_PROTOCOL_F(degHotend(cur_extruder),1);
     SERIAL_PROTOCOLPGM(" /");
-    SERIAL_PROTOCOL_F(degTargetHotend(extruder),1);
-#if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
+    SERIAL_PROTOCOL_F(degTargetHotend(cur_extruder),1);
+  }
+  #if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
     SERIAL_PROTOCOLPGM(" B:");
     SERIAL_PROTOCOL_F(degBed(),1);
     SERIAL_PROTOCOLPGM(" /");
     SERIAL_PROTOCOL_F(degTargetBed(),1);
-#endif //TEMP_BED_PIN
-    for (int8_t cur_extruder = 0; cur_extruder < EXTRUDERS; ++cur_extruder) {
-        SERIAL_PROTOCOLPGM(" T");
-        SERIAL_PROTOCOL(cur_extruder);
-        SERIAL_PROTOCOL(':');
-        SERIAL_PROTOCOL_F(degHotend(cur_extruder),1);
-        SERIAL_PROTOCOLPGM(" /");
-        SERIAL_PROTOCOL_F(degTargetHotend(cur_extruder),1);
-    }
-#else
-    SERIAL_ERROR_START;
-    SERIAL_ERRORLNRPGM(_i("No thermistors - no temperature"));////MSG_ERR_NO_THERMISTORS
-#endif
-
-    SERIAL_PROTOCOLPGM(" @:");
-#ifdef EXTRUDER_WATTS
-    SERIAL_PROTOCOL((EXTRUDER_WATTS * getHeaterPower(tmp_extruder))/127);
-    SERIAL_PROTOCOLPGM("W");
-#else
-    SERIAL_PROTOCOL(getHeaterPower(extruder));
-#endif
-
-    SERIAL_PROTOCOLPGM(" B@:");
-#ifdef BED_WATTS
-    SERIAL_PROTOCOL((BED_WATTS * getHeaterPower(-1))/127);
-    SERIAL_PROTOCOLPGM("W");
-#else
-    SERIAL_PROTOCOL(getHeaterPower(-1));
-#endif
-
-#ifdef PINDA_THERMISTOR
+  #endif
+  #if defined(TEMP_PINDA_PIN) && TEMP_PINDA_PIN > -1
     SERIAL_PROTOCOLPGM(" P:");
     SERIAL_PROTOCOL_F(current_temperature_pinda,1);
-#endif //PINDA_THERMISTOR
+    SERIAL_PROTOCOLPGM(" /0");
+  #endif
 
-#ifdef AMBIENT_THERMISTOR
-    SERIAL_PROTOCOLPGM(" A:");
-    SERIAL_PROTOCOL_F(current_temperature_ambient,1);
-#endif //AMBIENT_THERMISTOR
-
-
-#ifdef SHOW_TEMP_ADC_VALUES
-    {
-        float raw = 0.0;
-#if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
-        SERIAL_PROTOCOLPGM("    ADC B:");
-        SERIAL_PROTOCOL_F(degBed(),1);
-        SERIAL_PROTOCOLPGM("C->");
-        raw = rawBedTemp();
-        SERIAL_PROTOCOL_F(raw/OVERSAMPLENR,5);
-        SERIAL_PROTOCOLPGM(" Rb->");
-        SERIAL_PROTOCOL_F(100 * (1 + (PtA * (raw/OVERSAMPLENR)) + (PtB * sq((raw/OVERSAMPLENR)))), 5);
-        SERIAL_PROTOCOLPGM(" Rxb->");
-        SERIAL_PROTOCOL_F(raw, 5);
-#endif
-        for (int8_t cur_extruder = 0; cur_extruder < EXTRUDERS; ++cur_extruder) {
-            SERIAL_PROTOCOLPGM("  T");
-            SERIAL_PROTOCOL(cur_extruder);
-            SERIAL_PROTOCOLPGM(":");
-            SERIAL_PROTOCOL_F(degHotend(cur_extruder),1);
-            SERIAL_PROTOCOLPGM("C->");
-            raw = rawHotendTemp(cur_extruder);
-            SERIAL_PROTOCOL_F(raw/OVERSAMPLENR,5);
-            SERIAL_PROTOCOLPGM(" Rt");
-            SERIAL_PROTOCOL(cur_extruder);
-            SERIAL_PROTOCOLPGM("->");
-            SERIAL_PROTOCOL_F(100 * (1 + (PtA * (raw/OVERSAMPLENR)) + (PtB * sq((raw/OVERSAMPLENR)))), 5);
-            SERIAL_PROTOCOLPGM(" Rx");
-            SERIAL_PROTOCOL(cur_extruder);
-            SERIAL_PROTOCOLPGM("->");
-            SERIAL_PROTOCOL_F(raw, 5);
-        }
-    }
-#endif
     SERIAL_PROTOCOLLN("");
     KEEPALIVE_STATE(NOT_BUSY);
 }
@@ -9334,21 +9270,25 @@ void handle_status_leds(void) {
  *
  * If safetytimer_inactive_time is zero, feature is disabled (heating is never turned off because of inactivity)
  */
+//Modified 10 Nov 2020 - Parker Drouillard
 static void handleSafetyTimer()
 {
-#if (EXTRUDERS > 1)
-#error Implemented only for one extruder.
+#if (EXTRUDERS > 2)
+#error Implemented for no more than 2 extruders
 #endif //(EXTRUDERS > 1)
-    if ((PRINTER_ACTIVE) || (!degTargetBed() && !degTargetHotend(0)) || (!safetytimer_inactive_time))
-    {
+    if ((PRINTER_ACTIVE) || (!degTargetBed() && !degTargetHotend(0) 
+      #if (EXTRUDERS > 1)
+        && !degTargetHotend(1)
+      #endif
+      ) || (!safetytimer_inactive_time)) {
         safetyTimer.stop();
-    }
-    else if ((degTargetBed() || degTargetHotend(0)) && (!safetyTimer.running()))
-    {
+    } else if ((degTargetBed() || degTargetHotend(0)
+    #if (EXTRUDERS > 1)
+     || degTargetHotend(1)
+     #endif
+     ) && (!safetyTimer.running())) {
         safetyTimer.start();
-    }
-    else if (safetyTimer.expired(farm_mode?FARM_DEFAULT_SAFETYTIMER_TIME_ms:safetytimer_inactive_time))
-    {
+    } else if (safetyTimer.expired(farm_mode?FARM_DEFAULT_SAFETYTIMER_TIME_ms:safetytimer_inactive_time)) {
         setTargetBed(0);
         setAllTargetHotends(0);
         lcd_show_fullscreen_message_and_wait_P(_i("Heating disabled by safety timer."));////MSG_BED_HEATING_SAFETY_DISABLED
@@ -9492,8 +9432,7 @@ static uint16_t nFSCheckCount=0;
     if(max_inactive_time)
       kill(_n("Inactivity Shutdown"), 4);
   if(stepper_inactive_time)  {
-    if( (_millis() - previous_millis_cmd) >  stepper_inactive_time )
-    {
+    if( (_millis() - previous_millis_cmd) >  stepper_inactive_time ) {
       if(blocks_queued() == false && ignore_stepper_queue == false) {
         disable_x();
         disable_y();

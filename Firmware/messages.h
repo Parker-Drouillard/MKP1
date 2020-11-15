@@ -145,6 +145,7 @@ extern const char MSG_IR_UNKNOWN[];
 #endif
 
 //not internationalized messages
+extern const char MSG_HOTEND_OFFSET[];
 extern const char MSG_BROWNOUT_RESET[];
 extern const char MSG_EXTERNAL_RESET[];
 extern const char MSG_FILE_SAVED[];

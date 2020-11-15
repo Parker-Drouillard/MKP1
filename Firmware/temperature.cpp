@@ -1186,9 +1186,8 @@ void tp_init() {
 }
 
 #if (defined (TEMP_RUNAWAY_BED_HYSTERESIS) && TEMP_RUNAWAY_BED_TIMEOUT > 0) || (defined (TEMP_RUNAWAY_EXTRUDER_HYSTERESIS) && TEMP_RUNAWAY_EXTRUDER_TIMEOUT > 0)
-void temp_runaway_check(int _heater_id, float _target_temperature, float _current_temperature, float _output, bool _isbed)
-{
-     float __delta;
+void temp_runaway_check(int _heater_id, float _target_temperature, float _current_temperature, float _output, bool _isbed) {
+  float __delta;
 	float __hysteresis = 0;
 	int __timeout = 0;
 	bool temp_runaway_check_active = false;
@@ -1197,82 +1196,53 @@ void temp_runaway_check(int _heater_id, float _target_temperature, float _curren
 	static int __preheat_errors[2] = { 0,0};
 		
 
-	if (_millis() - temp_runaway_timer[_heater_id] > 2000)
-	{
-
+	if (_millis() - temp_runaway_timer[_heater_id] > 2000) {
 #ifdef 	TEMP_RUNAWAY_BED_TIMEOUT
-          if (_isbed)
-          {
-               __hysteresis = TEMP_RUNAWAY_BED_HYSTERESIS;
-               __timeout = TEMP_RUNAWAY_BED_TIMEOUT;
-          }
+    if (_isbed) {
+      __hysteresis = TEMP_RUNAWAY_BED_HYSTERESIS;
+      __timeout = TEMP_RUNAWAY_BED_TIMEOUT;
+    }
 #endif
 #ifdef 	TEMP_RUNAWAY_EXTRUDER_TIMEOUT
-          if (!_isbed)
-          {
-               __hysteresis = TEMP_RUNAWAY_EXTRUDER_HYSTERESIS;
-               __timeout = TEMP_RUNAWAY_EXTRUDER_TIMEOUT;
-          }
+    if (!_isbed) {
+      __hysteresis = TEMP_RUNAWAY_EXTRUDER_HYSTERESIS;
+      __timeout = TEMP_RUNAWAY_EXTRUDER_TIMEOUT;
+    }
 #endif
-
 		temp_runaway_timer[_heater_id] = _millis();
-		if (_output == 0)
-		{
+		if (_output == 0) {
 			temp_runaway_check_active = false;
 			temp_runaway_error_counter[_heater_id] = 0;
 		}
 
-		if (temp_runaway_target[_heater_id] != _target_temperature)
-		{
-			if (_target_temperature > 0)
-			{
+		if (temp_runaway_target[_heater_id] != _target_temperature) {
+			if (_target_temperature > 0) {
 				temp_runaway_status[_heater_id] = TempRunaway_PREHEAT;
 				temp_runaway_target[_heater_id] = _target_temperature;
 				__preheat_start[_heater_id] = _current_temperature;
 				__preheat_counter[_heater_id] = 0;
-			}
-			else
-			{
+			}	else {
 				temp_runaway_status[_heater_id] = TempRunaway_INACTIVE;
 				temp_runaway_target[_heater_id] = _target_temperature;
 			}
 		}
 
-		if ((_current_temperature < _target_temperature)  && (temp_runaway_status[_heater_id] == TempRunaway_PREHEAT))
-		{
+		if ((_current_temperature < _target_temperature)  && (temp_runaway_status[_heater_id] == TempRunaway_PREHEAT)) {
 			__preheat_counter[_heater_id]++;
-			if (__preheat_counter[_heater_id] > ((_isbed) ? 16 : 8)) // periodicaly check if current temperature changes
-			{
-				/*SERIAL_ECHOPGM("Heater:");
-				MYSERIAL.print(_heater_id);
-				SERIAL_ECHOPGM(" T:");
-				MYSERIAL.print(_current_temperature);
-				SERIAL_ECHOPGM(" Tstart:");
-				MYSERIAL.print(__preheat_start[_heater_id]);
-				SERIAL_ECHOPGM(" delta:");
-				MYSERIAL.print(_current_temperature-__preheat_start[_heater_id]);*/
-				
-//-//				if (_current_temperature - __preheat_start[_heater_id] < 2) {
-//-//				if (_current_temperature - __preheat_start[_heater_id] < ((_isbed && (_current_temperature>105.0))?0.6:2.0)) {
-                    __delta=2.0;
-                    if(_isbed)
-                         {
-                         __delta=3.0;
-                         if(_current_temperature>90.0) __delta=2.0;
-                         if(_current_temperature>105.0) __delta=0.6;
-                         }
+			if (__preheat_counter[_heater_id] > ((_isbed) ? 16 : 8)) { // periodicaly check if current temperature changes
+        __delta=2.0;
+        if(_isbed) {
+          __delta=3.0;
+          if(_current_temperature>90.0) __delta=2.0;
+          if(_current_temperature>105.0) __delta=0.6;
+        }
 				if (_current_temperature - __preheat_start[_heater_id] < __delta) {
 					__preheat_errors[_heater_id]++;
-					/*SERIAL_ECHOPGM(" Preheat errors:");
-					MYSERIAL.println(__preheat_errors[_heater_id]);*/
-				}
-				else {
-					//SERIAL_ECHOLNPGM("");
+				} else {
 					__preheat_errors[_heater_id] = 0;
 				}
 
-				if (__preheat_errors[_heater_id] > ((_isbed) ? 3 : 5)) 
-				{
+				if (__preheat_errors[_heater_id] > ((_isbed) ? 3 : 5)) {
 					if (farm_mode) { prusa_statistics(0); }
 					temp_runaway_stop(true, _isbed);
 					if (farm_mode) { prusa_statistics(91); }
@@ -1282,38 +1252,25 @@ void temp_runaway_check(int _heater_id, float _target_temperature, float _curren
 			}
 		}
 
-//-//		if (_current_temperature >= _target_temperature  && temp_runaway_status[_heater_id] == TempRunaway_PREHEAT)
-		if ((_current_temperature > (_target_temperature - __hysteresis))  && temp_runaway_status[_heater_id] == TempRunaway_PREHEAT)
-		{
-			/*SERIAL_ECHOPGM("Heater:");
-			MYSERIAL.print(_heater_id);
-			MYSERIAL.println(" ->tempRunaway");*/
+		if ((_current_temperature > (_target_temperature - __hysteresis))  && temp_runaway_status[_heater_id] == TempRunaway_PREHEAT) {
 			temp_runaway_status[_heater_id] = TempRunaway_ACTIVE;
 			temp_runaway_check_active = false;
 			temp_runaway_error_counter[_heater_id] = 0;
 		}
 
-		if (_output > 0)
-		{
+		if (_output > 0) {
 			temp_runaway_check_active = true;
 		}
 
-
-		if (temp_runaway_check_active)
-		{			
+		if (temp_runaway_check_active)	{			
 			//	we are in range
-			if ((_current_temperature > (_target_temperature - __hysteresis)) && (_current_temperature < (_target_temperature + __hysteresis)))
-			{
+			if ((_current_temperature > (_target_temperature - __hysteresis)) && (_current_temperature < (_target_temperature + __hysteresis))) {
 				temp_runaway_check_active = false;
 				temp_runaway_error_counter[_heater_id] = 0;
-			}
-			else
-			{
-				if (temp_runaway_status[_heater_id] > TempRunaway_PREHEAT)
-				{
+			} else {
+				if (temp_runaway_status[_heater_id] > TempRunaway_PREHEAT) {
 					temp_runaway_error_counter[_heater_id]++;
-					if (temp_runaway_error_counter[_heater_id] * 2 > __timeout)
-					{
+					if (temp_runaway_error_counter[_heater_id] * 2 > __timeout) {
 						if (farm_mode) { prusa_statistics(0); }
 						temp_runaway_stop(false, _isbed);
 						if (farm_mode) { prusa_statistics(90); }
@@ -1325,12 +1282,10 @@ void temp_runaway_check(int _heater_id, float _target_temperature, float _curren
 	}
 }
 
-void temp_runaway_stop(bool isPreheat, bool isBed)
-{
+void temp_runaway_stop(bool isPreheat, bool isBed) {
 	cancel_heatup = true;
 	quickStop();
-	if (card.sdprinting)
-	{
+	if (card.sdprinting) {
 		card.sdprinting = false;
 		card.closefile();
 	}
@@ -1348,8 +1303,7 @@ void temp_runaway_stop(bool isPreheat, bool isBed)
 	lcd_update(0);
   Sound_MakeCustom(200,0,true);
 	
-  if (isPreheat)
-	{
+  if (isPreheat) {
 		Stop();
 		isBed ? LCD_ALERTMESSAGEPGM("BED PREHEAT ERROR") : LCD_ALERTMESSAGEPGM("PREHEAT ERROR");
 		SERIAL_ERROR_START;
@@ -1360,18 +1314,18 @@ void temp_runaway_stop(bool isPreheat, bool isBed)
 #ifdef FANCHECK
 		setExtruderAutoFanState(3);
 #endif
-		SET_OUTPUT(FAN_PIN);
+#if defined(FAN_PIN) && FAN_PIN > -1
+  SET_OUTPUT(FAN_PIN);
+
 #ifdef FAN_SOFT_PWM
 		fanSpeedSoftPwm = 255;
 #else //FAN_SOFT_PWM
 		analogWrite(FAN_PIN, 255);
 #endif //FAN_SOFT_PWM
-
+#endif
 		fanSpeed = 255;
 		delayMicroseconds(2000);
-	}
-	else
-	{
+	}	else {
 		isBed ? LCD_ALERTMESSAGEPGM("BED THERMAL RUNAWAY") : LCD_ALERTMESSAGEPGM("THERMAL RUNAWAY");
 		SERIAL_ERROR_START;
 		isBed ? SERIAL_ERRORLNPGM(" HEATBED THERMAL RUNAWAY") : SERIAL_ERRORLNPGM(" HOTEND THERMAL RUNAWAY");
@@ -1380,8 +1334,7 @@ void temp_runaway_stop(bool isPreheat, bool isBed)
 #endif
 
 
-void disable_heater()
-{
+void disable_heater() {
   setAllTargetHotends(0);
   setTargetBed(0);
   #if defined(TEMP_0_PIN) && TEMP_0_PIN > -1
@@ -1432,8 +1385,7 @@ uint8_t last_alert_sent_to_lcd = LCDALERT_NONE;
 //! update the current temperature error message
 //! @param type short error abbreviation (PROGMEM)
 //! @param func optional lcd update function (lcd_setalertstatus when first setting the error)
-void temp_update_messagepgm(const char* PROGMEM type, void (*func)(const char*) = lcd_updatestatus)
-{
+void temp_update_messagepgm(const char* PROGMEM type, void (*func)(const char*) = lcd_updatestatus) {
     char msg[LCD_WIDTH];
     strcpy_P(msg, PSTR("Err: "));
     strcat_P(msg, type);
@@ -1443,8 +1395,7 @@ void temp_update_messagepgm(const char* PROGMEM type, void (*func)(const char*) 
 //! signal a temperature error on both the lcd and serial
 //! @param type short error abbreviation (PROGMEM)
 //! @param e optional extruder index for hotend errors
-void temp_error_messagepgm(const char* PROGMEM type, uint8_t e = EXTRUDERS)
-{
+void temp_error_messagepgm(const char* PROGMEM type, uint8_t e = EXTRUDERS) {
     temp_update_messagepgm(type, lcd_setalertstatus);
 
     SERIAL_ERROR_START;
@@ -1469,9 +1420,11 @@ void max_temp_error(uint8_t e) {
   Stop();
   #endif
 
+  #if defined(FAN_PIN) && FAN_PIN > -1
     SET_OUTPUT(FAN_PIN);
-    SET_OUTPUT(BEEPER);
     WRITE(FAN_PIN, 1);
+    #endif
+    SET_OUTPUT(BEEPER);
     WRITE(BEEPER, 1);
 #ifdef EXTRUDER_ALTFAN_DETECT
     altfanStatus.altfanOverride = 1; //full speed
@@ -1626,9 +1579,11 @@ int read_max6675()
 extern "C" {
 
 
-void adc_ready(void) //callback from adc when sampling finished
-{
+void adc_ready(void) { //callback from adc when sampling finished
 	current_temperature_raw[0] = adc_values[ADC_PIN_IDX(TEMP_0_PIN)]; //heater
+#if EXTRUDERS > 1
+  current_temperature_raw[1] = adc_values[ADC_PIN_IDX(TEMP_1_PIN)]; //Heater 2
+#endif
 #ifdef PINDA_THERMISTOR
 	current_temperature_raw_pinda_fast = adc_values[ADC_PIN_IDX(TEMP_PINDA_PIN)];
 #endif //PINDA_THERMISTOR
@@ -1692,11 +1647,9 @@ FORCE_INLINE static void temperature_isr()
   /*
    * standard PWM modulation
    */
-  if (pwm_count == 0)
-  {
+  if (pwm_count == 0) {
     soft_pwm_0 = soft_pwm[0];
-    if(soft_pwm_0 > 0)
-	{ 
+    if(soft_pwm_0 > 0) { 
       WRITE(HEATER_0_PIN,1);
 #ifdef HEATERS_PARALLEL
       WRITE(HEATER_1_PIN,1);
@@ -1704,7 +1657,7 @@ FORCE_INLINE static void temperature_isr()
     } else WRITE(HEATER_0_PIN,0);
 #if EXTRUDERS > 1
     soft_pwm_1 = soft_pwm[1];
-    if(soft_pwm_1 > 0) WRITE(HEATER_1_PIN,1); else WRITE(HEATER_1_PIN,0);
+    if(soft_pwm_1 > 0) {WRITE(HEATER_1_PIN,1);} else {WRITE(HEATER_1_PIN,0);}
 #endif
 #if EXTRUDERS > 2
     soft_pwm_2 = soft_pwm[2];

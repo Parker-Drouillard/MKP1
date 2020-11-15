@@ -157,13 +157,11 @@ static inline int8_t prev_block_index(int8_t block_index) {
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the 
 // given acceleration:
-FORCE_INLINE float estimate_acceleration_distance(float initial_rate, float target_rate, float acceleration)
-{
+FORCE_INLINE float estimate_acceleration_distance(float initial_rate, float target_rate, float acceleration) {
   if (acceleration!=0) {
     return((target_rate*target_rate-initial_rate*initial_rate)/
       (2.0*acceleration));
-  }
-  else {
+  } else {
     return 0.0;  // acceleration was 0, set acceleration distance to 0
   }
 }
@@ -173,13 +171,10 @@ FORCE_INLINE float estimate_acceleration_distance(float initial_rate, float targ
 // a total travel of distance. This can be used to compute the intersection point between acceleration and
 // deceleration in the cases where the trapezoid has no plateau (i.e. never reaches maximum speed)
 
-FORCE_INLINE float intersection_distance(float initial_rate, float final_rate, float acceleration, float distance) 
-{
+FORCE_INLINE float intersection_distance(float initial_rate, float final_rate, float acceleration, float distance) {
   if (acceleration!=0) {
-    return((2.0*acceleration*distance-initial_rate*initial_rate+final_rate*final_rate)/
-      (4.0*acceleration) );
-  }
-  else {
+    return((2.0*acceleration*distance-initial_rate*initial_rate+final_rate*final_rate)/(4.0*acceleration) );
+  } else {
     return 0.0;  // acceleration was 0, set intersection distance to 0
   }
 }
@@ -188,8 +183,7 @@ FORCE_INLINE float intersection_distance(float initial_rate, float final_rate, f
 #define MINIMAL_STEP_RATE 120
 
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
-void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit_speed) 
-{
+void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit_speed) {
   // These two lines are the only floating point calculations performed in this routine.
   // initial_rate, final_rate in Hz.
   // Minimum stepper rate 120Hz, maximum 40kHz. If the stepper rate goes above 10kHz,
@@ -198,19 +192,24 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
   uint32_t final_rate   = ceil(exit_speed  * block->speed_factor); // (step/min)
 
   // Limit minimal step rate (Otherwise the timer will overflow.)
-  if (initial_rate < MINIMAL_STEP_RATE)
-      initial_rate = MINIMAL_STEP_RATE;
-  if (initial_rate > block->nominal_rate)
-      initial_rate = block->nominal_rate;
-  if (final_rate < MINIMAL_STEP_RATE)
-      final_rate = MINIMAL_STEP_RATE;
-  if (final_rate > block->nominal_rate)
-      final_rate = block->nominal_rate;
+  if (initial_rate < MINIMAL_STEP_RATE) {
+    initial_rate = MINIMAL_STEP_RATE;
+  }
+  if (initial_rate > block->nominal_rate) {
+    initial_rate = block->nominal_rate;
+  }
+  if (final_rate < MINIMAL_STEP_RATE) {
+    final_rate = MINIMAL_STEP_RATE;
+  }
+  if (final_rate > block->nominal_rate) {
+    final_rate = block->nominal_rate;
+  }
 
   uint32_t acceleration      = block->acceleration_st;
-  if (acceleration == 0)
-      // Don't allow zero acceleration.
-      acceleration = 1;
+  if (acceleration == 0) {
+    // Don't allow zero acceleration.
+    acceleration = 1;
+  }
   // estimate_acceleration_distance(float initial_rate, float target_rate, float acceleration)
   // (target_rate*target_rate-initial_rate*initial_rate)/(2.0*acceleration));
   uint32_t initial_rate_sqr  = initial_rate*initial_rate;
@@ -353,8 +352,7 @@ FORCE_INLINE float max_allowable_entry_speed(float decceleration, float target_v
 // https://courses.cit.cornell.edu/ee476/Math/
 // https://courses.cit.cornell.edu/ee476/Math/GCC644/fixedPt/multASM.S
 //
-void planner_recalculate(const float &safe_final_speed) 
-{
+void planner_recalculate(const float &safe_final_speed)  {
     // Reverse pass
     // Make a local copy of block_buffer_tail, because the interrupt can alter it
     // by consuming the blocks, therefore shortening the queue.
@@ -514,15 +512,12 @@ void getHighESpeed()
 }
 #endif
 
-bool e_active()
-{
+bool e_active() {
 	unsigned char e_active = 0;
 	block_t *block;
-  if(block_buffer_tail != block_buffer_head)
-  {
+  if(block_buffer_tail != block_buffer_head) {
     uint8_t block_index = block_buffer_tail;
-    while(block_index != block_buffer_head)
-    {
+    while(block_index != block_buffer_head) {
       block = &block_buffer[block_index];
       if(block->steps_e.wide != 0) e_active++;
       block_index = (block_index+1) & (BLOCK_BUFFER_SIZE - 1);
@@ -531,8 +526,7 @@ bool e_active()
   return (e_active > 0) ? true : false ;
 }
 
-void check_axes_activity()
-{
+void check_axes_activity() {
   unsigned char x_active = 0;
   unsigned char y_active = 0;  
   unsigned char z_active = 0;
@@ -540,12 +534,10 @@ void check_axes_activity()
   unsigned char tail_fan_speed = fanSpeed;
   block_t *block;
 
-  if(block_buffer_tail != block_buffer_head)
-  {
+  if(block_buffer_tail != block_buffer_head) {
     uint8_t block_index = block_buffer_tail;
     tail_fan_speed = block_buffer[block_index].fan_speed;
-    while(block_index != block_buffer_head)
-    {
+    while(block_index != block_buffer_head) {
       block = &block_buffer[block_index];
       if(block->steps_x.wide != 0) x_active++;
       if(block->steps_y.wide != 0) y_active++;
@@ -557,8 +549,7 @@ void check_axes_activity()
   if((DISABLE_X) && (x_active == 0)) disable_x();
   if((DISABLE_Y) && (y_active == 0)) disable_y();
   if((DISABLE_Z) && (z_active == 0)) disable_z();
-  if((DISABLE_E) && (e_active == 0))
-  {
+  if((DISABLE_E) && (e_active == 0)) {
     disable_e0();
     disable_e1();
     disable_e2(); 
@@ -618,8 +609,7 @@ static inline void planner_update_queue_min_counter()
 
 extern volatile uint32_t step_events_completed; // The number of step events executed in the current block
 
-void planner_abort_hard()
-{
+void planner_abort_hard() {
     // Abort the stepper routine and flush the planner queue.
     DISABLE_STEPPER_DRIVER_INTERRUPT();
 
@@ -837,10 +827,8 @@ void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate
   target[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS]);
   
   #ifdef PREVENT_DANGEROUS_EXTRUDE
-  if(target[E_AXIS]!=position[E_AXIS])
-  {
-    if(degHotend(active_extruder)<extrude_min_temp)
-    {
+  if(target[E_AXIS]!=position[E_AXIS]) {
+    if(degHotend(active_extruder)<extrude_min_temp) {
       position[E_AXIS]=target[E_AXIS]; //behave as if the move really took place, but ignore E part
       #ifdef LIN_ADVANCE
       position_float[E_AXIS] = e;
