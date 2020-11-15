@@ -1399,7 +1399,7 @@ void temp_error_messagepgm(const char* PROGMEM type, uint8_t e = EXTRUDERS) {
     temp_update_messagepgm(type, lcd_setalertstatus);
 
     SERIAL_ERROR_START;
-    
+
     if(e != EXTRUDERS) {
         SERIAL_ERROR((int)e);
         SERIAL_ERRORPGM(": ");
@@ -2067,51 +2067,32 @@ static alert_automaton_mintemp alert_automaton_hotend(m2hotend), alert_automaton
 //Function to check the status of chosen extruder for mintemp error
 //Created 15 Nov 2020 - Parker Drouillard - Parker@pepcorp.ca
 //Supports up to 3 extruders.
-void check_min_temp_heater(uint8_t extruder){
-  switch(extruder){
-#if EXTRUDERS > 0
-    case 0:
+void check_min_temp_heater(){
   #if HEATER_0_RAW_LO_TEMP > HEATER_0_RAW_HI_TEMP
-      if(current_temperature_raw[0] >= minttemp_raw[0]) {
-  #else 
-      if(current_temperature_raw[0] <= minttemp_raw[0]) {
-  #endif
-        menu_set_serious_error(SERIOUS_ERR_MINTEMP_HEATER);
-		    min_temp_error(0);
-      } else if( menu_is_serious_error(SERIOUS_ERR_MINTEMP_HEATER) ) {
-        alert_automaton_hotend.step(current_temperature[0], minttemp[0] + TEMP_HYSTERESIS);
-      }
-    break;
-#endif
-#if EXTRUDERS > 1
-    case 1:
-  #if HEATER_1_RAW_LO_TEMP > HEATER_1_RAW_HI_TEMP
-      if(current_temperature_raw[1] >= minttemp_raw[1]) {
+  if (current_temperature_raw[0] >= minttemp_raw[0]){
   #else
-      if(current_temperature_raw[1] <= minttemp_raw[1]) {
+  if (current_temperature_raw[0] <= minttemp_raw[0]){
   #endif
-        menu_set_serious_error(SERIOUS_ERR_MINTEMP_HEATER);
-		    min_temp_error(1);
-      } else if( menu_is_serious_error(SERIOUS_ERR_MINTEMP_HEATER) ) {
-        alert_automaton_hotend.step(current_temperature[1], minttemp[1] + TEMP_HYSTERESIS);
-      }
-    break;
+    min_temp_error(0);
+  }
+#if EXTRUDERS > 1
+  #if HEATER_1_RAW_LO_TEMP > HEATER_1_RAW_HI_TEMP
+  if (current_temperature_raw[1] >= minttemp_raw[1]){
+  #else
+  if (current_temperature_raw[1] <= minttemp_raw[1]){
+  #endif
+    min_temp_error(1);
+  }
 #endif
 #if EXTRUDERS > 2
-    case 2:
-      #if HEATER_2_RAW_LO_TEMP > HEATER_2_RAW_HI_TEMP
-      if(current_temperature_raw[1] <= minttemp_raw[1]) {
+  #if HEATER_2_RAW_LO_TEMP > HEATER_2_RAW_HI_TEMP
+  if (current_temperature_raw[2] >= minttemp_raw[2]){
   #else
-      if(current_temperature_raw[1] >= minttemp_raw[1]) {
+  if (current_temperature_raw[2] <= minttemp_raw[2]){
   #endif
-        menu_set_serious_error(SERIOUS_ERR_MINTEMP_HEATER);
-		    min_temp_error(2);
-      } else if( menu_is_serious_error(SERIOUS_ERR_MINTEMP_HEATER) ) {
-        alert_automaton_hotend.step(current_temperature[2], minttemp[2] + TEMP_HYSTERESIS);
-      }
-    break;
-#endif
+    min_temp_error(2);
   }
+#endif
 }
 
 void check_min_temp_bed() {
@@ -2143,53 +2124,8 @@ void check_min_temp_ambient()
 #endif
 
 void check_min_temp() {
-  static bool bCheckingOnHeater=false;              // state variable, which allows to short no-checking delay (is set, when temperature is (first time) over heaterMintemp)
-  static bool bCheckingOnBed=false;                 // state variable, which allows to short no-checking delay (is set, when temperature is (first time) over bedMintemp)
-#ifdef AMBIENT_THERMISTOR
-#ifdef AMBIENT_MINTEMP
-  check_min_temp_ambient();
-#endif
-#if AMBIENT_RAW_LO_TEMP > AMBIENT_RAW_HI_TEMP
-  if(current_temperature_raw_ambient>(OVERSAMPLENR*MINTEMP_MINAMBIENT_RAW)) // thermistor is NTC type
-#else
-  if(current_temperature_raw_ambient=<(OVERSAMPLENR*MINTEMP_MINAMBIENT_RAW))
-#endif
-     {                                            // ambient temperature is low
-#endif //AMBIENT_THERMISTOR
-// *** 'common' part of code for MK2.5 & MK3
-// * nozzle checking  
-  for(int ecount = 0; ecount < EXTRUDERS; ecount++){
-    if(isHeatingHotend(ecount)){
-      bCheckingOnHeater=bCheckingOnHeater||(current_temperature[ecount]>(minttemp[ecount]+TEMP_HYSTERESIS)); // for eventual delay cutting
-      if(oTimer4minTempHeater[ecount].expired(HEATER_MINTEMP_DELAY)||(!oTimer4minTempHeater[ecount].running())||bCheckingOnHeater) {
-        bCheckingOnHeater=true;                 // not necessary
-        check_min_temp_heater(ecount);               // delay is elapsed or temperature is/was over minTemp => periodical checking is active
-      }
-    } else {                                            // ~ nozzle heating is off
-      oTimer4minTempHeater[ecount].start(); //Start target extruder mintemp timer
-      bCheckingOnHeater=false;
-    }
-  }
-// * bed checking
-if(target_temperature_bed>BED_MINTEMP) {   // ~ bed heating is on
-     bCheckingOnBed=bCheckingOnBed||(current_temperature_bed>(BED_MINTEMP+TEMP_HYSTERESIS)); // for eventually delay cutting
-     if(oTimer4minTempBed.expired(BED_MINTEMP_DELAY)||(!oTimer4minTempBed.running())||bCheckingOnBed)
-          {
-          bCheckingOnBed=true;                    // not necessary
-		check_min_temp_bed();                   // delay is elapsed or temperature is/was over minTemp => periodical checking is active
-          }
-     } else {                                            // ~ bed heating is off
-      oTimer4minTempBed.start();
-      bCheckingOnBed=false;
-     }
-// *** end of 'common' part
-#ifdef AMBIENT_THERMISTOR
-     }
-else {                                            // ambient temperature is standard
-     check_min_temp_heater(0);
-     check_min_temp_bed();
-     }
-#endif //AMBIENT_THERMISTOR
+  check_min_temp_heater();
+  check_min_temp_bed();
 }
  
 #if (defined(FANCHECK) && defined(TACH_0) && (TACH_0 > -1))
