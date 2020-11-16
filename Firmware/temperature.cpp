@@ -660,8 +660,8 @@ void manage_heater() {
   // ADC values need to be converted before checking: converted values are later used in MINTEMP
   updateTemperaturesFromRawValues();
 
-  check_max_temp();
-  check_min_temp();
+  // check_max_temp();
+  // check_min_temp();
 
 #ifdef TEMP_RUNAWAY_BED_HYSTERESIS
   temp_runaway_check(0, target_temperature_bed, current_temperature_bed, (int)soft_pwm_bed, true);
@@ -812,12 +812,16 @@ void manage_heater() {
 
   pid_output = pTerm_bed + iTerm_bed - dTerm_bed;
   if (pid_output > MAX_BED_POWER) {
-    if (pid_error_bed > 0 )  temp_iState_bed -= pid_error_bed; // conditional un-integration
-      pid_output=MAX_BED_POWER;
+    if (pid_error_bed > 0 ) {
+      temp_iState_bed -= pid_error_bed;
+    } // conditional un-integration
+    pid_output=MAX_BED_POWER;
     } else if (pid_output < 0){
-      if (pid_error_bed < 0 )  temp_iState_bed -= pid_error_bed; // conditional un-integration
-        pid_output=0;
-      }
+      if (pid_error_bed < 0 ) { 
+        temp_iState_bed -= pid_error_bed;
+      } // conditional un-integration
+      pid_output=0;
+    }
     #else 
       pid_output = constrain(target_temperature_bed, 0, MAX_BED_POWER);
     #endif //PID_OPENLOOP
@@ -1191,9 +1195,9 @@ void temp_runaway_check(int _heater_id, float _target_temperature, float _curren
 	float __hysteresis = 0;
 	int __timeout = 0;
 	bool temp_runaway_check_active = false;
-	static float __preheat_start[2] = { 0,0}; //currently just bed and one extruder
-	static int __preheat_counter[2] = { 0,0};
-	static int __preheat_errors[2] = { 0,0};
+	static float __preheat_start[3] = { 0,0,0}; //currently just bed and two extruder
+	static int __preheat_counter[3] = { 0,0,0};
+	static int __preheat_errors[3] = { 0,0,0};
 		
 
 	if (_millis() - temp_runaway_timer[_heater_id] > 2000) {

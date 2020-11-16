@@ -2138,27 +2138,19 @@ void mFilamentBack()
     }
 }
 
-void lcd_generic_preheat_menu()
-{
+void lcd_generic_preheat_menu() {
     MENU_BEGIN();
-    if (!eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE))
-    {
-        if (eFilamentAction == FilamentAction::Lay1Cal)
-        {
+    if (!eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE)) {
+        if (eFilamentAction == FilamentAction::Lay1Cal) {
             MENU_ITEM_FUNCTION_P(_T(MSG_BACK), mFilamentBack);
-        }
-        else
-        {
+        } else {
             MENU_ITEM_FUNCTION_P(_T(MSG_MAIN), mFilamentBack);
         }
     }
-    if (farm_mode)
-    {
+    if (farm_mode) {
         MENU_ITEM_FUNCTION_P(PSTR("farm   -  " STRINGIFY(FARM_PREHEAT_HOTEND_TEMP) "/" STRINGIFY(FARM_PREHEAT_HPB_TEMP)), mFilamentItem_farm);
         MENU_ITEM_FUNCTION_P(PSTR("nozzle -  " STRINGIFY(FARM_PREHEAT_HOTEND_TEMP) "/0"), mFilamentItem_farm_nozzle);
-    }
-    else
-    {
+    } else {
         MENU_ITEM_SUBMENU_P(PSTR("PLA  -  " STRINGIFY(PLA_PREHEAT_HOTEND_TEMP) "/" STRINGIFY(PLA_PREHEAT_HPB_TEMP)),mFilamentItem_PLA);
         MENU_ITEM_SUBMENU_P(PSTR("PET  -  " STRINGIFY(PET_PREHEAT_HOTEND_TEMP) "/" STRINGIFY(PET_PREHEAT_HPB_TEMP)),mFilamentItem_PET);
         MENU_ITEM_SUBMENU_P(PSTR("ASA  -  " STRINGIFY(ASA_PREHEAT_HOTEND_TEMP) "/" STRINGIFY(ASA_PREHEAT_HPB_TEMP)),mFilamentItem_ASA);
@@ -2172,20 +2164,17 @@ void lcd_generic_preheat_menu()
     MENU_END();
 }
 
-void mFilamentItemForce()
-{
+void mFilamentItemForce() {
 mFilamentItem(target_temperature[0],target_temperature_bed);
 }
 
 
-void lcd_unLoadFilament()
-{
+void lcd_unLoadFilament() {
      eFilamentAction=FilamentAction::UnLoad;
      preheat_or_continue();
 }
 
-static void mmu_unload_filament()
-{
+static void mmu_unload_filament() {
     eFilamentAction = FilamentAction::MmuUnLoad;
     preheat_or_continue();
 }
@@ -2209,18 +2198,12 @@ void lcd_wait_interact() {
 
 
 void lcd_change_success() {
-
   lcd_clear();
-
   lcd_set_cursor(0, 2);
-
   lcd_puts_P(_i("Change success!"));////MSG_CHANGE_SUCCESS
-
-
 }
 
 static void lcd_loading_progress_bar(uint16_t loading_time_ms) { 
-
 	for (uint_least8_t i = 0; i < 20; i++) {
 		lcd_set_cursor(i, 3);
 		lcd_print(".");
@@ -2247,12 +2230,8 @@ void lcd_loading_color() {
 
 
 void lcd_loading_filament() {
-
-
   lcd_clear();
-
   lcd_set_cursor(0, 0);
-
   lcd_puts_P(_T(MSG_LOADING_FILAMENT));
   lcd_set_cursor(0, 2);
   lcd_puts_P(_T(MSG_PLEASE_WAIT));
@@ -2283,9 +2262,6 @@ void lcd_loading_filament() {
 void lcd_alright() {
   int enc_dif = 0;
   int cursor_pos = 1;
-
-
-
 
   lcd_clear();
 

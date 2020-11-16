@@ -157,26 +157,6 @@ uint8_t menu_item_ret(void)
 	return 1;
 }
 
-/*
-int menu_draw_item_printf_P(char type_char, const char* format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	int ret = 0;
-    lcd_set_cursor(0, menu_row);
-	if (lcd_encoder == menu_item)
-		lcd_print('>');
-	else
-		lcd_print(' ');
-	int cnt = vfprintf_P(lcdout, format, args);
-	for (int i = cnt; i < 18; i++)
-		lcd_print(' ');
-	lcd_print(type_char);
-	va_end(args);
-	return ret;
-}
-*/
-
 static char menu_selection_mark(){
 	return (lcd_encoder == menu_item)?'>':' ';
 }
@@ -283,13 +263,10 @@ uint8_t menu_item_text_P(const char* str)
 	return 0;
 }
 
-uint8_t menu_item_submenu_P(const char* str, menu_func_t submenu)
-{
-	if (menu_item == menu_line)
-	{
-		if (lcd_draw_update) menu_draw_item_puts_P(LCD_STR_ARROW_RIGHT[0], str);
-		if (menu_clicked && (lcd_encoder == menu_item))
-		{
+uint8_t menu_item_submenu_P(const char* str, menu_func_t submenu) {
+	if (menu_item == menu_line) {
+		if (lcd_draw_update) { menu_draw_item_puts_P(LCD_STR_ARROW_RIGHT[0], str); }
+		if (menu_clicked && (lcd_encoder == menu_item)) {
 			menu_submenu(submenu);
 			return menu_item_ret();
 		}
@@ -298,13 +275,10 @@ uint8_t menu_item_submenu_P(const char* str, menu_func_t submenu)
 	return 0;
 }
 
-uint8_t menu_item_submenu_E(const Sheet &sheet, menu_func_t submenu)
-{
-    if (menu_item == menu_line)
-    {
+uint8_t menu_item_submenu_E(const Sheet &sheet, menu_func_t submenu) {
+    if (menu_item == menu_line) {
         if (lcd_draw_update) menu_draw_item_puts_E(LCD_STR_ARROW_RIGHT[0], sheet);
-        if (menu_clicked && (lcd_encoder == menu_item))
-        {
+        if (menu_clicked && (lcd_encoder == menu_item)) {
             menu_submenu(submenu);
             return menu_item_ret();
         }
@@ -313,17 +287,14 @@ uint8_t menu_item_submenu_E(const Sheet &sheet, menu_func_t submenu)
     return 0;
 }
 
-uint8_t menu_item_function_E(const Sheet &sheet, menu_func_t func)
-{
-    if (menu_item == menu_line)
-    {
-        if (lcd_draw_update) menu_draw_item_select_sheet_E(' ', sheet);
-        if (menu_clicked && (lcd_encoder == menu_item))
-        {
+uint8_t menu_item_function_E(const Sheet &sheet, menu_func_t func) {
+    if (menu_item == menu_line) {
+        if (lcd_draw_update) { menu_draw_item_select_sheet_E(' ', sheet); }
+        if (menu_clicked && (lcd_encoder == menu_item)) {
             menu_clicked = false;
             lcd_consume_click();
             lcd_update_enabled = 0;
-            if (func) func();
+            if (func) {func();}
             lcd_update_enabled = 1;
             return menu_item_ret();
         }
@@ -332,13 +303,10 @@ uint8_t menu_item_function_E(const Sheet &sheet, menu_func_t func)
     return 0;
 }
 
-uint8_t menu_item_back_P(const char* str)
-{
-	if (menu_item == menu_line)
-	{
-		if (lcd_draw_update) menu_draw_item_puts_P(LCD_STR_UPLEVEL[0], str);
-		if (menu_clicked && (lcd_encoder == menu_item))
-		{
+uint8_t menu_item_back_P(const char* str) {
+	if (menu_item == menu_line) {
+		if (lcd_draw_update) {menu_draw_item_puts_P(LCD_STR_UPLEVEL[0], str);}
+		if (menu_clicked && (lcd_encoder == menu_item)) {
 			menu_back();
 			return menu_item_ret();
 		}
@@ -347,17 +315,14 @@ uint8_t menu_item_back_P(const char* str)
 	return 0;
 }
 
-uint8_t menu_item_function_P(const char* str, menu_func_t func)
-{
-	if (menu_item == menu_line)
-	{
-		if (lcd_draw_update) menu_draw_item_puts_P(' ', str);
-		if (menu_clicked && (lcd_encoder == menu_item))
-		{
+uint8_t menu_item_function_P(const char* str, menu_func_t func) {
+	if (menu_item == menu_line) {
+		if (lcd_draw_update) { menu_draw_item_puts_P(' ', str); }
+		if (menu_clicked && (lcd_encoder == menu_item)) {
 			menu_clicked = false;
 			lcd_consume_click();
 			lcd_update_enabled = 0;
-			if (func) func();
+			if (func) {func();}
 			lcd_update_enabled = 1;
 			return menu_item_ret();
 		}
