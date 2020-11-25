@@ -63,7 +63,7 @@
 
 // Home position
 #define MANUAL_X_HOME_POS -10
-#define MANUAL_Y_HOME_POS 18
+#define MANUAL_Y_HOME_POS 14
 #define MANUAL_Z_HOME_POS 0.2
 
 // Travel limits after homing
@@ -73,6 +73,13 @@
 #define Y_MIN_POS -4 //orig -4
 #define Z_MAX_POS 225
 #define Z_MIN_POS 0.15
+
+// Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
+// The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
+// For the other hotends it is their distance from the extruder 0 hotend.
+#define EXTRUDER_OFFSET_X {0.0, 47} // (in mm) for each extruder, offset of the hotend on the X axis
+#define EXTRUDER_OFFSET_Y {0.0, 0.0}  // (in mm) for each extruder, offset of the hotend on the Y axis
+#define EXTRUDER_OFFSET_Z {0.0, -2}
 
 // Canceled home position
 #define X_CANCEL_POS -10
@@ -118,6 +125,8 @@
 
 //number of bytes from end of the file to start check
 #define END_FILE_SECTION 20000
+
+#define DIGIPOT_MOTOR_CURRENT { 135,135,135,135,135 }   // Values 0-255 (RAMBO 135 = ~0.75A, 185 = ~1A)
 
 #define Z_AXIS_ALWAYS_ON 1
 
@@ -373,10 +382,15 @@
  *------------------------------------*/
 
 // Define Prusa filament runout sensor
-//#define FILAMENT_RUNOUT_SUPPORT
+#define FILAMENT_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
+// #if EXTRUDERS > 1 && defined(FIL_RUNOUT2_PIN)
 #define FILAMENT_RUNOUT_SENSOR FIL_RUNOUT_PIN
+#define FILAMENT_RUNOUT2_SENSOR FIL_RUNOUT2_PIN
+// #else
+// #define FILAMENT_RUNOUT_SENSOR FIL_RUNOUT_PIN
+// #endif
 #endif
 
 // temperature runaway

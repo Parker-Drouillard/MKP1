@@ -672,6 +672,23 @@ void lcdui_print_status_screen(void) {
 	lcd_print(LCD_STR_DEGREE " ");
 	lcd_print("          ");
 	#endif
+
+	lcd_set_cursor(LCD_WIDTH - 7, 1); //Line 2 7 from right
+	lcd_print("0:");
+	if(READ(FILAMENT_RUNOUT_SENSOR)){
+		lcd_print("Y");
+	} else {
+		lcd_print("N");
+	}
+	#if EXTRUDERS == 2
+		lcd_print(" 1:");
+		if(READ(FILAMENT_RUNOUT2_SENSOR)){
+			lcd_print("Y");
+		} else {
+			lcd_print("N");
+		}
+	#endif
+
     lcd_set_cursor(0, 2); //line 3
 
 	//Print the Bed temperature (9 chars total)
@@ -1951,8 +1968,7 @@ if(lcd_clicked())
      }
 }
 
-void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
-{
+void mFilamentItem(uint16_t nTemp, uint16_t nTempBed) {
     static int nTargetOld;
     static int nTargetBedOld;
     uint8_t nLevel;
@@ -1980,26 +1996,24 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
 
     lcd_timeoutToStatus.stop();
 
-    if (current_temperature[0] > (target_temperature[0] * 0.95))
-    {
+    if (current_temperature[0] > (target_temperature[0] * 0.95)) {
         switch (eFilamentAction)
         {
         case FilamentAction::Load:
         case FilamentAction::AutoLoad:
         case FilamentAction::UnLoad:
-            if (bFilamentWaitingFlag) menu_submenu(mFilamentPrompt);
-            else
-            {
+            if (bFilamentWaitingFlag) {menu_submenu(mFilamentPrompt);
+			} else {
                 nLevel = bFilamentPreheatState ? 1 : 2;
                 menu_back(nLevel);
-                if ((eFilamentAction == FilamentAction::Load) || (eFilamentAction == FilamentAction::AutoLoad))
-                {
+                if ((eFilamentAction == FilamentAction::Load) || (eFilamentAction == FilamentAction::AutoLoad)) {
                     loading_flag = true;
                     enquecommand_P(PSTR("M701")); // load filament
                     if (eFilamentAction == FilamentAction::AutoLoad) eFilamentAction = FilamentAction::None; // i.e. non-autoLoad
                 }
-                if (eFilamentAction == FilamentAction::UnLoad)
-                enquecommand_P(PSTR("M702")); // unload filament
+                if (eFilamentAction == FilamentAction::UnLoad) {
+                	enquecommand_P(PSTR("M702")); 
+				}// unload filament
             }
             break;
 #ifdef MMU_HAS_CUTTER
@@ -2017,15 +2031,12 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
         }
         if (bFilamentWaitingFlag) Sound_MakeSound(e_SOUND_TYPE_StandardPrompt);
         bFilamentWaitingFlag = false;
-    }
-    else
-    {
+    } else {
         bFilamentWaitingFlag = true;
         lcd_set_cursor(0, 0);
         lcdui_print_temp(LCD_STR_THERMOMETER[0], (int) degHotend(0), (int) degTargetHotend(0));
         lcd_set_cursor(0, 1);
-        switch (eFilamentAction)
-        {
+        switch (eFilamentAction) {
         case FilamentAction::Load:
         case FilamentAction::AutoLoad:
         case FilamentAction::MmuLoad:
@@ -2048,17 +2059,13 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
         }
         lcd_set_cursor(0, 3);
         lcd_puts_P(_i(">Cancel"));                   ////MSG_ c=20 r=1
-        if (lcd_clicked())
-        {
+        if (lcd_clicked()) {
             bFilamentWaitingFlag = false;
-            if (!bFilamentPreheatState)
-            {
+            if (!bFilamentPreheatState) {
                 setTargetHotend0(0.0);
                 setTargetBed(0.0);
                 menu_back();
-            }
-            else
-            {
+            } else {
                 setTargetHotend0((float )nTargetOld);
                 setTargetBed((float) nTargetBedOld);
             }

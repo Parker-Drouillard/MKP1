@@ -62,10 +62,8 @@
 #define E1_MS2_PIN      64
 
 #define DIGIPOTSS_PIN   38
-#define DIGIPOT_CHANNELS { 11,2,23,17,20 } // X Y Z E0 E1 digipot channels to stepper driver mapping
-#ifndef DIGIPOT_MOTOR_CURRENT
-  #define DIGIPOT_MOTOR_CURRENT { 185,185,185,185,185 } // Values 0-255 (RAMBO 135 =~ 0.75A, 185 =~ 1A)
-#endif
+#define DIGIPOT_CHANNELS  { 4,5,3,0,1 }
+
 
 
 

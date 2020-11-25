@@ -414,11 +414,6 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // For deltabots this means top and center of the Cartesian print volume.
 
 
-// Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
-// The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
-// For the other hotends it is their distance from the extruder 0 hotend.
-#define EXTRUDER_OFFSET_X {0.0, 47} // (in mm) for each extruder, offset of the hotend on the X axis
-#define EXTRUDER_OFFSET_Y {0.0, 0}  // (in mm) for each extruder, offset of the hotend on the Y axis
 
 // The speed change that does not require acceleration (i.e. the software might assume it can be done instantaneously)
 #define DEFAULT_XJERK                10       // (mm/sec)
@@ -447,6 +442,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 //define this to enable EEPROM support
 //#define EEPROM_SETTINGS
 //to disable EEPROM Serial responses and decrease program space by ~1700 byte: comment this out:
+
 // please keep turned on if you can.
 //#define EEPROM_CHITCHAT
 

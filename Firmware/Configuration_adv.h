@@ -132,8 +132,8 @@
 //#define Z_DUAL_STEPPER_DRIVERS
 
 #ifdef Z_DUAL_STEPPER_DRIVERS
-  #undef EXTRUDERS
-  #define EXTRUDERS 1
+  #undef EXTRUDE  RS
+  #define EXTRUDERS 2
 #endif
 
 // Same again but for Y Axis.
@@ -144,7 +144,7 @@
 
 #ifdef Y_DUAL_STEPPER_DRIVERS
   #undef EXTRUDERS
-  #define EXTRUDERS 1
+  #define EXTRUDERS 2
 #endif
 
 #if defined (Z_DUAL_STEPPER_DRIVERS) && defined (Y_DUAL_STEPPER_DRIVERS)

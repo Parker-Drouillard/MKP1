@@ -6,12 +6,15 @@
                 "C:\\Users\\Parker\\AppData\\Local\\Arduino15\\packages\\rambo\\hardware\\avr\\1.0.1\\**",
                 "C:\\Program Files (x86)\\Arduino\\tools\\**",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "C:\\Program Files (x86)\\Arduino\\libraries\\**",
+                "C:\\Users\\Parker\\Documents\\Arduino\\libraries\\**"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "USBCON"
             ],
             "cStandard": "c17",
             "cppStandard": "c++17",
