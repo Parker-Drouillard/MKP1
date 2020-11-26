@@ -252,9 +252,7 @@ float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0 };
 #define _z current_position[Z_AXIS]
 #define _e current_position[E_AXIS]
 
-float min_pos[3] = { X_MIN_POS, Y_MIN_POS, Z_MIN_POS };
-float max_pos[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
-bool axis_known_position[3] = {false, false, false};
+
 
 // Extruder offset
 #if EXTRUDERS > 1
@@ -265,6 +263,10 @@ float extruder_offset[NUM_EXTRUDER_OFFSETS][EXTRUDERS] = {
 #endif
 };
 #endif
+
+float min_pos[3][2] = { {X_MIN_POS,X_MIN_POS + extruder_offset[0][1]}, {Y_MIN_POS, Y_MIN_POS + extruder_offset[1][1]}, {Z_MIN_POS, Z_MIN_POS + extruder_offset[2][1]} };
+float max_pos[3] = { X_MAX_POS, Y_MAX_POS, Z_MAX_POS };
+bool axis_known_position[3] = {false, false, false};
 
 uint8_t active_extruder = 0;
 int fanSpeed=0;
@@ -1854,7 +1856,7 @@ XYZ_CONSTS_FROM_CONFIG(signed char, home_dir,  HOME_DIR);
 
 static void axis_is_at_home(int axis) {
   current_position[axis] = base_home_pos(axis) + cs.add_homing[axis];
-  min_pos[axis] =          base_min_pos(axis) + cs.add_homing[axis];
+  min_pos[axis][active_extruder] =          base_min_pos(axis) + cs.add_homing[axis];
   max_pos[axis] =          base_max_pos(axis) + cs.add_homing[axis];
 }
 
@@ -3617,19 +3619,19 @@ void process_commands() {
     case 1: // G1
       if(Stopped == false) {
 #ifdef FILAMENT_RUNOUT_SUPPORT
-  #if EXTRUDERS > 1
-    bool filCheck = true;
-    if(active_extruder == 0){
-      if(READ(FILAMENT_RUNOUT_SENSOR)){
-        filCheck = false;
-      }
-    } else if (active_extruder == 1){
-      if(READ(FILAMENT_RUNOUT2_SENSOR)){
-        filCheck = false;
-      }
-    }
-  #endif
-        if(filCheck){
+#if EXTRUDERS > 1
+        bool filCheck = true;
+        if(active_extruder == 0){
+          if(READ(FILAMENT_RUNOUT_SENSOR)){
+            filCheck = false;
+          }
+        } else if (active_extruder == 1){
+          if(READ(FILAMENT_RUNOUT2_SENSOR)){
+            filCheck = false;
+          } 
+        }
+#endif
+        if(filCheck && PRINTER_ACTIVE){
           int feedmultiplyBckp=feedmultiply;
           float target[4];
           float lastpos[4];
@@ -8097,14 +8099,20 @@ Sigma_Exit:
             }
             memcpy(destination, current_position, sizeof(destination));
             // Offset extruder (only by XY)
-            int i;
-            for (i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
               current_position[i] = current_position[i] -
               extruder_offset[i][active_extruder] +
               extruder_offset[i][tmp_extruder];
+              if(current_position[i] < min_pos[i][active_extruder]){
+                current_position[i] = min_pos[i][active_extruder];
+              }
+              if(current_position[i] > max_pos[i]){
+                current_position[i] = max_pos[i];
+              }
             }
             // Set the new active extruder and position
             active_extruder = tmp_extruder;
+
             plan_set_position_curposXYZE();
             if (Stopped == false) {
               prepare_move();
@@ -8597,7 +8605,7 @@ void clamp_to_software_endstops(float target[3])
             if (Z_PROBE_OFFSET_FROM_EXTRUDER < 0) negative_z_offset = negative_z_offset + Z_PROBE_OFFSET_FROM_EXTRUDER;
             if (cs.add_homing[Z_AXIS] < 0) negative_z_offset = negative_z_offset + cs.add_homing[Z_AXIS];
         #endif
-        if (target[Z_AXIS] < min_pos[Z_AXIS]+negative_z_offset) target[Z_AXIS] = min_pos[Z_AXIS]+negative_z_offset;
+        if (target[Z_AXIS] < min_pos[Z_AXIS][active_extruder]+negative_z_offset) target[Z_AXIS] = min_pos[Z_AXIS][active_extruder]+negative_z_offset;
     }
     if (max_software_endstops) {
         if (target[Z_AXIS] > max_pos[Z_AXIS]) target[Z_AXIS] = max_pos[Z_AXIS];
