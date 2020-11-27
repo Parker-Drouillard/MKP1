@@ -422,20 +422,11 @@ void serial_echopair_P(const char *s_P, unsigned long v)
 
 /*FORCE_INLINE*/ void serialprintPGM(const char *str)
 {
-#if 0
-  char ch=pgm_read_byte(str);
-  while(ch)
-  {
-    MYSERIAL.write(ch);
-    ch=pgm_read_byte(++str);
-  }
-#else
 	// hmm, same size as the above version, the compiler did a good job optimizing the above
 	while( uint8_t ch = pgm_read_byte(str) ){
 	  MYSERIAL.write((char)ch);
 	  ++str;
 	}
-#endif
 }
 
 #ifdef SDSUPPORT
@@ -783,7 +774,7 @@ int uart_putchar(char c, FILE *) {
 
 void lcd_splash() {
 	lcd_clear(); // clears display and homes screen
-	lcd_puts_P(PSTR("\n Original Prusa i3\n   Prusa Research"));
+	lcd_puts_P(PSTR("\n Pinda tester V1\n Pep Corporation"));
 }
 
 
@@ -984,13 +975,16 @@ static void w25x20cl_err_msg() {
 // Before startup, the Timers-functions (PWM)/Analog RW and HardwareSerial provided by the Arduino-code 
 // are initialized by the main() routine provided by the Arduino framework.
 void setup() {
+
 	ultralcd_init();
+
 	spi_init();
+
 	lcd_splash();
-  Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
+    Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
 
 	selectedSerialPort = eeprom_read_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE);
-	if (selectedSerialPort == 0xFF) {selectedSerialPort = 0;}
+	if (selectedSerialPort == 0xFF) selectedSerialPort = 0;
 	eeprom_update_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE, selectedSerialPort);
 	MYSERIAL.begin(BAUDRATE);
 	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
@@ -1014,16 +1008,17 @@ void setup() {
 	const bool w25x20cl_success = true;
 #endif //W25X20CL
 
+
 	setup_killpin();
 	setup_powerhold();
 
 	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE); 
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
-	if ((farm_mode == 0xFF && farm_no == 0) || ((uint16_t)farm_no == 0xFFFF)) {
+	if ((farm_mode == 0xFF && farm_no == 0) || ((uint16_t)farm_no == 0xFFFF)) 
 		farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
-	}
-  if ((uint16_t)farm_no == 0xFFFF) { farm_no = 0; }
-	if (farm_mode) {
+	if ((uint16_t)farm_no == 0xFFFF) farm_no = 0;
+	if (farm_mode)
+	{
 		no_response = true; //we need confirmation by recieving PRUSA thx
 		important_status = 8;
 		prusa_statistics(8);
@@ -1038,10 +1033,9 @@ void setup() {
 		//disabled filament autoload (PFW360)
 		fsensor_autoload_set(false);
 #endif //FILAMENT_SENSOR
-  // ~ FanCheck -> on
-    if(!(eeprom_read_byte((uint8_t*)EEPROM_FAN_CHECK_ENABLED))) {
-      eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
-    }
+          // ~ FanCheck -> on
+          if(!(eeprom_read_byte((uint8_t*)EEPROM_FAN_CHECK_ENABLED)))
+               eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
 	}
 #ifndef W25X20CL
 	SERIAL_PROTOCOLLNPGM("start");
@@ -1174,12 +1168,20 @@ void setup() {
 
 	// Check startup - does nothing if bootloader sets MCUSR to 0
 	byte mcu = MCUSR;
+/*	if (mcu & 1) SERIAL_ECHOLNRPGM(MSG_POWERUP);
+	if (mcu & 2) SERIAL_ECHOLNRPGM(MSG_EXTERNAL_RESET);
+	if (mcu & 4) SERIAL_ECHOLNRPGM(MSG_BROWNOUT_RESET);
+	if (mcu & 8) SERIAL_ECHOLNRPGM(MSG_WATCHDOG_RESET);
+	if (mcu & 32) SERIAL_ECHOLNRPGM(MSG_SOFTWARE_RESET);*/
 	if (mcu & 1) puts_P(MSG_POWERUP);
 	if (mcu & 2) puts_P(MSG_EXTERNAL_RESET);
 	if (mcu & 4) puts_P(MSG_BROWNOUT_RESET);
 	if (mcu & 8) puts_P(MSG_WATCHDOG_RESET);
 	if (mcu & 32) puts_P(MSG_SOFTWARE_RESET);
 	MCUSR = 0;
+
+	//SERIAL_ECHORPGM(MSG_MARLIN);
+	//SERIAL_ECHOLNRPGM(VERSION_STRING);
 
 #ifdef STRING_VERSION_CONFIG_H
 #ifdef STRING_CONFIG_H_AUTHOR
@@ -1205,18 +1207,19 @@ void setup() {
 	uint8_t hw_changed = check_printer_version();
 	if (!(hw_changed & 0b10)) { //if printer version wasn't changed, check for eeprom version and retrieve settings from eeprom in case that version wasn't changed
 		previous_settings_retrieved = Config_RetrieveSettings();
-	} else { //printer version was changed so use default settings 
+	} 
+	else { //printer version was changed so use default settings 
 		Config_ResetDefault();
 	}
 	SdFatUtil::set_stack_guard(); //writes magic number at the end of static variables to protect against overwriting static memory by stack
 
 	tp_init();    // Initialize temperature loop
 
-	if (w25x20cl_success) {
-    lcd_splash(); // we need to do this again, because tp_init() kills lcd
-	} else {
-    w25x20cl_err_msg();
-    printf_P(_n("W25X20CL not responding.\n"));
+	if (w25x20cl_success) lcd_splash(); // we need to do this again, because tp_init() kills lcd
+	else
+	{
+	    w25x20cl_err_msg();
+	    printf_P(_n("W25X20CL not responding.\n"));
 	}
 #ifdef EXTRUDER_ALTFAN_DETECT
 	SERIAL_ECHORPGM(_n("Extruder fan type: "));
@@ -1228,20 +1231,21 @@ void setup() {
 
 	plan_init();  // Initialize planner;
 
-	factory_reset(); //If button is being held on startup at the time this function is called, and held for the required amount of time, intiate factory reset.
+	factory_reset();
 	if (eeprom_read_dword((uint32_t*)(EEPROM_TOP - 4)) == 0x0ffffffff &&
-  eeprom_read_dword((uint32_t*)(EEPROM_TOP - 8)) == 0x0ffffffff) {
-    // Maiden startup. The firmware has been loaded and first started on a virgin RAMBo board,
-    // where all the EEPROM entries are set to 0x0ff.
-    // Once a firmware boots up, it forces at least a language selection, which changes
-    // EEPROM_LANG to number lower than 0x0ff.
-    // 1) Set a high power mode.
-    eeprom_update_byte((uint8_t*)EEPROM_SILENT, SILENT_MODE_OFF);
+	        eeprom_read_dword((uint32_t*)(EEPROM_TOP - 8)) == 0x0ffffffff)
+	{
+        // Maiden startup. The firmware has been loaded and first started on a virgin RAMBo board,
+        // where all the EEPROM entries are set to 0x0ff.
+        // Once a firmware boots up, it forces at least a language selection, which changes
+        // EEPROM_LANG to number lower than 0x0ff.
+        // 1) Set a high power mode.
+	    eeprom_update_byte((uint8_t*)EEPROM_SILENT, SILENT_MODE_OFF);
 #ifdef TMC2130
-    tmc2130_mode = TMC2130_MODE_NORMAL;
+        tmc2130_mode = TMC2130_MODE_NORMAL;
 #endif //TMC2130
-    eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
-  }
+        eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
+    }
 
     lcd_encoder_diff=0;
 
@@ -1300,20 +1304,22 @@ void setup() {
 #endif // PSU_Delta
     
 	setup_photpin();
+
 	servo_init();
 
 	// Reset the machine correction matrix.
 	// It does not make sense to load the correction matrix until the machine is homed.
 	world2machine_reset();
 
-  // Initialize current_position accounting for software endstops to
-  // avoid unexpected initial shifts on the first move
-  clamp_to_software_endstops(current_position);
-  plan_set_position_curposXYZE();
+    // Initialize current_position accounting for software endstops to
+    // avoid unexpected initial shifts on the first move
+    clamp_to_software_endstops(current_position);
+    plan_set_position_curposXYZE();
 
 #ifdef FILAMENT_SENSOR
 	fsensor_init();
 #endif //FILAMENT_SENSOR
+
 
 #if defined(CONTROLLERFAN_PIN) && (CONTROLLERFAN_PIN > -1)
 	SET_OUTPUT(CONTROLLERFAN_PIN); //Set pin used for driver cooling fan
@@ -1322,14 +1328,15 @@ void setup() {
 	setup_homepin();
 
 #if defined(Z_AXIS_ALWAYS_ON)
-  enable_z();
+    enable_z();
 #endif
 
 	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
 	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
 	if (farm_no == static_cast<int>(0xFFFF)) farm_no = 0;
-	if (farm_mode) {
+	if (farm_mode)
+	{
 		prusa_statistics(8);
 	}
 
@@ -1384,7 +1391,7 @@ void setup() {
 		printf_P(PSTR("Card NG!\n"));
 #endif //DEBUG_SD_SPEED_TEST
 
-  eeprom_init();
+    eeprom_init();
 #ifdef SNMM
 	if (eeprom_read_dword((uint32_t*)EEPROM_BOWDEN_LENGTH) == 0x0ffffffff) { //bowden length used for SNMM
 	  int _z = BOWDEN_LENGTH;
@@ -1433,7 +1440,7 @@ void setup() {
 		//eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 0);
 		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
 		int16_t z_shift = 0;
-		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
+		for (uint8_t i = 0; i < 5; i++) EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift);
 		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
 	}
 	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
@@ -1444,11 +1451,7 @@ void setup() {
 	}
 	//mbl_mode_init();
 	mbl_settings_init();
-	SilentModeMenu_MMU = eeprom_read_byte((uint8_t*)EEPROM_MMU_STEALTH);
-	if (SilentModeMenu_MMU == 255) {
-		SilentModeMenu_MMU = 1;
-		eeprom_write_byte((uint8_t*)EEPROM_MMU_STEALTH, SilentModeMenu_MMU);
-	}
+
 
 #if !defined(DEBUG_DISABLE_FANCHECK) && defined(FANCHECK) && defined(TACH_1) && TACH_1 >-1
 	setup_fan_interrupt();
@@ -1457,7 +1460,7 @@ void setup() {
 #ifdef PAT9125
 	fsensor_setup_interrupt();
 #endif //PAT9125
-	for (int i = 0; i<4; i++) { EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); }
+	for (int i = 0; i<4; i++) EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); 
 	
 #ifndef DEBUG_DISABLE_STARTMSGS
   KEEPALIVE_STATE(PAUSED_FOR_USER);
@@ -1470,20 +1473,20 @@ void setup() {
   switch (hw_changed) { 
 	  //if motherboard or printer type was changed inform user as it can indicate flashing wrong firmware version
 	  //if user confirms with knob, new hw version (printer and/or motherboard) is written to eeprom and message will be not shown next time
-  	case(0b01): 
-      lcd_show_fullscreen_message_and_wait_P(_i("Warning: motherboard type changed.")); ////MSG_CHANGED_MOTHERBOARD c=20 r=4
-      eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
+	case(0b01): 
+		lcd_show_fullscreen_message_and_wait_P(_i("Warning: motherboard type changed.")); ////MSG_CHANGED_MOTHERBOARD c=20 r=4
+		eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
 		break;
-  	case(0b10): 
-      lcd_show_fullscreen_message_and_wait_P(_i("Warning: printer type changed.")); ////MSG_CHANGED_PRINTER c=20 r=4
-      eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE); 
+	case(0b10): 
+		lcd_show_fullscreen_message_and_wait_P(_i("Warning: printer type changed.")); ////MSG_CHANGED_PRINTER c=20 r=4
+		eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE); 
 		break;
-	  case(0b11): 
-      lcd_show_fullscreen_message_and_wait_P(_i("Warning: both printer type and motherboard type changed.")); ////MSG_CHANGED_BOTH c=20 r=4
-      eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE);
-      eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
-    break;
-  	default: break; //no change, show no message
+	case(0b11): 
+		lcd_show_fullscreen_message_and_wait_P(_i("Warning: both printer type and motherboard type changed.")); ////MSG_CHANGED_BOTH c=20 r=4
+		eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE);
+		eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
+		break;
+	default: break; //no change, show no message
   }
 
   if (!previous_settings_retrieved) {
@@ -1501,14 +1504,17 @@ void setup() {
             eeprom_update_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].z_offset)),0);
 		  // Show the message.
 		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_CALIBRATION_FLOW));
-	  } else if (calibration_status() == CALIBRATION_STATUS_LIVE_ADJUST) {
+	  }
+	  else if (calibration_status() == CALIBRATION_STATUS_LIVE_ADJUST) {
 		  // Show the message.
 		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_BABYSTEP_Z_NOT_SET));
 		  lcd_update_enable(true);
-	  } else if (calibration_status() == CALIBRATION_STATUS_CALIBRATED && eeprom_read_byte((unsigned char *)EEPROM_TEMP_CAL_ACTIVE) && calibration_status_pinda() == false) {
+	  }
+	  else if (calibration_status() == CALIBRATION_STATUS_CALIBRATED && eeprom_read_byte((unsigned char *)EEPROM_TEMP_CAL_ACTIVE) && calibration_status_pinda() == false) {
 		  //lcd_show_fullscreen_message_and_wait_P(_i("Temperature calibration has not been run yet"));////MSG_PINDA_NOT_CALIBRATED c=20 r=4
 		  lcd_update_enable(true);
-	  } else if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION) {
+	  }
+	  else if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION) {
 		  // Show the message.
 		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_Z_CALIBRATION_FLOW));
 	  }
@@ -1722,37 +1728,34 @@ void loop() {
 	if (usb_printing_counter == 0) {
 		is_usb_printing = false;
 	}
-    if (isPrintPaused && saved_printing_type == PRINTING_TYPE_USB) {//keep believing that usb is being printed. Prevents accessing dangerous menus while pausing.
+  if (isPrintPaused && saved_printing_type == PRINTING_TYPE_USB) {//keep believing that usb is being printed. Prevents accessing dangerous menus while pausing.
 		is_usb_printing = true;
 	}
     
-#ifdef FANCHECK
-  if (fan_check_error && isPrintPaused) {
-        KEEPALIVE_STATE(PAUSED_FOR_USER);
-        host_keepalive(); //prevent timeouts since usb processing is disabled until print is resumed. This is for a crude way of pausing a print on all hosts.
-    }
-#endif
-  if (prusa_sd_card_upload) {
-      //we read byte-by byte
-      serial_read_stream();
-  } else {
-    get_command();
-#ifdef SDSUPPORT
-    card.checkautostart(false);
-#endif
-    if(buflen) {
-      cmdbuffer_front_already_processed = false;
-#ifdef SDSUPPORT
-      if(card.saving) {
+    if (prusa_sd_card_upload) {
+        //we read byte-by byte
+        serial_read_stream();
+    } else {
+
+        get_command();
+
+  #ifdef SDSUPPORT
+  card.checkautostart(false);
+  #endif
+  if(buflen)
+  {
+    cmdbuffer_front_already_processed = false;
+    #ifdef SDSUPPORT
+      if(card.saving)
+      {
         // Saving a G-code file onto an SD-card is in progress.
         // Saving starts with M28, saving until M29 is seen.
         if(strstr_P(CMDBUFFER_CURRENT_STRING, PSTR("M29")) == NULL) {
           card.write_command(CMDBUFFER_CURRENT_STRING);
-          if(card.logging) {
+          if(card.logging)
             process_commands();
-          } else {
+          else
            SERIAL_PROTOCOLLNRPGM(MSG_OK);
-          }
         } else {
           card.closefile();
           SERIAL_PROTOCOLLNRPGM(MSG_FILE_SAVED);
@@ -1760,75 +1763,65 @@ void loop() {
       } else {
         process_commands();
       }
-#else
+    #else
       process_commands();
-#endif //SDSUPPORT
+    #endif //SDSUPPORT
 
-      if (! cmdbuffer_front_already_processed && buflen) {
-        // ptr points to the start of the block currently being processed.
-        // The first character in the block is the block type.      
-        char *ptr = cmdbuffer + bufindr;
-        if (*ptr == CMDBUFFER_CURRENT_TYPE_SDCARD) {
-          // To support power panic, move the lenght of the command on the SD card to a planner buffer.
-          union {
-            struct {
-                char lo;
-                char hi;
-            } lohi;
-            uint16_t value;
-          } sdlen;
-          sdlen.value = 0;
-          {
-            // This block locks the interrupts globally for 3.25 us,
-            // which corresponds to a maximum repeat frequency of 307.69 kHz.
-            // This blocking is safe in the context of a 10kHz stepper driver interrupt
-            // or a 115200 Bd serial line receive interrupt, which will not trigger faster than 12kHz.
-            cli();
-            // Reset the command to something, which will be ignored by the power panic routine,
-            // so this buffer length will not be counted twice.
-            *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
-            // Extract the current buffer length.
-            sdlen.lohi.lo = *ptr ++;
-            sdlen.lohi.hi = *ptr;
-            // and pass it to the planner queue.
-            planner_add_sd_length(sdlen.value);
-            sei();
-          }
-        } else if((*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR) && !IS_SD_PRINTING){ 
+    if (! cmdbuffer_front_already_processed && buflen)
+    {
+      // ptr points to the start of the block currently being processed.
+      // The first character in the block is the block type.      
+      char *ptr = cmdbuffer + bufindr;
+      if (*ptr == CMDBUFFER_CURRENT_TYPE_SDCARD) {
+        // To support power panic, move the lenght of the command on the SD card to a planner buffer.
+        union {
+          struct {
+              char lo;
+              char hi;
+          } lohi;
+          uint16_t value;
+        } sdlen;
+        sdlen.value = 0;
+        {
+          // This block locks the interrupts globally for 3.25 us,
+          // which corresponds to a maximum repeat frequency of 307.69 kHz.
+          // This blocking is safe in the context of a 10kHz stepper driver interrupt
+          // or a 115200 Bd serial line receive interrupt, which will not trigger faster than 12kHz.
           cli();
+          // Reset the command to something, which will be ignored by the power panic routine,
+          // so this buffer length will not be counted twice.
+          *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
+          // Extract the current buffer length.
+          sdlen.lohi.lo = *ptr ++;
+          sdlen.lohi.hi = *ptr;
+          // and pass it to the planner queue.
+          planner_add_sd_length(sdlen.value);
+          sei();
+        }
+	  }
+	  else if((*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR) && !IS_SD_PRINTING){ 
+		  
+		  cli();
           *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
           // and one for each command to previous block in the planner queue.
           planner_add_sd_length(1);
           sei();
-        }
-        // Now it is safe to release the already processed command block. If interrupted by the power panic now,
-        // this block's SD card length will not be counted twice as its command type has been replaced 
-        // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
-        cmdqueue_pop_front();
-      }
-      host_keepalive();
+	  }
+      // Now it is safe to release the already processed command block. If interrupted by the power panic now,
+      // this block's SD card length will not be counted twice as its command type has been replaced 
+      // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
+      cmdqueue_pop_front();
     }
+	host_keepalive();
   }
+}
   //check heater every n milliseconds
   manage_heater();
   isPrintPaused ? manage_inactivity(true) : manage_inactivity(false);
   checkHitEndstops();
   lcd_update(0);
-#ifdef TMC2130
-	tmc2130_check_overtemp();
-	if (tmc2130_sg_crash)
-	{
-		uint8_t crash = tmc2130_sg_crash;
-		tmc2130_sg_crash = 0;
-		switch (crash)
-		{
-		case 1: enquecommand_P((PSTR("CRASH_DETECTEDX"))); break;
-		case 2: enquecommand_P((PSTR("CRASH_DETECTEDY"))); break;
-		case 3: enquecommand_P((PSTR("CRASH_DETECTEDXY"))); break;
-		}
-	}
-#endif //TMC2130
-} //End of loop()
+
+}
 
 
 
@@ -5093,205 +5086,6 @@ void process_commands() {
         enable_e2();
       break;
 
-#ifdef SDSUPPORT
-
-    /*!
-	### M20 - SD Card file list <a href="https://reprap.org/wiki/G-code#M20:_List_SD_card">M20: List SD card</a>
-    */
-    case 20:
-      SERIAL_PROTOCOLLNRPGM(_N("Begin file list"));////MSG_BEGIN_FILE_LIST
-      card.ls();
-      SERIAL_PROTOCOLLNRPGM(_N("End file list"));////MSG_END_FILE_LIST
-      break;
-
-    /*!
-	### M21 - Init SD card <a href="https://reprap.org/wiki/G-code#M21:_Initialize_SD_card">M21: Initialize SD card</a>
-    */
-    case 21:
-      card.initsd();
-      break;
-
-    /*!
-	### M22 - Release SD card <a href="https://reprap.org/wiki/G-code#M22:_Release_SD_card">M22: Release SD card</a>
-    */
-    case 22: 
-      card.release();
-      break;
-
-    /*!
-	### M23 - Select file <a href="https://reprap.org/wiki/G-code#M23:_Select_SD_file">M23: Select SD file</a>
-    #### Usage
-    
-        M23 [filename]
-    
-    */
-    case 23: 
-      starpos = (strchr(strchr_pointer + 4,'*'));
-	  if(starpos!=NULL)
-        *(starpos)='\0';
-      card.openFile(strchr_pointer + 4,true);
-      break;
-
-    /*!
-	### M24 - Start SD print <a href="https://reprap.org/wiki/G-code#M24:_Start.2Fresume_SD_print">M24: Start/resume SD print</a>
-    */
-    case 24:
-	  if (isPrintPaused)
-          lcd_resume_print();
-      else
-      {
-          if (!card.get_sdpos())
-          {
-              // A new print has started from scratch, reset stats
-              failstats_reset_print();
-#ifndef LA_NOCOMPAT
-              la10c_reset();
-#endif
-          }
-
-          card.startFileprint();
-          starttime=_millis();
-      }
-	  break;
-
-    /*!
-	### M26 - Set SD index <a href="https://reprap.org/wiki/G-code#M26:_Set_SD_position">M26: Set SD position</a>
-    Set position in SD card file to index in bytes.
-    This command is expected to be called after M23 and before M24.
-    Otherwise effect of this command is undefined.
-    #### Usage
-	
-	      M26 [ S ]
-	
-	#### Parameters
-	  - `S` - Index in bytes
-    */
-    case 26: 
-      if(card.cardOK && code_seen('S')) {
-        long index = code_value_long();
-        card.setIndex(index);
-        // We don't disable interrupt during update of sdpos_atomic
-        // as we expect, that SD card print is not active in this moment
-        sdpos_atomic = index;
-      }
-      break;
-
-    /*!
-	### M27 - Get SD status <a href="https://reprap.org/wiki/G-code#M27:_Report_SD_print_status">M27: Report SD print status</a>
-    */
-    case 27:
-      card.getStatus();
-      break;
-
-    /*!
-	### M28 - Start SD write <a href="https://reprap.org/wiki/G-code#M28:_Begin_write_to_SD_card">M28: Begin write to SD card</a>
-    */
-    case 28: 
-      starpos = (strchr(strchr_pointer + 4,'*'));
-      if(starpos != NULL){
-        char* npos = strchr(CMDBUFFER_CURRENT_STRING, 'N');
-        strchr_pointer = strchr(npos,' ') + 1;
-        *(starpos) = '\0';
-      }
-      card.openFile(strchr_pointer+4,false);
-      break;
-
-    /*! ### M29 - Stop SD write <a href="https://reprap.org/wiki/G-code#M29:_Stop_writing_to_SD_card">M29: Stop writing to SD card</a>
-	Stops writing to the SD file signaling the end of the uploaded file. It is processed very early and it's not written to the card.
-    */
-    case 29:
-      //processed in write to file routine above
-      //card,saving = false;
-      break;
-
-    /*!
-	### M30 - Delete file <a href="https://reprap.org/wiki/G-code#M30:_Delete_a_file_on_the_SD_card">M30: Delete a file on the SD card</a>
-    #### Usage
-    
-        M30 [filename]
-    
-    */
-    case 30:
-      if (card.cardOK){
-        card.closefile();
-        starpos = (strchr(strchr_pointer + 4,'*'));
-        if(starpos != NULL){
-          char* npos = strchr(CMDBUFFER_CURRENT_STRING, 'N');
-          strchr_pointer = strchr(npos,' ') + 1;
-          *(starpos) = '\0';
-        }
-        card.removeFile(strchr_pointer + 4);
-      }
-      break;
-
-    /*!
-	### M32 - Select file and start SD print <a href="https://reprap.org/wiki/G-code#M32:_Select_file_and_start_SD_print">M32: Select file and start SD print</a>
-	@todo What are the parameters P and S for in M32?
-    */
-    case 32:
-    {
-      if(card.sdprinting) {
-        st_synchronize();
-
-      }
-      starpos = (strchr(strchr_pointer + 4,'*'));
-
-      char* namestartpos = (strchr(strchr_pointer + 4,'!'));   //find ! to indicate filename string start.
-      if(namestartpos==NULL)
-      {
-        namestartpos=strchr_pointer + 4; //default name position, 4 letters after the M
-      }
-      else
-        namestartpos++; //to skip the '!'
-
-      if(starpos!=NULL)
-        *(starpos)='\0';
-
-      bool call_procedure=(code_seen('P'));
-
-      if(strchr_pointer>namestartpos)
-        call_procedure=false;  //false alert, 'P' found within filename
-
-      if( card.cardOK )
-      {
-        card.openFile(namestartpos,true,!call_procedure);
-        if(code_seen('S'))
-          if(strchr_pointer<namestartpos) //only if "S" is occuring _before_ the filename
-            card.setIndex(code_value_long());
-        card.startFileprint();
-        if(!call_procedure)
-        {
-            if(!card.get_sdpos())
-            {
-                // A new print has started from scratch, reset stats
-                failstats_reset_print();
-#ifndef LA_NOCOMPAT
-                la10c_reset();
-#endif
-            }
-            starttime=_millis(); // procedure calls count as normal print time.
-        }
-      }
-    } break;
-
-    /*!
-	### M928 - Start SD logging <a href="https://reprap.org/wiki/G-code#M928:_Start_SD_logging">M928: Start SD logging</a>
-    #### Usage
-    
-        M928 [filename]
-    
-    */
-    case 928: 
-      starpos = (strchr(strchr_pointer + 5,'*'));
-      if(starpos != NULL){
-        char* npos = strchr(CMDBUFFER_CURRENT_STRING, 'N');
-        strchr_pointer = strchr(npos,' ') + 1;
-        *(starpos) = '\0';
-      }
-      card.openLogFile(strchr_pointer+5);
-      break;
-
-#endif //SDSUPPORT
 
     /*!
 	### M31 - Report current print time <a href="https://reprap.org/wiki/G-code#M31:_Output_time_since_last_M109_or_SD_card_start_to_serial">M31: Output time since last M109 or SD card start to serial</a>
@@ -8831,101 +8625,6 @@ void manage_inactivity_IR_ANALOG_Check(uint16_t &nFSCheckCount, ClFsensorPCB isV
 #endif
 
 void manage_inactivity(bool ignore_stepper_queue) { //default argument set in Marlin.h
-#ifdef FILAMENT_SENSOR
-  bool bInhibitFlag;
-#ifdef IR_SENSOR_ANALOG
-static uint16_t nFSCheckCount=0;
-#endif // IR_SENSOR_ANALOG
-
-	if (mmu_enabled == false)
-	{
-//-//		if (mcode_in_progress != 600) //M600 not in progress
-#ifdef PAT9125
-		bInhibitFlag=(menu_menu==lcd_menu_extruder_info); // Support::ExtruderInfo menu active
-#endif // PAT9125
-#ifdef IR_SENSOR
-		bInhibitFlag=(menu_menu==lcd_menu_show_sensors_state); // Support::SensorInfo menu active
-#ifdef IR_SENSOR_ANALOG
-		bInhibitFlag=bInhibitFlag||bMenuFSDetect; // Settings::HWsetup::FSdetect menu active
-#endif // IR_SENSOR_ANALOG
-#endif // IR_SENSOR
-		if ((mcode_in_progress != 600) && (eFilamentAction != FilamentAction::AutoLoad) && (!bInhibitFlag)) //M600 not in progress, preHeat @ autoLoad menu not active, Support::ExtruderInfo/SensorInfo menu not active
-		{
-			if (!moves_planned() && !IS_SD_PRINTING && !is_usb_printing && (lcd_commands_type != LcdCommands::Layer1Cal) && ! eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE))
-			{
-#ifdef IR_SENSOR_ANALOG
-				static uint16_t minVolt = Voltage2Raw(6.F), maxVolt = 0;
-				// detect min-max, some long term sliding window for filtration may be added
-				// avoiding floating point operations, thus computing in raw
-				if( current_voltage_raw_IR > maxVolt )maxVolt = current_voltage_raw_IR;
-				if( current_voltage_raw_IR < minVolt )minVolt = current_voltage_raw_IR;
-				
-#if 0 // Start: IR Sensor debug info
-				{ // debug print
-					static uint16_t lastVolt = ~0U;
-					if( current_voltage_raw_IR != lastVolt ){
-						printf_P(PSTR("fs volt=%4.2fV (min=%4.2f max=%4.2f)\n"), Raw2Voltage(current_voltage_raw_IR), Raw2Voltage(minVolt), Raw2Voltage(maxVolt) );
-						lastVolt = current_voltage_raw_IR;
-					}
-				}
-#endif // End: IR Sensor debug info
-				//! The trouble is, I can hold the filament in the hole in such a way, that it creates the exact voltage
-				//! to be detected as the new fsensor
-				//! We can either fake it by extending the detection window to a looooong time
-				//! or do some other countermeasures
-				
-				//! what we want to detect:
-				//! if minvolt gets below ~0.3V, it means there is an old fsensor
-				//! if maxvolt gets above 4.6V, it means we either have an old fsensor or broken cables/fsensor
-				//! So I'm waiting for a situation, when minVolt gets to range <0, 1.5> and maxVolt gets into range <3.0, 5>
-				//! If and only if minVolt is in range <0.3, 1.5> and maxVolt is in range <3.0, 4.6>, I'm considering a situation with the new fsensor
-				if( minVolt >= IRsensor_Ldiode_TRESHOLD && minVolt <= IRsensor_Lmax_TRESHOLD 
-				 && maxVolt >= IRsensor_Hmin_TRESHOLD && maxVolt <= IRsensor_Hopen_TRESHOLD
-				){
-					manage_inactivity_IR_ANALOG_Check(nFSCheckCount, ClFsensorPCB::_Old, ClFsensorPCB::_Rev04, _i("FS v0.4 or newer") ); ////c=18
-				} 
-				//! If and only if minVolt is in range <0.0, 0.3> and maxVolt is in range  <4.6, 5.0V>, I'm considering a situation with the old fsensor
-				//! Note, we are not relying on one voltage here - getting just +5V can mean an old fsensor or a broken new sensor - that's why
-				//! we need to have both voltages detected correctly to allow switching back to the old fsensor.
-				else if( minVolt < IRsensor_Ldiode_TRESHOLD 
-				 && maxVolt > IRsensor_Hopen_TRESHOLD && maxVolt <= IRsensor_VMax_TRESHOLD
-				){
-					manage_inactivity_IR_ANALOG_Check(nFSCheckCount, ClFsensorPCB::_Rev04, oFsensorPCB=ClFsensorPCB::_Old, _i("FS v0.3 or older")); ////c=18
-				}
-#endif // IR_SENSOR_ANALOG
-				if (fsensor_check_autoload())
-				{
-#ifdef PAT9125
-					fsensor_autoload_check_stop();
-#endif //PAT9125
-
-						eFilamentAction=FilamentAction::AutoLoad;
-						bFilamentFirstRun=false;
-						if(target_temperature[0]>=EXTRUDE_MINTEMP){
-							bFilamentPreheatState=true;
-//							mFilamentItem(target_temperature[0],target_temperature_bed);
-							menu_submenu(mFilamentItemForce);
-						} else {
-							menu_submenu(lcd_generic_preheat_menu);
-							lcd_timeoutToStatus.start();
-						}
-					
-				}
-			} else {
-#ifdef PAT9125
-				fsensor_autoload_check_stop();
-                if (fsensor_enabled && !saved_printing)
-                    fsensor_update();
-#endif //PAT9125
-
-			}
-		}
-	}
-#endif //FILAMENT_SENSOR
-
-#ifdef SAFETYTIMER
-	handleSafetyTimer();
-#endif //SAFETYTIMER
 
 #if defined(KILL_PIN) && KILL_PIN > -1
 	static int killCount = 0;   // make the inactivity button a bit less responsive
@@ -8977,32 +8676,7 @@ static uint16_t nFSCheckCount=0;
        kill(NULL, 5);
     }
   #endif
-    
-  #if defined(CONTROLLERFAN_PIN) && CONTROLLERFAN_PIN > -1
-    controllerFan(); //Check if fan should be turned on to cool stepper drivers down
-  #endif
-  #ifdef EXTRUDER_RUNOUT_PREVENT
-    if( (_millis() - previous_millis_cmd) >  EXTRUDER_RUNOUT_SECONDS*1000 )
-    if(degHotend(active_extruder)>EXTRUDER_RUNOUT_MINTEMP)
-    {
-     bool oldstatus=READ(E0_ENABLE_PIN);
-     enable_e0();
-     float oldepos=current_position[E_AXIS];
-     float oldedes=destination[E_AXIS];
-     plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS],
-                      destination[E_AXIS]+EXTRUDER_RUNOUT_EXTRUDE*EXTRUDER_RUNOUT_ESTEPS/cs.axis_steps_per_unit[E_AXIS],
-                      EXTRUDER_RUNOUT_SPEED/60.*EXTRUDER_RUNOUT_ESTEPS/cs.axis_steps_per_unit[E_AXIS], active_extruder);
-     current_position[E_AXIS]=oldepos;
-     destination[E_AXIS]=oldedes;
-     plan_set_e_position(oldepos);
-     previous_millis_cmd=_millis();
-     st_synchronize();
-     WRITE(E0_ENABLE_PIN,oldstatus);
-    }
-  #endif
-  #ifdef TEMP_STAT_LEDS
-      handle_status_leds();
-  #endif
+
   check_axes_activity();
 }
 

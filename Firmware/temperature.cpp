@@ -54,6 +54,10 @@ int target_temperature_bed = 0;
 int current_temperature_raw[EXTRUDERS] = { 0 };
 float current_temperature[EXTRUDERS] = { 0.0 };
 
+uint16_t current_probetemps_raw[NUMTEMPPROBES] = { 0 };
+uint16_t current_probetemps_raw_fast[NUMTEMPPROBES] = { 0 };
+float current_temperature_probes[NUMTEMPPROBES] = { 0.0 };
+
 #ifdef PINDA_THERMISTOR
 uint16_t current_temperature_raw_pinda =  0 ; //value with more averaging applied
 uint16_t current_temperature_raw_pinda_fast = 0; //value read from adc
@@ -646,9 +650,6 @@ void resetPID(uint8_t) {                            // only for compiler-warning
 }
 
 void manage_heater() {
-#ifdef WATCHDOG
-    wdt_reset();
-#endif //WATCHDOG
 
   float pid_input;
   float pid_output;
@@ -989,24 +990,11 @@ static float analog2tempAmbient(int raw) {
 /* Called to get the raw values into the the actual temperatures. The raw values are created in interrupt context,
     and this function is called from normal context as it is too slow to run in interrupts and will block the stepper routine otherwise */
 static void updateTemperaturesFromRawValues() {
-    for(uint8_t e=0;e<EXTRUDERS;e++) {
-        current_temperature[e] = analog2temp(current_temperature_raw[e], e);
-    }
 
-#ifdef PINDA_THERMISTOR
-	current_temperature_raw_pinda = (uint16_t)((uint32_t)current_temperature_raw_pinda * 3 + current_temperature_raw_pinda_fast) >> 2;
-	current_temperature_pinda = analog2tempBed(current_temperature_raw_pinda);
-#endif
-
-#ifdef AMBIENT_THERMISTOR
-	current_temperature_ambient = analog2tempAmbient(current_temperature_raw_ambient); //thermistor for ambient is NTCG104LH104JT1 (2000)
-#endif
-   
-#ifdef DEBUG_HEATER_BED_SIM
-	current_temperature_bed = target_temperature_bed;
-#else //DEBUG_HEATER_BED_SIM
-	current_temperature_bed = analog2tempBed(current_temperature_bed_raw);
-#endif //DEBUG_HEATER_BED_SIM
+  for(int i = 0; i < NUMTEMPPROBES; i++){
+    current_probetemps_raw[i] = (uint16_t)((uint32_t)current_probetemps_raw[i] * 3 + current_probetemps_raw_fast[i]) >> 2;
+    current_temperature_probes[i] = analog2tempBed(current_probetemps_raw[i]);
+  }
 
     CRITICAL_SECTION_START;
     temp_meas_ready = false;
@@ -1014,59 +1002,7 @@ static void updateTemperaturesFromRawValues() {
 }
 
 void tp_init() {
-#if MB(RUMBA) && ((TEMP_SENSOR_0==-1)||(TEMP_SENSOR_1==-1)||(TEMP_SENSOR_2==-1)||(TEMP_SENSOR_BED==-1))
-  //disable RUMBA JTAG in case the thermocouple extension is plugged on top of JTAG connector
-  MCUCR=(1<<JTD); 
-  MCUCR=(1<<JTD);
-#endif
-  
-  // Finish init of mult extruder arrays 
-  for(int e = 0; e < EXTRUDERS; e++) {
-    // populate with the first value 
-    maxttemp[e] = maxttemp[0];
-#ifdef PIDTEMP
-    iState_sum_min[e] = 0.0;
-    iState_sum_max[e] = PID_INTEGRAL_DRIVE_MAX / cs.Ki;
-#endif //PIDTEMP
-#ifdef PIDTEMPBED
-    temp_iState_min_bed = 0.0;
-    temp_iState_max_bed = PID_INTEGRAL_DRIVE_MAX / cs.bedKi;
-#endif //PIDTEMPBED
-  }
 
-  #if defined(HEATER_0_PIN) && (HEATER_0_PIN > -1) 
-    SET_OUTPUT(HEATER_0_PIN);
-  #endif  
-  #if defined(HEATER_1_PIN) && (HEATER_1_PIN > -1) 
-    SET_OUTPUT(HEATER_1_PIN);
-  #endif  
-  #if defined(HEATER_2_PIN) && (HEATER_2_PIN > -1) 
-    SET_OUTPUT(HEATER_2_PIN);
-  #endif  
-  #if defined(HEATER_BED_PIN) && (HEATER_BED_PIN > -1) 
-    SET_OUTPUT(HEATER_BED_PIN);
-  #endif  
-  #if defined(FAN_PIN) && (FAN_PIN > -1) 
-    SET_OUTPUT(FAN_PIN);
-    #ifdef FAST_PWM_FAN
-    setPwmFrequency(FAN_PIN, 1); // No prescaling. Pwm frequency = F_CPU/256/8
-    #endif
-    #ifdef FAN_SOFT_PWM
-    soft_pwm_fan = fanSpeedSoftPwm / (1 << (8 - FAN_SOFT_PWM_BITS));
-    #endif
-  #endif
-
-  #ifdef HEATER_0_USES_MAX6675
-    #ifndef SDSUPPORT
-      SET_OUTPUT(SCK_PIN);
-      WRITE(SCK_PIN,0);
-    
-      SET_OUTPUT(MOSI_PIN);
-      WRITE(MOSI_PIN,1);
-    
-      SET_INPUT(MISO_PIN);
-      WRITE(MISO_PIN,1);
-    #endif
     /* Using pinMode and digitalWrite, as that was the only way I could get it to compile */
     
     //Have to toggle SD card CS pin to low first, to enable firmware to talk with SD card
@@ -1074,7 +1010,6 @@ void tp_init() {
 	digitalWrite(SS_PIN,0);  
 	pinMode(MAX6675_SS, OUTPUT);
 	digitalWrite(MAX6675_SS,1);
-  #endif
 
   adc_init();
 
@@ -1577,27 +1512,12 @@ extern "C" {
 
 
 void adc_ready(void) { //callback from adc when sampling finished
-	current_temperature_raw[0] = adc_values[ADC_PIN_IDX(TEMP_0_PIN)]; //heater
-#if EXTRUDERS > 1
-  current_temperature_raw[1] = adc_values[ADC_PIN_IDX(TEMP_1_PIN)]; //Heater 2
+#if NUMTEMPPROBES == 4
+  current_probetemps_raw_fast[0] = adc_values[ADC_PIN_IDX(PROBE_PIN0)];
+  current_probetemps_raw_fast[1] = adc_values[ADC_PIN_IDX(PROBE_PIN1)];
+  current_probetemps_raw_fast[2] = adc_values[ADC_PIN_IDX(PROBE_PIN2)];
+  current_probetemps_raw_fast[3] = adc_values[ADC_PIN_IDX(PROBE_PIN3)];
 #endif
-#ifdef PINDA_THERMISTOR
-	current_temperature_raw_pinda_fast = adc_values[ADC_PIN_IDX(TEMP_PINDA_PIN)];
-#endif //PINDA_THERMISTOR
-	current_temperature_bed_raw = adc_values[ADC_PIN_IDX(TEMP_BED_PIN)];
-#ifdef VOLT_PWR_PIN
-	current_voltage_raw_pwr = adc_values[ADC_PIN_IDX(VOLT_PWR_PIN)];
-#endif
-#ifdef AMBIENT_THERMISTOR
-	current_temperature_raw_ambient = adc_values[ADC_PIN_IDX(TEMP_AMBIENT_PIN)]; // 5->6
-#endif //AMBIENT_THERMISTOR
-#ifdef VOLT_BED_PIN
-	current_voltage_raw_bed = adc_values[ADC_PIN_IDX(VOLT_BED_PIN)]; // 6->9
-#endif
-#ifdef IR_SENSOR_ANALOG
-     current_voltage_raw_IR = adc_values[ADC_PIN_IDX(VOLT_IR_PIN)];
-#endif //IR_SENSOR_ANALOG
-	temp_meas_ready = true;
 }
 
 } // extern "C"

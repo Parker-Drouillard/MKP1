@@ -626,7 +626,7 @@ void lcdui_print_status_line(void) {
 //!
 //! @code{.unparsed}
 //! |01234567890123456789|
-//! |T 000/000D  P#: 000 |
+//! |PEP CORP PINDA TESTR|
 //! |T 000/000D  F100%   |
 //! |B 000/000D  P--:--  |
 //! |Status line.........|
@@ -642,52 +642,8 @@ void lcdui_print_status_screen(void) {
     lcd_set_cursor(0, 0); //line 0
 
     //Print the hotend temperature (9 chars total)
-	#if EXTRUDERS == 1
-	lcdui_print_temp(LCD_STR_THERMOMETER[0], (int)(degHotend(0) + 0.5), (int)(degTargetHotend(0) + 0.5));
-	#elif EXTRUDERS == 2
-	if(active_extruder == 0){
-		lcd_print("E1A ");
-	} else {
-		lcd_print("E1  ");
-	}
-	lcd_print(itostr3(degHotend(0)+0.5));
-	lcd_print('/');
-	lcd_print(itostr3left(degTargetHotend(0)+0.5));
-	lcd_print(LCD_STR_DEGREE " ");
-	lcd_space(2);
-	lcd_print("P#: ");
-	lcd_print(PRINTER_NUMBER);
-	// lcd_printPGM(PSTR(" "));
+	lcd_print("PEP CORP PINDA TESTR");
 
-	//print second extruder
-	lcd_set_cursor(0, 1); //Line 1
-	if(active_extruder == 1){ 
-		lcd_print("E2A ");
-	} else {
-		lcd_print("E2  ");
-	}
-	lcd_print(itostr3(degHotend(1) + 0.5));
-	lcd_print('/');
-	lcd_print(itostr3left(degTargetHotend(1)+0.5));
-	lcd_print(LCD_STR_DEGREE " ");
-	lcd_print("          ");
-	#endif
-
-	lcd_set_cursor(LCD_WIDTH - 7, 1); //Line 2 7 from right
-	lcd_print("0:");
-	if(READ(FILAMENT_RUNOUT_SENSOR)){
-		lcd_print("Y");
-	} else {
-		lcd_print("N");
-	}
-	#if EXTRUDERS == 2
-		lcd_print(" 1:");
-		if(READ(FILAMENT_RUNOUT2_SENSOR)){
-			lcd_print("Y");
-		} else {
-			lcd_print("N");
-		}
-	#endif
 
     lcd_set_cursor(0, 2); //line 3
 
@@ -8167,11 +8123,6 @@ void ultralcd_init() {
   WRITE(BTN_ENC, HIGH);
 #endif
 
-#if defined (SDSUPPORT) && defined(SDCARDDETECT) && (SDCARDDETECT > 0)
-  pinMode(SDCARDDETECT, INPUT);
-  WRITE(SDCARDDETECT, HIGH);
-  lcd_oldcardstatus = IS_SD_INSERTED;
-#endif//(SDCARDDETECT > 0)
   lcd_encoder_diff = 0;
 }
 
@@ -8399,30 +8350,7 @@ static inline bool forced_menu_expire()
 
 void menu_lcd_lcdupdate_func(void)
 {
-#if (SDCARDDETECT > 0)
-	if ((IS_SD_INSERTED != lcd_oldcardstatus))
-	{
-		lcd_draw_update = 2;
-		lcd_oldcardstatus = IS_SD_INSERTED;
-		lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
-        backlight_wake();
-		if (lcd_oldcardstatus)
-		{
-			card.initsd();
-               LCD_MESSAGERPGM(_T(WELCOME_MSG));
-               bMain=false;                       // flag (i.e. 'fake parameter') for 'lcd_sdcard_menu()' function
-               menu_submenu(lcd_sdcard_menu);
-			//get_description();
-		}
-		else
-		{
-               if(menu_menu==lcd_sdcard_menu)
-                    menu_back();
-			card.release();
-			LCD_MESSAGERPGM(_i("Card removed"));////MSG_SD_REMOVED
-		}
-	}
-#endif//CARDINSERTED
+
     backlight_update();
 	if (lcd_next_update_millis < _millis())
 	{

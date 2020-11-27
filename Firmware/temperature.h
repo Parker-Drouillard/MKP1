@@ -53,6 +53,11 @@ extern bool checkAllHotends(void);
 // do not use these routines and variables outside of temperature.cpp
 extern int target_temperature[EXTRUDERS];  
 extern float current_temperature[EXTRUDERS];
+
+extern uint16_t current_probetemps_raw[NUMTEMPPROBES];
+extern uint16_t current_probetemps_raw_fast[NUMTEMPPROBES];
+extern float current_temperature_probes[NUMTEMPPROBES];
+
 #ifdef SHOW_TEMP_ADC_VALUES
   extern int current_temperature_raw[EXTRUDERS];
   extern int current_temperature_bed_raw;

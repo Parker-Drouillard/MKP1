@@ -64,14 +64,19 @@
 #define DIGIPOTSS_PIN   38
 #define DIGIPOT_CHANNELS  { 4,5,3,0,1 }
 
-
+#define NUMTEMPPROBES 4
+#define PROBE_PIN0 0
+#define PROBE_PIN1 1
+#define PROBE_PIN2 2
+#define PROBE_PIN3 7
 
 
 //Temp sensors
 #define TEMP_0_PIN     0  //Analog input
-#define TEMP_1_PIN     1  //Analog input
-#define TEMP_BED_PIN   2  //Analog input
-#define TEMP_PINDA_PIN 7  //Analog input
+#define TEMP_1_PIN     0  //Analog input
+#define TEMP_BED_PIN   0  //Analog input
+#define TEMP_PINDA_PIN 0  //Analog input
+//0 1 2 7
 
 // Heaters / Fans
 #define HEATER_0_PIN   9

@@ -19,6 +19,9 @@
 // Developer flag
 #define DEVELOPER
 
+#define NUMTEMPPROBES 4
+
+
 // Printer name
 #define CUSTOM_MENDEL_NAME "MKP1"
 #define PRINTER_NUMBER "015"
@@ -186,7 +189,7 @@
 //#define DEBUG_DISABLE_YMAXLIMIT  //y max limit ignored
 //#define DEBUG_DISABLE_ZMINLIMIT  //z min limit ignored
 //#define DEBUG_DISABLE_ZMAXLIMIT  //z max limit ignored
-#define DEBUG_DISABLE_STARTMSGS //no startup messages 
+// #define DEBUG_DISABLE_STARTMSGS //no startup messages 
 //#define DEBUG_DISABLE_MINTEMP   //mintemp error ignored
 //#define DEBUG_DISABLE_SWLIMITS  //sw limits ignored
 //#define DEBUG_DISABLE_LCD_STATUS_LINE  //empty four lcd line
