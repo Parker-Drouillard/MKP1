@@ -37,8 +37,6 @@ const char MSG_FIND_BED_OFFSET_AND_SKEW_LINE2[] PROGMEM_I1 = ISTR(" of 4"); ////
 const char MSG_FINISHING_MOVEMENTS[] PROGMEM_I1 = ISTR("Finishing movements"); ////c=20
 const char MSG_FOLLOW_CALIBRATION_FLOW[] PROGMEM_I1 = ISTR("Printer has not been calibrated yet. Please follow the manual, chapter First steps, section Calibration flow."); ////c=20 r=8
 const char MSG_FOLLOW_Z_CALIBRATION_FLOW[] PROGMEM_I1 = ISTR("There is still a need to make Z calibration. Please follow the manual, chapter First steps, section Calibration flow."); ////c=20 r=9
-const char MSG_FSENSOR_AUTOLOAD[] PROGMEM_I1 = ISTR("F. autoload"); ////c=13
-const char MSG_FSENSOR[] PROGMEM_I1 = ISTR("Fil. sensor"); ////
 const char MSG_HEATING[] PROGMEM_I1 = ISTR("Heating"); ////
 const char MSG_HEATING_COMPLETE[] PROGMEM_I1 = ISTR("Heating done."); ////c=20
 const char MSG_HOMEYZ[] PROGMEM_I1 = ISTR("Calibrate Z"); ////
@@ -75,9 +73,7 @@ const char MSG_SELFTEST_FAN[] PROGMEM_I1 = ISTR("Fan test"); ////c=20
 const char MSG_SELFTEST_FAN_NO[] PROGMEM_I1 = ISTR("Not spinning"); ////c=19
 const char MSG_SELFTEST_FAN_YES[] PROGMEM_I1 = ISTR("Spinning"); ////c=19
 const char MSG_SELFTEST_CHECK_BED[] PROGMEM_I1 = ISTR("Checking bed     "); ////c=20
-const char MSG_SELFTEST_CHECK_FSENSOR[] PROGMEM_I1 = ISTR("Checking sensors "); ////c=20
 const char MSG_SELFTEST_MOTOR[] PROGMEM_I1 = ISTR("Motor"); ////
-const char MSG_SELFTEST_FILAMENT_SENSOR[] PROGMEM_I1 = ISTR("Filament sensor"); ////c=17
 const char MSG_SELFTEST_WIRINGERROR[] PROGMEM_I1 = ISTR("Wiring error"); ////
 const char MSG_SETTINGS[] PROGMEM_I1 = ISTR("Settings"); ////
 const char MSG_HW_SETUP[] PROGMEM_I1 = ISTR("HW Setup"); ////
@@ -94,18 +90,17 @@ const char MSG_TEMP_CALIBRATION[] PROGMEM_I1 = ISTR("Temp. cal."); ////c=14
 const char MSG_TEMP_CALIBRATION_DONE[] PROGMEM_I1 = ISTR("Temperature calibration is finished and active. Temp. calibration can be disabled in menu Settings->Temp. cal."); ////c=20 r=12
 const char MSG_UNLOAD_FILAMENT[] PROGMEM_I1 = ISTR("Unload filament"); ////c=17
 const char MSG_UNLOADING_FILAMENT[] PROGMEM_I1 = ISTR("Unloading filament"); ////c=20 r=1
-const char MSG_WATCH[] PROGMEM_I1 = ISTR("Info screen"); ////
+const char MSG_WATCH[] PROGMEM_I1 = ISTR("Cancel"); ////
 const char MSG_WIZARD_CALIBRATION_FAILED[] PROGMEM_I1 = ISTR("Please check our handbook and fix the problem. Then resume the Wizard by rebooting the printer."); ////c=20 r=8
 const char MSG_WIZARD_DONE[] PROGMEM_I1 = ISTR("All is done. Happy printing!"); ////c=20 r=8
 const char MSG_WIZARD_HEATING[] PROGMEM_I1 = ISTR("Preheating nozzle. Please wait."); ////c=20 r=3
 const char MSG_WIZARD_QUIT[] PROGMEM_I1 = ISTR("You can always resume the Wizard from Calibration -> Wizard."); ////c=20 r=8
 const char MSG_YES[] PROGMEM_I1 = ISTR("Yes"); ////
 const char MSG_V2_CALIBRATION[] PROGMEM_I1 = ISTR("First layer cal."); ////c=18
-const char WELCOME_MSG[] PROGMEM_I1 = ISTR(CUSTOM_MENDEL_NAME " Ready."); ////c=20
+const char WELCOME_MSG[] PROGMEM_I1 = ISTR("No test running."); ////c=20
 const char MSG_OFF[] PROGMEM_I1 = ISTR("Off"); ////
 const char MSG_ON[] PROGMEM_I1 = ISTR("On"); ////
 const char MSG_NA[] PROGMEM_I1 = ISTR("N/A"); ////
-const char MSG_AUTO_DEPLETE[] PROGMEM_I1 = ISTR("SpoolJoin"); ////
 const char MSG_CUTTER[] PROGMEM_I1 = ISTR("Cutter"); ////c=9
 const char MSG_NONE[] PROGMEM_I1 = ISTR("None"); ////
 const char MSG_WARN[] PROGMEM_I1 = ISTR("Warn"); ////
@@ -138,12 +133,6 @@ const char MSG_TIMEOUT[] PROGMEM_I1 = ISTR("Timeout"); ////c=12
 const char MSG_BRIGHT[] PROGMEM_I1 = ISTR("Bright"); ////c=6
 const char MSG_DIM[] PROGMEM_I1 = ISTR("Dim"); ////c=6
 const char MSG_AUTO[] PROGMEM_I1 = ISTR("Auto"); ////c=6
-#ifdef IR_SENSOR_ANALOG
-// Beware - the space at the beginning is necessary since it is reused in LCD menu items which are to be with a space
-const char MSG_IR_04_OR_NEWER[] PROGMEM_I1 = ISTR(" 0.4 or newer");////c=18
-const char MSG_IR_03_OR_OLDER[] PROGMEM_I1 = ISTR(" 0.3 or older");////c=18
-const char MSG_IR_UNKNOWN[] PROGMEM_I1 = ISTR("unknown state");////c=18
-#endif
 
 //not internationalized messages
 const char MSG_HOTEND_OFFSET[] PROGMEM_N1 = "Hotend Offsets:";

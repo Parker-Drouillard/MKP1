@@ -84,7 +84,6 @@
 #include <avr/pgmspace.h>
 
 #include "Dcodes.h"
-#include "AutoDeplete.h"
 
 #ifndef LA_NOCOMPAT
 #include "la10compat.h"
@@ -99,10 +98,6 @@
 #ifdef SWI2C
 #include "swi2c.h"
 #endif //SWI2C
-
-#ifdef FILAMENT_SENSOR
-#include "fsensor.h"
-#endif //FILAMENT_SENSOR
 
 #ifdef TMC2130
 #include "tmc2130.h"
@@ -353,7 +348,7 @@ const int sensitive_pins[] = SENSITIVE_PINS; // Sensitive pin list for M42
 static unsigned long previous_millis_cmd = 0;
 unsigned long max_inactive_time = 0;
 static unsigned long stepper_inactive_time = DEFAULT_STEPPER_DEACTIVE_TIME*1000l;
-static unsigned long safetytimer_inactive_time = DEFAULT_SAFETYTIMER_TIME_MINS*60*1000ul;
+// static unsigned long safetytimer_inactive_time = DEFAULT_SAFETYTIMER_TIME_MINS*60*1000ul;
 
 unsigned long starttime=0;
 unsigned long stoptime=0;
@@ -516,114 +511,6 @@ void servo_init() {
 
 bool fans_check_enabled = true;
 
-#ifdef TMC2130
-
-void crashdet_stop_and_save_print()
-{
-	stop_and_save_print_to_ram(10, -default_retraction); //XY - no change, Z 10mm up, E -1mm retract
-}
-
-void crashdet_restore_print_and_continue()
-{
-	restore_print_from_ram_and_continue(default_retraction); //XYZ = orig, E +1mm unretract
-//	babystep_apply();
-}
-
-
-void crashdet_stop_and_save_print2()
-{
-	cli();
-	planner_abort_hard(); //abort printing
-	cmdqueue_reset(); //empty cmdqueue
-	card.sdprinting = false;
-	card.closefile();
-  // Reset and re-enable the stepper timer just before the global interrupts are enabled.
-  st_reset_timer();
-	sei();
-}
-
-void crashdet_detected(uint8_t mask)
-{
-	st_synchronize();
-	static uint8_t crashDet_counter = 0;
-	bool automatic_recovery_after_crash = true;
-
-	if (crashDet_counter++ == 0) {
-		crashDetTimer.start();
-	}
-	else if (crashDetTimer.expired(CRASHDET_TIMER * 1000ul)){
-		crashDetTimer.stop();
-		crashDet_counter = 0;
-	}
-	else if(crashDet_counter == CRASHDET_COUNTER_MAX){
-		automatic_recovery_after_crash = false;
-		crashDetTimer.stop();
-		crashDet_counter = 0;
-	}
-	else {
-		crashDetTimer.start();
-	}
-
-	lcd_update_enable(true);
-	lcd_clear();
-	lcd_update(2);
-
-	if (mask & X_AXIS_MASK)
-	{
-		eeprom_update_byte((uint8_t*)EEPROM_CRASH_COUNT_X, eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_X) + 1);
-		eeprom_update_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT, eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT) + 1);
-	}
-	if (mask & Y_AXIS_MASK)
-	{
-		eeprom_update_byte((uint8_t*)EEPROM_CRASH_COUNT_Y, eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_Y) + 1);
-		eeprom_update_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT, eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT) + 1);
-	}
-    
-
-
-	lcd_update_enable(true);
-	lcd_update(2);
-	lcd_setstatuspgm(_T(MSG_CRASH_DETECTED));
-	gcode_G28(true, true, false); //home X and Y
-	st_synchronize();
-
-	if (automatic_recovery_after_crash) {
-		enquecommand_P(PSTR("CRASH_RECOVER"));
-	}else{
-		setTargetHotend(0, active_extruder);
-		bool yesno = lcd_show_fullscreen_message_yes_no_and_wait_P(_i("Crash detected. Resume print?"), false);
-		lcd_update_enable(true);
-		if (yesno)
-		{
-			enquecommand_P(PSTR("CRASH_RECOVER"));
-		}
-		else
-		{
-			enquecommand_P(PSTR("CRASH_CANCEL"));
-		}
-	}
-}
-
-void crashdet_recover()
-{
-	crashdet_restore_print_and_continue();
-	if (lcd_crash_detect_enabled()) tmc2130_sg_stop_on_crash = true;
-}
-
-void crashdet_cancel()
-{
-	saved_printing = false;
-	tmc2130_sg_stop_on_crash = true;
-	if (saved_printing_type == PRINTING_TYPE_SD) {
-		lcd_print_stop();
-	}else if(saved_printing_type == PRINTING_TYPE_USB){
-		SERIAL_ECHOLNRPGM(MSG_OCTOPRINT_CANCEL); //for Octoprint: works the same as clicking "Abort" button in Octoprint GUI
-		SERIAL_PROTOCOLLNRPGM(MSG_OK);
-	}
-}
-
-#endif //TMC2130
-
 void failstats_reset_print() {
 	eeprom_update_byte((uint8_t *)EEPROM_CRASH_COUNT_X, 0);
 	eeprom_update_byte((uint8_t *)EEPROM_CRASH_COUNT_Y, 0);
@@ -631,9 +518,6 @@ void failstats_reset_print() {
 	eeprom_update_byte((uint8_t *)EEPROM_POWER_COUNT, 0);
 	eeprom_update_byte((uint8_t *)EEPROM_MMU_FAIL, 0);
 	eeprom_update_byte((uint8_t *)EEPROM_MMU_LOAD_FAIL, 0);
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-    fsensor_softfail = 0;
-#endif
 }
 
 void softReset() {
@@ -719,11 +603,6 @@ static void factory_reset(char level) {
 			eeprom_update_word((uint16_t *)EEPROM_MMU_LOAD_FAIL_TOT, 0);
 			eeprom_update_byte((uint8_t *)EEPROM_MMU_FAIL, 0);
 			eeprom_update_byte((uint8_t *)EEPROM_MMU_LOAD_FAIL, 0);
-
-#ifdef FILAMENT_SENSOR
-			fsensor_enable();
-            fsensor_autoload_set(true);
-#endif //FILAMENT_SENSOR
       Sound_MakeCustom(100,0,false);   
 			//_delay_ms(2000);
     break;
@@ -989,25 +868,7 @@ void setup() {
 	MYSERIAL.begin(BAUDRATE);
 	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
 	stdout = uartout;
-
-#ifdef W25X20CL
-    bool w25x20cl_success = w25x20cl_init();
-	uint8_t optiboot_status = 1;
-	if (w25x20cl_success)
-	{
-		optiboot_status = optiboot_w25x20cl_enter();
-#if (LANG_MODE != 0) //secondary language support
-        update_sec_lang_from_external_flash();
-#endif //(LANG_MODE != 0)
-	}
-	else
-	{
-	    w25x20cl_err_msg();
-	}
-#else
 	const bool w25x20cl_success = true;
-#endif //W25X20CL
-
 
 	setup_killpin();
 	setup_powerhold();
@@ -1017,162 +878,27 @@ void setup() {
 	if ((farm_mode == 0xFF && farm_no == 0) || ((uint16_t)farm_no == 0xFFFF)) 
 		farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
 	if ((uint16_t)farm_no == 0xFFFF) farm_no = 0;
-	if (farm_mode)
-	{
+	if (farm_mode) {
 		no_response = true; //we need confirmation by recieving PRUSA thx
 		important_status = 8;
 		prusa_statistics(8);
 		selectedSerialPort = 1;
 		MYSERIAL.begin(BAUDRATE);
-#ifdef TMC2130
-		//increased extruder current (PFW363)
-		tmc2130_current_h[E_AXIS] = 36;
-		tmc2130_current_r[E_AXIS] = 36;
-#endif //TMC2130
-#ifdef FILAMENT_SENSOR
-		//disabled filament autoload (PFW360)
-		fsensor_autoload_set(false);
-#endif //FILAMENT_SENSOR
           // ~ FanCheck -> on
           if(!(eeprom_read_byte((uint8_t*)EEPROM_FAN_CHECK_ENABLED)))
                eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
 	}
-#ifndef W25X20CL
-	SERIAL_PROTOCOLLNPGM("start");
-#else
-	if ((optiboot_status != 0) || (selectedSerialPort != 0))
-		SERIAL_PROTOCOLLNPGM("start");
-#endif
+
+	// if ((optiboot_status != 0) || (selectedSerialPort != 0)) {
+	// 	SERIAL_PROTOCOLLNPGM("start");
+  // }
 	SERIAL_ECHO_START;
 	printf_P(PSTR(" " FW_VERSION_FULL "\n"));
 
 	//SERIAL_ECHOPAIR("Active sheet before:", static_cast<unsigned long int>(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet))));
 
-#ifdef DEBUG_SEC_LANG
-	lang_table_header_t header;
-	uint32_t src_addr = 0x00000;
-	if (lang_get_header(1, &header, &src_addr))
-	{
-//this is comparsion of some printing-methods regarding to flash space usage and code size/readability
-#define LT_PRINT_TEST 2
-//  flash usage
-//  total   p.test
-//0 252718  t+c  text code
-//1 253142  424  170  254
-//2 253040  322  164  158
-//3 253248  530  135  395
-#if (LT_PRINT_TEST==1) //not optimized printf
-		printf_P(_n(" _src_addr = 0x%08lx\n"), src_addr);
-		printf_P(_n(" _lt_magic = 0x%08lx %S\n"), header.magic, (header.magic==LANG_MAGIC)?_n("OK"):_n("NA"));
-		printf_P(_n(" _lt_size  = 0x%04x (%d)\n"), header.size, header.size);
-		printf_P(_n(" _lt_count = 0x%04x (%d)\n"), header.count, header.count);
-		printf_P(_n(" _lt_chsum = 0x%04x\n"), header.checksum);
-		printf_P(_n(" _lt_code  = 0x%04x (%c%c)\n"), header.code, header.code >> 8, header.code & 0xff);
-		printf_P(_n(" _lt_sign = 0x%08lx\n"), header.signature);
-#elif (LT_PRINT_TEST==2) //optimized printf
-		printf_P(
-		 _n(
-		  " _src_addr = 0x%08lx\n"
-		  " _lt_magic = 0x%08lx %S\n"
-		  " _lt_size  = 0x%04x (%d)\n"
-		  " _lt_count = 0x%04x (%d)\n"
-		  " _lt_chsum = 0x%04x\n"
-		  " _lt_code  = 0x%04x (%c%c)\n"
-		  " _lt_resv1 = 0x%08lx\n"
-		 ),
-		 src_addr,
-		 header.magic, (header.magic==LANG_MAGIC)?_n("OK"):_n("NA"),
-		 header.size, header.size,
-		 header.count, header.count,
-		 header.checksum,
-		 header.code, header.code >> 8, header.code & 0xff,
-		 header.signature
-		);
-#elif (LT_PRINT_TEST==3) //arduino print/println (leading zeros not solved)
-		MYSERIAL.print(" _src_addr = 0x");
-		MYSERIAL.println(src_addr, 16);
-		MYSERIAL.print(" _lt_magic = 0x");
-		MYSERIAL.print(header.magic, 16);
-		MYSERIAL.println((header.magic==LANG_MAGIC)?" OK":" NA");
-		MYSERIAL.print(" _lt_size  = 0x");
-		MYSERIAL.print(header.size, 16);
-		MYSERIAL.print(" (");
-		MYSERIAL.print(header.size, 10);
-		MYSERIAL.println(")");
-		MYSERIAL.print(" _lt_count = 0x");
-		MYSERIAL.print(header.count, 16);
-		MYSERIAL.print(" (");
-		MYSERIAL.print(header.count, 10);
-		MYSERIAL.println(")");
-		MYSERIAL.print(" _lt_chsum = 0x");
-		MYSERIAL.println(header.checksum, 16);
-		MYSERIAL.print(" _lt_code  = 0x");
-		MYSERIAL.print(header.code, 16);
-		MYSERIAL.print(" (");
-		MYSERIAL.print((char)(header.code >> 8), 0);
-		MYSERIAL.print((char)(header.code & 0xff), 0);
-		MYSERIAL.println(")");
-		MYSERIAL.print(" _lt_resv1 = 0x");
-		MYSERIAL.println(header.signature, 16);
-#endif //(LT_PRINT_TEST==)
-#undef LT_PRINT_TEST
-
-#if 0
-		w25x20cl_rd_data(0x25ba, (uint8_t*)&block_buffer, 1024);
-		for (uint16_t i = 0; i < 1024; i++)
-		{
-			if ((i % 16) == 0) printf_P(_n("%04x:"), 0x25ba+i);
-			printf_P(_n(" %02x"), ((uint8_t*)&block_buffer)[i]);
-			if ((i % 16) == 15) putchar('\n');
-		}
-#endif
-		uint16_t sum = 0;
-		for (uint16_t i = 0; i < header.size; i++)
-			sum += (uint16_t)pgm_read_byte((uint8_t*)(_SEC_LANG_TABLE + i)) << ((i & 1)?0:8);
-		printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
-		sum -= header.checksum; //subtract checksum
-		printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
-		sum = (sum >> 8) | ((sum & 0xff) << 8); //swap bytes
-		if (sum == header.checksum)
-			printf_P(_n("Checksum OK\n"), sum);
-		else
-			printf_P(_n("Checksum NG\n"), sum);
-	}
-	else
-		printf_P(_n("lang_get_header failed!\n"));
-
-#if 0
-		for (uint16_t i = 0; i < 1024*10; i++)
-		{
-			if ((i % 16) == 0) printf_P(_n("%04x:"), _SEC_LANG_TABLE+i);
-			printf_P(_n(" %02x"), pgm_read_byte((uint8_t*)(_SEC_LANG_TABLE+i)));
-			if ((i % 16) == 15) putchar('\n');
-		}
-#endif
-
-#if 0
-	SERIAL_ECHOLN("Reading eeprom from 0 to 100: start");
-	for (int i = 0; i < 4096; ++i) {
-		int b = eeprom_read_byte((unsigned char*)i);
-		if (b != 255) {
-			SERIAL_ECHO(i);
-			SERIAL_ECHO(":");
-			SERIAL_ECHO(b);
-			SERIAL_ECHOLN("");
-		}
-	}
-	SERIAL_ECHOLN("Reading eeprom from 0 to 100: done");
-#endif
-
-#endif //DEBUG_SEC_LANG
-
 	// Check startup - does nothing if bootloader sets MCUSR to 0
 	byte mcu = MCUSR;
-/*	if (mcu & 1) SERIAL_ECHOLNRPGM(MSG_POWERUP);
-	if (mcu & 2) SERIAL_ECHOLNRPGM(MSG_EXTERNAL_RESET);
-	if (mcu & 4) SERIAL_ECHOLNRPGM(MSG_BROWNOUT_RESET);
-	if (mcu & 8) SERIAL_ECHOLNRPGM(MSG_WATCHDOG_RESET);
-	if (mcu & 32) SERIAL_ECHOLNRPGM(MSG_SOFTWARE_RESET);*/
 	if (mcu & 1) puts_P(MSG_POWERUP);
 	if (mcu & 2) puts_P(MSG_EXTERNAL_RESET);
 	if (mcu & 4) puts_P(MSG_BROWNOUT_RESET);
@@ -1207,27 +933,14 @@ void setup() {
 	uint8_t hw_changed = check_printer_version();
 	if (!(hw_changed & 0b10)) { //if printer version wasn't changed, check for eeprom version and retrieve settings from eeprom in case that version wasn't changed
 		previous_settings_retrieved = Config_RetrieveSettings();
-	} 
-	else { //printer version was changed so use default settings 
+	} else { //printer version was changed so use default settings 
 		Config_ResetDefault();
 	}
 	SdFatUtil::set_stack_guard(); //writes magic number at the end of static variables to protect against overwriting static memory by stack
 
 	tp_init();    // Initialize temperature loop
 
-	if (w25x20cl_success) lcd_splash(); // we need to do this again, because tp_init() kills lcd
-	else
-	{
-	    w25x20cl_err_msg();
-	    printf_P(_n("W25X20CL not responding.\n"));
-	}
-#ifdef EXTRUDER_ALTFAN_DETECT
-	SERIAL_ECHORPGM(_n("Extruder fan type: "));
-	if (extruder_altfan_detect())
-		SERIAL_ECHOLNRPGM(PSTR("ALTFAN"));
-	else
-		SERIAL_ECHOLNRPGM(PSTR("NOCTUA"));
-#endif //EXTRUDER_ALTFAN_DETECT
+	lcd_splash(); 
 
 	plan_init();  // Initialize planner;
 
@@ -1249,64 +962,8 @@ void setup() {
 
     lcd_encoder_diff=0;
 
-#ifdef TMC2130
-	uint8_t silentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
-	if (silentMode == 0xff) silentMode = 0;
-	tmc2130_mode = TMC2130_MODE_NORMAL;
-
-	if (lcd_crash_detect_enabled() && !farm_mode)
-	{
-		lcd_crash_detect_enable();
-	    puts_P(_N("CrashDetect ENABLED!"));
-	}
-	else
-	{
-	    lcd_crash_detect_disable();
-	    puts_P(_N("CrashDetect DISABLED"));
-	}
-
-#ifdef TMC2130_LINEARITY_CORRECTION
-#ifdef TMC2130_LINEARITY_CORRECTION_XYZ
-	tmc2130_wave_fac[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_X_FAC);
-	tmc2130_wave_fac[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Y_FAC);
-	tmc2130_wave_fac[Z_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Z_FAC);
-#endif //TMC2130_LINEARITY_CORRECTION_XYZ
-	tmc2130_wave_fac[E_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_E_FAC);
-	if (tmc2130_wave_fac[X_AXIS] == 0xff) tmc2130_wave_fac[X_AXIS] = 0;
-	if (tmc2130_wave_fac[Y_AXIS] == 0xff) tmc2130_wave_fac[Y_AXIS] = 0;
-	if (tmc2130_wave_fac[Z_AXIS] == 0xff) tmc2130_wave_fac[Z_AXIS] = 0;
-	if (tmc2130_wave_fac[E_AXIS] == 0xff) tmc2130_wave_fac[E_AXIS] = 0;
-#endif //TMC2130_LINEARITY_CORRECTION
-
-#ifdef TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[X_AXIS]);
-	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Y_AXIS]);
-	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Z_AXIS]);
-	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[E_AXIS]);
-#else //TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_Z);
-	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_E);
-#endif //TMC2130_VARIABLE_RESOLUTION
-
-#endif //TMC2130
-
 	st_init();    // Initialize stepper, this enables interrupts!
   
-#ifdef TMC2130
-	tmc2130_mode = silentMode?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
-	update_mode_profile();
-	tmc2130_init();
-#endif //TMC2130
-#ifdef PSU_Delta
-     init_force_z();                              // ! important for correct Z-axis initialization
-#endif // PSU_Delta
-    
-	setup_photpin();
-
-	servo_init();
-
 	// Reset the machine correction matrix.
 	// It does not make sense to load the correction matrix until the machine is homed.
 	world2machine_reset();
@@ -1315,17 +972,6 @@ void setup() {
     // avoid unexpected initial shifts on the first move
     clamp_to_software_endstops(current_position);
     plan_set_position_curposXYZE();
-
-#ifdef FILAMENT_SENSOR
-	fsensor_init();
-#endif //FILAMENT_SENSOR
-
-
-#if defined(CONTROLLERFAN_PIN) && (CONTROLLERFAN_PIN > -1)
-	SET_OUTPUT(CONTROLLERFAN_PIN); //Set pin used for driver cooling fan
-#endif
-
-	setup_homepin();
 
 #if defined(Z_AXIS_ALWAYS_ON)
     enable_z();
@@ -1346,91 +992,11 @@ void setup() {
 	// Force SD card update. Otherwise the SD card update is done from loop() on card.checkautostart(false), 
 	// but this times out if a blocking dialog is shown in setup().
 	card.initsd();
-#ifdef DEBUG_SD_SPEED_TEST
-	if (card.cardOK)
-	{
-		uint8_t* buff = (uint8_t*)block_buffer;
-		uint32_t block = 0;
-		uint32_t sumr = 0;
-		uint32_t sumw = 0;
-		for (int i = 0; i < 1024; i++)
-		{
-			uint32_t u = _micros();
-			bool res = card.card.readBlock(i, buff);
-			u = _micros() - u;
-			if (res)
-			{
-				printf_P(PSTR("readBlock %4d 512 bytes %lu us\n"), i, u);
-				sumr += u;
-				u = _micros();
-				res = card.card.writeBlock(i, buff);
-				u = _micros() - u;
-				if (res)
-				{
-					printf_P(PSTR("writeBlock %4d 512 bytes %lu us\n"), i, u);
-					sumw += u;
-				}
-				else
-				{
-					printf_P(PSTR("writeBlock %4d error\n"), i);
-					break;
-				}
-			}
-			else
-			{
-				printf_P(PSTR("readBlock %4d error\n"), i);
-				break;
-			}
-		}
-		uint32_t avg_rspeed = (1024 * 1000000) / (sumr / 512);
-		uint32_t avg_wspeed = (1024 * 1000000) / (sumw / 512);
-		printf_P(PSTR("avg read speed %lu bytes/s\n"), avg_rspeed);
-		printf_P(PSTR("avg write speed %lu bytes/s\n"), avg_wspeed);
-	}
-	else
-		printf_P(PSTR("Card NG!\n"));
-#endif //DEBUG_SD_SPEED_TEST
-
     eeprom_init();
-#ifdef SNMM
-	if (eeprom_read_dword((uint32_t*)EEPROM_BOWDEN_LENGTH) == 0x0ffffffff) { //bowden length used for SNMM
-	  int _z = BOWDEN_LENGTH;
-	  for(int i = 0; i<4; i++) EEPROM_save_B(EEPROM_BOWDEN_LENGTH + i * 2, &_z);
-	}
-#endif
 
   // In the future, somewhere here would one compare the current firmware version against the firmware version stored in the EEPROM.
   // If they differ, an update procedure may need to be performed. At the end of this block, the current firmware version
   // is being written into the EEPROM, so the update procedure will be triggered only once.
-
-
-#if (LANG_MODE != 0) //secondary language support
-
-#ifdef DEBUG_W25X20CL
-	W25X20CL_SPI_ENTER();
-	uint8_t uid[8]; // 64bit unique id
-	w25x20cl_rd_uid(uid);
-	puts_P(_n("W25X20CL UID="));
-	for (uint8_t i = 0; i < 8; i ++)
-		printf_P(PSTR("%02hhx"), uid[i]);
-	putchar('\n');
-	list_sec_lang_from_external_flash();
-#endif //DEBUG_W25X20CL
-
-//	lang_reset();
-	if (!lang_select(eeprom_read_byte((uint8_t*)EEPROM_LANG)))
-		lcd_language();
-
-#ifdef DEBUG_SEC_LANG
-
-	uint16_t sec_lang_code = lang_get_code(1);
-	uint16_t ui = _SEC_LANG_TABLE; //table pointer
-	printf_P(_n("lang_selected=%d\nlang_table=0x%04x\nSEC_LANG_CODE=0x%04x (%c%c)\n"), lang_selected, ui, sec_lang_code, sec_lang_code >> 8, sec_lang_code & 0xff);
-
-	lang_print_sec_lang(uartout);
-#endif //DEBUG_SEC_LANG
-
-#endif //(LANG_MODE != 0)
 
 	if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
 		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
@@ -1453,148 +1019,10 @@ void setup() {
 	mbl_settings_init();
 
 
-#if !defined(DEBUG_DISABLE_FANCHECK) && defined(FANCHECK) && defined(TACH_1) && TACH_1 >-1
-	setup_fan_interrupt();
-#endif //DEBUG_DISABLE_FANCHECK
-
-#ifdef PAT9125
-	fsensor_setup_interrupt();
-#endif //PAT9125
 	for (int i = 0; i<4; i++) EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); 
-	
-#ifndef DEBUG_DISABLE_STARTMSGS
-  KEEPALIVE_STATE(PAUSED_FOR_USER);
-
-  if (!farm_mode) {
-    check_if_fw_is_on_right_printer();
-    show_fw_version_warnings();    
-  }
-
-  switch (hw_changed) { 
-	  //if motherboard or printer type was changed inform user as it can indicate flashing wrong firmware version
-	  //if user confirms with knob, new hw version (printer and/or motherboard) is written to eeprom and message will be not shown next time
-	case(0b01): 
-		lcd_show_fullscreen_message_and_wait_P(_i("Warning: motherboard type changed.")); ////MSG_CHANGED_MOTHERBOARD c=20 r=4
-		eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
-		break;
-	case(0b10): 
-		lcd_show_fullscreen_message_and_wait_P(_i("Warning: printer type changed.")); ////MSG_CHANGED_PRINTER c=20 r=4
-		eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE); 
-		break;
-	case(0b11): 
-		lcd_show_fullscreen_message_and_wait_P(_i("Warning: both printer type and motherboard type changed.")); ////MSG_CHANGED_BOTH c=20 r=4
-		eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE);
-		eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
-		break;
-	default: break; //no change, show no message
-  }
-
-  if (!previous_settings_retrieved) {
-	  lcd_show_fullscreen_message_and_wait_P(_i("Old settings found. Default PID, Esteps etc. will be set.")); //if EEPROM version or printer type was changed, inform user that default setting were loaded////MSG_DEFAULT_SETTINGS_LOADED c=20 r=5
-	  Config_StoreSettings();
-  }
-  if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 1) {
-	  lcd_wizard(WizState::Run);
-  }
-  if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 0) { //dont show calibration status messages if wizard is currently active
-	  if (calibration_status() == CALIBRATION_STATUS_ASSEMBLED ||
-		  calibration_status() == CALIBRATION_STATUS_UNKNOWN || 
-		  calibration_status() == CALIBRATION_STATUS_XYZ_CALIBRATION) {
-		  // Reset the babystepping values, so the printer will not move the Z axis up when the babystepping is enabled.
-            eeprom_update_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].z_offset)),0);
-		  // Show the message.
-		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_CALIBRATION_FLOW));
-	  }
-	  else if (calibration_status() == CALIBRATION_STATUS_LIVE_ADJUST) {
-		  // Show the message.
-		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_BABYSTEP_Z_NOT_SET));
-		  lcd_update_enable(true);
-	  }
-	  else if (calibration_status() == CALIBRATION_STATUS_CALIBRATED && eeprom_read_byte((unsigned char *)EEPROM_TEMP_CAL_ACTIVE) && calibration_status_pinda() == false) {
-		  //lcd_show_fullscreen_message_and_wait_P(_i("Temperature calibration has not been run yet"));////MSG_PINDA_NOT_CALIBRATED c=20 r=4
-		  lcd_update_enable(true);
-	  }
-	  else if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION) {
-		  // Show the message.
-		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_Z_CALIBRATION_FLOW));
-	  }
-  }
-
-#if !defined (DEBUG_DISABLE_FORCE_SELFTEST) && defined (TMC2130)
-  if (force_selftest_if_fw_version() && calibration_status() < CALIBRATION_STATUS_ASSEMBLED) {
-	  lcd_show_fullscreen_message_and_wait_P(_i("Selftest will be run to calibrate accurate sensorless rehoming."));////MSG_FORCE_SELFTEST c=20 r=8
-	  update_current_firmware_version_to_eeprom();
-	  lcd_selftest();
-  }
-#endif //TMC2130 && !DEBUG_DISABLE_FORCE_SELFTEST
-
-  KEEPALIVE_STATE(IN_PROCESS);
-#endif //DEBUG_DISABLE_STARTMSGS
-  lcd_update_enable(true);
-  lcd_clear();
-  lcd_update(2);
   // Store the currently running firmware into an eeprom,
   // so the next time the firmware gets updated, it will know from which version it has been updated.
   update_current_firmware_version_to_eeprom();
-
-#ifdef TMC2130
-  	tmc2130_home_origin[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_ORIGIN);
-	tmc2130_home_bsteps[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_BSTEPS);
-	tmc2130_home_fsteps[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_FSTEPS);
-	if (tmc2130_home_origin[X_AXIS] == 0xff) tmc2130_home_origin[X_AXIS] = 0;
-	if (tmc2130_home_bsteps[X_AXIS] == 0xff) tmc2130_home_bsteps[X_AXIS] = 48;
-	if (tmc2130_home_fsteps[X_AXIS] == 0xff) tmc2130_home_fsteps[X_AXIS] = 48;
-
-	tmc2130_home_origin[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_ORIGIN);
-	tmc2130_home_bsteps[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_BSTEPS);
-	tmc2130_home_fsteps[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_FSTEPS);
-	if (tmc2130_home_origin[Y_AXIS] == 0xff) tmc2130_home_origin[Y_AXIS] = 0;
-	if (tmc2130_home_bsteps[Y_AXIS] == 0xff) tmc2130_home_bsteps[Y_AXIS] = 48;
-	if (tmc2130_home_fsteps[Y_AXIS] == 0xff) tmc2130_home_fsteps[Y_AXIS] = 48;
-
-	tmc2130_home_enabled = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_ENABLED);
-	if (tmc2130_home_enabled == 0xff) tmc2130_home_enabled = 0;
-#endif //TMC2130
-
-#ifdef UVLO_SUPPORT
-  if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) != 0) { //previous print was terminated by UVLO
-/*
-	  if (lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_RECOVER_PRINT), false))	recover_print();
-	  else {
-		  eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0);
-		  lcd_update_enable(true);
-		  lcd_update(2);
-		  lcd_setstatuspgm(_T(WELCOME_MSG));
-	  }
-*/
-      manage_heater(); // Update temperatures 
-#ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
-		printf_P(_N("Power panic detected!\nCurrent bed temp:%d\nSaved bed temp:%d\n"), (int)degBed(), eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED));
-#endif 
-     if ( degBed() > ( (float)eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED) - AUTOMATIC_UVLO_BED_TEMP_OFFSET) ){ 
-          #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
-        puts_P(_N("Automatic recovery!")); 
-          #endif 
-         recover_print(1); 
-      } 
-      else{ 
-          #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
-        puts_P(_N("Normal recovery!")); 
-          #endif 
-          if ( lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_RECOVER_PRINT), false) ) recover_print(0); 
-          else { 
-              eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0); 
-              lcd_update_enable(true); 
-              lcd_update(2); 
-              lcd_setstatuspgm(_T(WELCOME_MSG)); 
-          } 
-      }
-  }
-
-  // Only arm the uvlo interrupt _after_ a recovering print has been initialized and
-  // the entire state machine initialized.
-  setup_uvlo_interrupt();
-#endif //UVLO_SUPPORT
 
   fCheckModeInit();
   KEEPALIVE_STATE(NOT_BUSY);
@@ -1720,105 +1148,35 @@ void host_keepalive() {
 void loop() {
 	KEEPALIVE_STATE(NOT_BUSY);
 
-	if ((usb_printing_counter > 0) && ((_millis()-_usb_timer) > 1000)) {
-		is_usb_printing = true;
-		usb_printing_counter--;
-		_usb_timer = _millis();
-	}
-	if (usb_printing_counter == 0) {
-		is_usb_printing = false;
-	}
-  if (isPrintPaused && saved_printing_type == PRINTING_TYPE_USB) {//keep believing that usb is being printed. Prevents accessing dangerous menus while pausing.
-		is_usb_printing = true;
-	}
+  is_usb_printing = false;
     
-    if (prusa_sd_card_upload) {
-        //we read byte-by byte
-        serial_read_stream();
-    } else {
-
-        get_command();
-
-  #ifdef SDSUPPORT
-  card.checkautostart(false);
-  #endif
-  if(buflen)
-  {
+  get_command();
+  if(buflen) {
     cmdbuffer_front_already_processed = false;
-    #ifdef SDSUPPORT
-      if(card.saving)
-      {
-        // Saving a G-code file onto an SD-card is in progress.
-        // Saving starts with M28, saving until M29 is seen.
-        if(strstr_P(CMDBUFFER_CURRENT_STRING, PSTR("M29")) == NULL) {
-          card.write_command(CMDBUFFER_CURRENT_STRING);
-          if(card.logging)
-            process_commands();
-          else
-           SERIAL_PROTOCOLLNRPGM(MSG_OK);
-        } else {
-          card.closefile();
-          SERIAL_PROTOCOLLNRPGM(MSG_FILE_SAVED);
-        }
-      } else {
-        process_commands();
-      }
-    #else
-      process_commands();
-    #endif //SDSUPPORT
+    process_commands();
 
-    if (! cmdbuffer_front_already_processed && buflen)
-    {
+    if (! cmdbuffer_front_already_processed && buflen) {
       // ptr points to the start of the block currently being processed.
       // The first character in the block is the block type.      
       char *ptr = cmdbuffer + bufindr;
-      if (*ptr == CMDBUFFER_CURRENT_TYPE_SDCARD) {
-        // To support power panic, move the lenght of the command on the SD card to a planner buffer.
-        union {
-          struct {
-              char lo;
-              char hi;
-          } lohi;
-          uint16_t value;
-        } sdlen;
-        sdlen.value = 0;
-        {
-          // This block locks the interrupts globally for 3.25 us,
-          // which corresponds to a maximum repeat frequency of 307.69 kHz.
-          // This blocking is safe in the context of a 10kHz stepper driver interrupt
-          // or a 115200 Bd serial line receive interrupt, which will not trigger faster than 12kHz.
-          cli();
-          // Reset the command to something, which will be ignored by the power panic routine,
-          // so this buffer length will not be counted twice.
-          *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
-          // Extract the current buffer length.
-          sdlen.lohi.lo = *ptr ++;
-          sdlen.lohi.hi = *ptr;
-          // and pass it to the planner queue.
-          planner_add_sd_length(sdlen.value);
-          sei();
-        }
-	  }
-	  else if((*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR) && !IS_SD_PRINTING){ 
-		  
-		  cli();
-          *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
-          // and one for each command to previous block in the planner queue.
-          planner_add_sd_length(1);
-          sei();
-	  }
+      if(*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR){  
+        cli();
+        *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
+        // and one for each command to previous block in the planner queue.
+        planner_add_sd_length(1);
+        sei();
+      }
       // Now it is safe to release the already processed command block. If interrupted by the power panic now,
       // this block's SD card length will not be counted twice as its command type has been replaced 
       // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
       cmdqueue_pop_front();
     }
-	host_keepalive();
+    host_keepalive();
   }
-}
   //check heater every n milliseconds
   manage_heater();
   isPrintPaused ? manage_inactivity(true) : manage_inactivity(false);
-  checkHitEndstops();
+  // checkHitEndstops();
   lcd_update(0);
 
 }
@@ -2864,8 +2222,7 @@ void gcode_M114() {
 	SERIAL_PROTOCOLLN("");
 }
 
-//! extracted code to compute z_shift for M600 in case of filament change operation 
-//! requested from fsensors.
+
 //! The function ensures, that the printhead lifts to at least 25mm above the heat bed
 //! unlike the previous implementation, which was adding 25mm even when the head was
 //! printing at e.g. 24mm height.
@@ -2979,12 +2336,6 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
   char cmd[9];
   sprintf_P(cmd, PSTR("M220 S%i"), feedmultiplyBckp);
   enquecommand(cmd);
-
-#ifdef IR_SENSOR
-	//this will set fsensor_watch_autoload to correct value and prevent possible M701 gcode enqueuing when M600 is finished
-	fsensor_check_autoload();
-#endif //IR_SENSOR
-
   lcd_setstatuspgm(_T(WELCOME_MSG));
   custom_message_type = CustomMsg::Status;
 }
@@ -2997,11 +2348,6 @@ void gcode_M701() {
 	}
   enable_z();
   custom_message_type = CustomMsg::FilamentLoading;
-
-#ifdef FSENSOR_QUALITY
-  fsensor_oq_meassure_start(40);
-#endif //FSENSOR_QUALITY
-
   lcd_setstatuspgm(_T(MSG_LOADING_FILAMENT));
   current_position[E_AXIS] += 40;
   plan_buffer_line_curposXYZE(400 / 60); //fast sequence
@@ -3314,24 +2660,8 @@ There are reasons why some G Codes aren't in numerical order.
 
 
 void process_commands() {
-#ifdef FANCHECK
-  if(fan_check_error){
-    if(fan_check_error == EFCE_DETECTED){
-      fan_check_error = EFCE_REPORTED;
-      // SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_PAUSED);
-      lcd_pause_print();
-    } // otherwise it has already been reported, so just ignore further processing
-    return; //ignore usb stream. It is reenabled by selecting resume from the lcd.
-  }
-#endif
-	if (!buflen) {return;} //empty command
 
-#ifdef FILAMENT_RUNOUT_SUPPORT
-  SET_INPUT(FILAMENT_RUNOUT_SENSOR);
-#if EXTRUDERS > 1 && defined(FILAMENT_RUNOUT2_SENSOR)
-  SET_INPUT(FILAMENT_RUNOUT2_SENSOR);
-#endif
-#endif
+	if (!buflen) {return;} //empty command
 
 #ifdef CMDBUFFER_DEBUG
   SERIAL_ECHOPGM("Processing a GCODE command: ");
@@ -3344,18 +2674,9 @@ void process_commands() {
   
   unsigned long codenum; //throw away variable
   char *starpos = NULL;
-#ifdef ENABLE_AUTO_BED_LEVELING
-  float x_tmp, y_tmp, z_tmp, real_z;
-#endif
-
   // PRUSA GCODES
   KEEPALIVE_STATE(IN_HANDLER);
 
-#ifdef SNMM
-  float tmp_motor[3] = DEFAULT_PWM_MOTOR_CURRENT;
-  float tmp_motor_loud[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
-  int8_t SilentMode;
-#endif
   /*!
   
   ---------------------------------------------------------------------------------
@@ -5951,8 +5272,8 @@ Sigma_Exit:
     */
 	case 86: 
 	  if (code_seen('S')) {
-	    safetytimer_inactive_time = code_value() * 1000;
-		safetyTimer.start();
+	    // safetytimer_inactive_time = code_value() * 1000;
+		// safetyTimer.start();
 	  }
 	  break;
 #endif
@@ -5984,11 +5305,7 @@ Sigma_Exit:
               axis_steps_per_sqr_second[i] *= factor;
             }
             cs.axis_steps_per_unit[i] = value;
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-            fsensor_set_axis_steps_per_unit(value);
-#endif
-          }
-          else {
+          } else {
             cs.axis_steps_per_unit[i] = code_value();
           }
         }
@@ -7472,34 +6789,26 @@ Sigma_Exit:
     */
     case 907:
     {
-#ifdef TMC2130
-        // See tmc2130_cur2val() for translation to 0 .. 63 range
-        for (int i = 0; i < NUM_AXIS; i++)
-			if(code_seen(axis_codes[i]))
-			{
-				long cur_mA = code_value_long();
-				uint8_t val = tmc2130_cur2val(cur_mA);
-				tmc2130_set_current_h(i, val);
-				tmc2130_set_current_r(i, val);
-				//if (i == E_AXIS) printf_P(PSTR("E-axis current=%ldmA\n"), cur_mA);
-			}
-
-#else //TMC2130
-      #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-        for(int i=0;i<NUM_AXIS;i++) if(code_seen(axis_codes[i])) st_current_set(i,code_value());
-        if(code_seen('B')) st_current_set(4,code_value());
-        if(code_seen('S')) for(int i=0;i<=4;i++) st_current_set(i,code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_XY_PIN
-        if(code_seen('X')) st_current_set(0, code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_Z_PIN
-        if(code_seen('Z')) st_current_set(1, code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_E_PIN
-        if(code_seen('E')) st_current_set(2, code_value());
-      #endif
-#endif //TMC2130
+      if(code_seen('X')) {
+        digitalPotWrite(4, code_value());
+      }
+      if(code_seen('Y')) {
+        digitalPotWrite(5, code_value());
+      }
+      if(code_seen('Z')) {
+        digitalPotWrite(3, code_value());
+      }
+      if(code_seen('E')) {
+        digitalPotWrite(0, code_value());
+      }
+      if(code_seen('B')) {
+        digitalPotWrite(1, code_value());
+      }
+      if(code_seen('S')) {
+        for(int x = 0; x < NUM_AXIS+1; x++){
+          digitalPotWrite(x, code_value());
+        }
+      }
     }
     break;
 
@@ -7516,12 +6825,10 @@ Sigma_Exit:
     */
     case 908:
     {
-      #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-        uint8_t channel,current;
-        if(code_seen('P')) channel=code_value();
-        if(code_seen('S')) current=code_value();
-        digitalPotWrite(channel, current);
-      #endif
+      uint8_t channel,current;
+      if(code_seen('P')) channel=code_value();
+      if(code_seen('S')) current=code_value();
+      digitalPotWrite(channel, current);
     }
     break;
 
@@ -7734,10 +7041,6 @@ Sigma_Exit:
 						cs.axis_steps_per_unit[i] /= fac;
 						position[i] /= fac;
 					}
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-                    if (i == E_AXIS)
-                        fsensor_set_axis_steps_per_unit(cs.axis_steps_per_unit[i]);
-#endif
 				}
 			}
 		}
@@ -8573,56 +7876,11 @@ void handle_status_leds(void) {
  * If safetytimer_inactive_time is zero, feature is disabled (heating is never turned off because of inactivity)
  */
 //Modified 10 Nov 2020 - Parker Drouillard
-static void handleSafetyTimer()
-{
-#if (EXTRUDERS > 2)
-#error Implemented for no more than 2 extruders
-#endif //(EXTRUDERS > 1)
-    if ((PRINTER_ACTIVE) || (!degTargetBed() && !degTargetHotend(0) 
-      #if (EXTRUDERS > 1)
-        && !degTargetHotend(1)
-      #endif
-      ) || (!safetytimer_inactive_time)) {
-        safetyTimer.stop();
-    } else if ((degTargetBed() || degTargetHotend(0)
-    #if (EXTRUDERS > 1)
-     || degTargetHotend(1)
-     #endif
-     ) && (!safetyTimer.running())) {
-        safetyTimer.start();
-    } else if (safetyTimer.expired(farm_mode?FARM_DEFAULT_SAFETYTIMER_TIME_ms:safetytimer_inactive_time)) {
-        setTargetBed(0);
-        setAllTargetHotends(0);
-        lcd_show_fullscreen_message_and_wait_P(_i("Heating disabled by safety timer."));////MSG_BED_HEATING_SAFETY_DISABLED
-    }
+static void handleSafetyTimer(){
+
 }
 #endif //SAFETYTIMER
 
-#ifdef IR_SENSOR_ANALOG
-#define FS_CHECK_COUNT 16
-/// Switching mechanism of the fsensor type.
-/// Called from 2 spots which have a very similar behavior
-/// 1: ClFsensorPCB::_Old -> ClFsensorPCB::_Rev04 and print _i("FS v0.4 or newer")
-/// 2: ClFsensorPCB::_Rev04 -> oFsensorPCB=ClFsensorPCB::_Old and print _i("FS v0.3 or older")
-void manage_inactivity_IR_ANALOG_Check(uint16_t &nFSCheckCount, ClFsensorPCB isVersion, ClFsensorPCB switchTo, const char *statusLineTxt_P) {
-    bool bTemp = (!CHECK_ALL_HEATERS);
-    bTemp = bTemp && (menu_menu == lcd_status_screen);
-    bTemp = bTemp && ((oFsensorPCB == isVersion) || (oFsensorPCB == ClFsensorPCB::_Undef));
-    bTemp = bTemp && fsensor_enabled;
-    if (bTemp) {
-        nFSCheckCount++;
-        if (nFSCheckCount > FS_CHECK_COUNT) {
-            nFSCheckCount = 0; // not necessary
-            oFsensorPCB = switchTo;
-            eeprom_update_byte((uint8_t *)EEPROM_FSENSOR_PCB, (uint8_t)oFsensorPCB);
-            printf_IRSensorAnalogBoardChange();
-            lcd_setstatuspgm(statusLineTxt_P);
-        }
-    } else {
-        nFSCheckCount = 0;
-    }
-}
-#endif
 
 void manage_inactivity(bool ignore_stepper_queue) { //default argument set in Marlin.h
 
@@ -10460,6 +9718,10 @@ uint8_t calc_percent_done()
 	return percent_done;
 }
 
+static void runPindaTest(){
+  
+}
+
 static void print_time_remaining_init()
 {
 	print_time_remaining_normal = PRINT_TIME_REMAINING_INIT;
@@ -10625,46 +9887,19 @@ void M600_load_filament() {
 	//load_filament_time = _millis();
 	KEEPALIVE_STATE(PAUSED_FOR_USER);
 
-#ifdef PAT9125
-	fsensor_autoload_check_start();
-#endif //PAT9125
+
 	while(!lcd_clicked())
 	{
 		manage_heater();
 		manage_inactivity(true);
-#ifdef FILAMENT_SENSOR
-		if (fsensor_check_autoload())
-		{
-      Sound_MakeCustom(50,1000,false);
-			break;
-		}
-#endif //FILAMENT_SENSOR
+
 	}
-#ifdef PAT9125
-	fsensor_autoload_check_stop();
-#endif //PAT9125
 	KEEPALIVE_STATE(IN_HANDLER);
 
-#ifdef FSENSOR_QUALITY
-	fsensor_oq_meassure_start(70);
-#endif //FSENSOR_QUALITY
 
 	M600_load_filament_movements();
 
       Sound_MakeCustom(50,1000,false);
-
-#ifdef FSENSOR_QUALITY
-	fsensor_oq_meassure_stop();
-
-	if (!fsensor_oq_result())
-	{
-		bool disable = lcd_show_fullscreen_message_yes_no_and_wait_P(_i("Fil. sensor response is poor, disable it?"), false, true);
-		lcd_update_enable(true);
-		lcd_update(2);
-		if (disable)
-			fsensor_disable();
-	}
-#endif //FSENSOR_QUALITY
 	lcd_update_enable(false);
 }
 

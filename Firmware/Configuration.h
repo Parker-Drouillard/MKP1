@@ -70,7 +70,7 @@ extern PGM_P sPrinterName;
 //#define STRING_VERSION "1.0.2"
 
 #define STRING_VERSION_CONFIG_H __DATE__ " " __TIME__ // build date and time
-#define STRING_CONFIG_H_AUTHOR "(none, default config)" // Who made the changes.
+#define STRING_CONFIG_H_AUTHOR "Parker Drouillard" // Who made the changes.
 
 // SERIAL_PORT selects which serial port should be used for communication with the host.
 // This allows the connection of wireless adapters (for instance) to non-default port pins.
@@ -147,9 +147,9 @@ extern PGM_P sPrinterName;
     
 
 // MakerGear
-//    #define  DEFAULT_Kp 7.0
-//    #define  DEFAULT_Ki 0.1
-//    #define  DEFAULT_Kd 12
+  //  #define  DEFAULT_Kp 7.0
+  //  #define  DEFAULT_Ki 0.1
+  //  #define  DEFAULT_Kd 12
 
 // Mendel Parts V9 on 12V
 //    #define  DEFAULT_Kp 63.0
@@ -160,16 +160,16 @@ extern PGM_P sPrinterName;
 
 //this prevents dangerous Extruder moves, i.e. if the temperature is under the limit
 //can be software-disabled for whatever purposes by
-#define PREVENT_DANGEROUS_EXTRUDE
+// #define PREVENT_DANGEROUS_EXTRUDE
 //if PREVENT_DANGEROUS_EXTRUDE is on, you can still disable (uncomment) very long bits of extrusion separately.
-#define PREVENT_LENGTHY_EXTRUDE
+// #define PREVENT_LENGTHY_EXTRUDE
 
 #ifdef DEBUG_DISABLE_PREVENT_EXTRUDER
 #undef PREVENT_DANGEROUS_EXTRUDE
 #undef PREVENT_LENGTHY_EXTRUDE
 #endif //DEBUG_DISABLE_PREVENT_EXTRUDER
 
-#define EXTRUDE_MAXLENGTH (X_MAX_LENGTH+Y_MAX_LENGTH) //prevent extrusion of very large distances.
+// #define EXTRUDE_MAXLENGTH (X_MAX_LENGTH+Y_MAX_LENGTH) //prevent extrusion of very large distances.
 
 /*================== Thermal Runaway Protection ==============================
 This is a feature to protect your printer from burn up in flames if it has
@@ -291,7 +291,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 //============================= Bed Auto Leveling ===========================
 
 //#define ENABLE_AUTO_BED_LEVELING // Delete the comment to enable (remove // at the start of the line)
-#define Z_PROBE_REPEATABILITY_TEST  // If not commented out, Z-Probe Repeatability test will be included if Auto Bed Leveling is Enabled.
+// #define Z_PROBE_REPEATABILITY_TEST  // If not commented out, Z-Probe Repeatability test will be included if Auto Bed Leveling is Enabled.
 
 #ifdef ENABLE_AUTO_BED_LEVELING
 

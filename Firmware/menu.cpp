@@ -64,29 +64,25 @@ void menu_goto(menu_func_t menu, const uint32_t encoder, const bool feedback, bo
 	}
 }
 
-void menu_start(void)
-{
+void menu_start(void) {
     if (lcd_encoder > 0x8000) lcd_encoder = 0;
-    if (lcd_encoder < 0)
-    {
+    if (lcd_encoder < 0) {
         lcd_encoder = 0;
 		Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
     }
-    if (lcd_encoder < menu_top)
+    if (lcd_encoder < menu_top) {
 		menu_top = lcd_encoder;
+	}
     menu_line = menu_top;
     menu_clicked = LCD_CLICKED;
 }
 
-void menu_end(void)
-{
-	if (lcd_encoder >= menu_item)
-	{
+void menu_end(void) {
+	if (lcd_encoder >= menu_item) {
 		lcd_encoder = menu_item - 1;
 		Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 	}
-	if (((uint8_t)lcd_encoder) >= menu_top + LCD_HEIGHT)
-	{
+	if (((uint8_t)lcd_encoder) >= menu_top + LCD_HEIGHT) {
 		menu_top = lcd_encoder - LCD_HEIGHT + 1;
 		lcd_draw_update = 1;
 		menu_line = menu_top - 1;
@@ -94,21 +90,17 @@ void menu_end(void)
 	}
 }
 
-void menu_back(uint8_t nLevel)
-{
+void menu_back(uint8_t nLevel) {
      menu_depth = ((menu_depth > nLevel) ? (menu_depth - nLevel) : 0);
      menu_goto(menu_stack[menu_depth].menu, menu_stack[menu_depth].position, true, true);
 }
 
-void menu_back(void)
-{
-menu_back(1);
+void menu_back(void) {
+	menu_back(1);
 }
 
-void menu_back_no_reset(void)
-{
-	if (menu_depth > 0)
-	{
+void menu_back_no_reset(void) {
+	if (menu_depth > 0) {
 		menu_depth--;		
 		menu_goto(menu_stack[menu_depth].menu, menu_stack[menu_depth].position, true, false);
 	}
@@ -237,14 +229,6 @@ static void menu_draw_item_puts_P(char type_char, const char* str, char num)
     lcd_putc(type_char);
 }
 
-/*
-int menu_draw_item_puts_P_int16(char type_char, const char* str, int16_t val, )
-{
-    lcd_set_cursor(0, menu_row);
-	int cnt = lcd_printf_P(PSTR("%c%-18S%c"), (lcd_encoder == menu_item)?'>':' ', str, type_char);
-	return cnt;
-}
-*/
 
 void menu_item_dummy(void)
 {
@@ -340,13 +324,10 @@ uint8_t menu_item_function_P(const char* str, menu_func_t func) {
 //! @param fn_par value to be passed to function
 //! @retval 0
 //! @retval 1 Item was clicked
-uint8_t menu_item_function_P(const char* str, char number, void (*func)(uint8_t), uint8_t fn_par)
-{
-    if (menu_item == menu_line)
-    {
-        if (lcd_draw_update) menu_draw_item_puts_P(' ', str, number);
-        if (menu_clicked && (lcd_encoder == menu_item))
-        {
+uint8_t menu_item_function_P(const char* str, char number, void (*func)(uint8_t), uint8_t fn_par) {
+    if (menu_item == menu_line) {
+        if (lcd_draw_update) {menu_draw_item_puts_P(' ', str, number);}
+        if (menu_clicked && (lcd_encoder == menu_item)) {
             menu_clicked = false;
             lcd_consume_click();
             lcd_update_enabled = 0;
@@ -359,13 +340,12 @@ uint8_t menu_item_function_P(const char* str, char number, void (*func)(uint8_t)
     return 0;
 }
 
-uint8_t menu_item_toggle_P(const char* str, const char* toggle, menu_func_t func, const uint8_t settings)
-{
-	if (menu_item == menu_line)
-	{
-		if (lcd_draw_update) menu_draw_toggle_puts_P(str, toggle, settings | (menu_selection_mark()=='>'));
-		if (menu_clicked && (lcd_encoder == menu_item))
-		{
+uint8_t menu_item_toggle_P(const char* str, const char* toggle, menu_func_t func, const uint8_t settings) {
+	if (menu_item == menu_line) {
+		if (lcd_draw_update) {
+			menu_draw_toggle_puts_P(str, toggle, settings | (menu_selection_mark()=='>'));
+		}
+		if (menu_clicked && (lcd_encoder == menu_item)) {
 			if (toggle == NULL) // print N/A warning message
 			{
 				menu_submenu(func);

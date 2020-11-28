@@ -111,7 +111,6 @@ enum class LcdCommands : uint_least8_t
 };
 
 extern LcdCommands lcd_commands_type;
-extern int8_t FSensorStateMenu;
 
 enum class CustomMsg : uint_least8_t
 {
@@ -142,10 +141,6 @@ extern uint8_t farm_status;
 #define SILENT_MODE_OFF SILENT_MODE_POWER
 #endif
 
-#ifdef IR_SENSOR_ANALOG
-extern bool bMenuFSDetect;
-void printf_IRSensorAnalogBoardChange();
-#endif //IR_SENSOR_ANALOG
 
 extern int8_t SilentModeMenu;
 extern uint8_t SilentModeMenu_MMU;
@@ -233,7 +228,6 @@ void lcd_language();
 #endif
 
 void lcd_wizard();
-bool lcd_autoDepleteEnabled();
 
 //! @brief Wizard state
 enum class WizState : uint8_t

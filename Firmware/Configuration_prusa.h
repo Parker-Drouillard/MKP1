@@ -23,7 +23,7 @@
 
 
 // Printer name
-#define CUSTOM_MENDEL_NAME "MKP1"
+#define CUSTOM_MENDEL_NAME "Tester"
 #define PRINTER_NUMBER "015"
 
 // Electronics
@@ -134,14 +134,14 @@
 #define Z_AXIS_ALWAYS_ON 1
 
 //Crash detection
-#define CRASHDET_TIMER 45 //seconds
-#define CRASHDET_COUNTER_MAX 3 
+// #define CRASHDET_TIMER 45 //seconds
+// #define CRASHDET_COUNTER_MAX 3 
 
 // New XYZ calibration
-#define NEW_XYZCAL
+// #define NEW_XYZCAL
 
 // Watchdog support
-#define WATCHDOG
+// #define WATCHDOG
 
 // Power panic
 // #define UVLO_SUPPORT
@@ -150,9 +150,9 @@
 // #define FANCHECK
 
 // Safety timer
-#define SAFETYTIMER
-#define DEFAULT_SAFETYTIMER_TIME_MINS 60
-#define FARM_DEFAULT_SAFETYTIMER_TIME_ms (45*60*1000ul)
+// #define SAFETYTIMER
+// #define DEFAULT_SAFETYTIMER_TIME_MINS 60
+// #define FARM_DEFAULT_SAFETYTIMER_TIME_ms (45*60*1000ul)
 
 // Filament sensor
 // #define FILAMENT_SENSOR
@@ -179,7 +179,6 @@
 //#define _NO_ASM
 #define DEBUG_DCODES //D codes
 #define DEBUG_STACK_MONITOR        //Stack monitor in stepper ISR
-//#define DEBUG_FSENSOR_LOG          //Reports fsensor status to serial
 //#define DEBUG_CRASHDET_COUNTERS  //Display crash-detection counters on LCD
 //#define DEBUG_RESUME_PRINT       //Resume/save print debug enable 
 //#define DEBUG_UVLO_AUTOMATIC_RECOVER // Power panic automatic recovery debug output 
@@ -199,17 +198,13 @@
 //#define DEBUG_XSTEP_DUP_PIN 21   //duplicate x-step output to pin 21 (SCL on P3)
 //#define DEBUG_YSTEP_DUP_PIN 21   //duplicate y-step output to pin 21 (SCL on P3)
 //#define DEBUG_DISABLE_FANCHECK     //disable fan check (no ISR INT7, check disabled)
-//#define DEBUG_DISABLE_FSENSORCHECK //disable fsensor check (no ISR INT7, check disabled)
 #define DEBUG_DUMP_TO_2ND_SERIAL   //dump received characters to 2nd serial line
 #define DEBUG_STEPPER_TIMER_MISSED // Stop on stepper timer overflow, beep and display a message.
 #define PLANNER_DIAGNOSTICS // Show the planner queue status on printer display.
 #define CMD_DIAGNOSTICS //Show cmd queue length on printer display
 #endif /* DEBUG_BUILD */
 
-//#define FSENSOR_QUALITY
-
-
-#define LINEARITY_CORRECTION
+// #define LINEARITY_CORRECTION
 // #define TMC2130_LINEARITY_CORRECTION
 // #define TMC2130_LINEARITY_CORRECTION_XYZ
 // #define TMC2130_VARIABLE_RESOLUTION
@@ -385,7 +380,7 @@
  *------------------------------------*/
 
 // Define Prusa filament runout sensor
-#define FILAMENT_RUNOUT_SUPPORT
+// #define FILAMENT_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
 // #if EXTRUDERS > 1 && defined(FIL_RUNOUT2_PIN)

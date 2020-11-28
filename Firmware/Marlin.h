@@ -377,14 +377,6 @@ extern LongTimer safetyTimer;
 #define PRINT_PERCENT_DONE_INIT   0xff
 #define PRINTER_ACTIVE (IS_SD_PRINTING || is_usb_printing || isPrintPaused || (custom_message_type == CustomMsg::TempCal) || saved_printing || (lcd_commands_type == LcdCommands::Layer1Cal) || mmu_print_saved)
 
-//! Beware - mcode_in_progress is set as soon as the command gets really processed,
-//! which is not the same as posting the M600 command into the command queue
-//! There can be a considerable lag between posting M600 and its real processing which might result
-//! in posting multiple M600's into the command queue
-//! Instead, the fsensor uses another state variable :( , which is set to true, when the M600 command is enqued
-//! and is reset to false when the fsensor returns into its filament runout finished handler
-//! I'd normally change this macro, but who knows what would happen in the MMU :)
-#define CHECK_FSENSOR ((IS_SD_PRINTING || is_usb_printing) && (mcode_in_progress != 600) && !saved_printing && e_active())
 
 extern void calculate_extruder_multipliers();
 
@@ -440,7 +432,7 @@ extern void cancel_saved_printing();
 extern uint16_t print_time_remaining();
 extern uint8_t calc_percent_done();
 
-
+extern void runPindaTest();
 
 // States for managing Marlin and host communication
 // Marlin sends messages if blocked or busy

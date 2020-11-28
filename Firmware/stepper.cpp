@@ -32,14 +32,6 @@
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
 #include <SPI.h>
 #endif
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
-
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-#include "fsensor.h"
-int fsensor_counter; //counter for e-steps
-#endif //FILAMENT_SENSOR
 
 // #include "mmu.h"
 #include "ConfigurationStore.h"
@@ -169,17 +161,6 @@ void checkHitEndstops()
    endstop_x_hit=false;
    endstop_y_hit=false;
    endstop_z_hit=false;
-#if defined(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED) && defined(SDSUPPORT)
-   if (abort_on_endstop_hit)
-   {
-     card.sdprinting = false;
-     card.closefile();
-     quickStop();
-     setTargetHotend0(0);
-     setTargetHotend1(0);
-     setTargetHotend2(0);
-   }
-#endif
  }
 }
 
@@ -419,11 +400,7 @@ FORCE_INLINE void stepper_next_block()
 #endif /* LIN_ADVANCE */
       count_direction[E_AXIS] = 1;
     }
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-    fsensor_st_block_begin(count_direction[E_AXIS] < 0);
-#endif //FILAMENT_SENSOR
-  }
-  else {
+  } else {
       _NEXT_ISR(2000); // 1kHz.
 
 #ifdef LIN_ADVANCE
@@ -647,9 +624,6 @@ FORCE_INLINE void stepper_tick_lowres()
 #ifdef LIN_ADVANCE
       e_steps += count_direction[E_AXIS];
 #else
-	#ifdef FILAMENT_SENSOR
-	  fsensor_counter += count_direction[E_AXIS];
-	#endif //FILAMENT_SENSOR
       WRITE(E0_STEP_PIN, INVERT_E_STEP_PIN);
 #endif
     }
@@ -709,9 +683,6 @@ FORCE_INLINE void stepper_tick_highres()
 #ifdef LIN_ADVANCE
       e_steps += count_direction[E_AXIS];
 #else
-    #ifdef FILAMENT_SENSOR
-      fsensor_counter += count_direction[E_AXIS];
-    #endif //FILAMENT_SENSOR
       WRITE(E0_STEP_PIN, INVERT_E_STEP_PIN);
 #endif
     }
@@ -907,26 +878,12 @@ FORCE_INLINE void isr() {
 
     // If current block is finished, reset pointer
     if (step_events_completed.wide >= current_block->step_event_count.wide) {
-#if !defined(LIN_ADVANCE) && defined(FILAMENT_SENSOR)
-		fsensor_st_block_chunk(fsensor_counter);
-		fsensor_counter = 0;
-#endif //FILAMENT_SENSOR
 
       current_block = NULL;
       plan_discard_current_block();
     }
-#if !defined(LIN_ADVANCE) && defined(FILAMENT_SENSOR)
-	else if ((abs(fsensor_counter) >= fsensor_chunk_len))
-  	{
-      fsensor_st_block_chunk(fsensor_counter);
-  	  fsensor_counter = 0;
-  	}
-#endif //FILAMENT_SENSOR
   }
 
-#ifdef TMC2130
-	tmc2130_st_isr();
-#endif //TMC2130
 
   //WRITE_NC(LOGIC_ANALYZER_CH0, false);
 }
@@ -1017,19 +974,8 @@ FORCE_INLINE void advance_isr_scheduler() {
             WRITE_NC(E0_STEP_PIN, !INVERT_E_STEP_PIN);
             e_steps += (rev? 1: -1);
             WRITE_NC(E0_STEP_PIN, INVERT_E_STEP_PIN);
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-            fsensor_counter += (rev? -1: 1);
-#endif
         }
         while(--max_ticks);
-
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-        if (abs(fsensor_counter) >= fsensor_chunk_len)
-        {
-            fsensor_st_block_chunk(fsensor_counter);
-            fsensor_counter = 0;
-        }
-#endif
     }
 
     // Schedule the next closest tick, ignoring advance if scheduled too
@@ -1476,8 +1422,7 @@ void babystep(const uint8_t axis,const bool direction)
 #endif //BABYSTEPPING
 
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-void digitalPotWrite(int address, int value) // From Arduino DigitalPotControl example
-{
+void digitalPotWrite(int address, int value) {// From Arduino DigitalPotControl example
     digitalWrite(DIGIPOTSS_PIN,LOW); // take the SS pin low to select the chip
     SPI.transfer(address); //  send in the address and value via SPI:
     SPI.transfer(value);
@@ -1622,13 +1567,3 @@ void microstep_readings()
       #endif
 }
 #endif //TMC2130
-
-
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-void st_reset_fsensor()
-{
-    CRITICAL_SECTION_START;
-    fsensor_counter = 0;
-    CRITICAL_SECTION_END;
-}
-#endif //FILAMENT_SENSOR

@@ -38,8 +38,6 @@ extern const char MSG_FIND_BED_OFFSET_AND_SKEW_LINE2[];
 extern const char MSG_FINISHING_MOVEMENTS[];
 extern const char MSG_FOLLOW_CALIBRATION_FLOW[];
 extern const char MSG_FOLLOW_Z_CALIBRATION_FLOW[];
-extern const char MSG_FSENSOR_AUTOLOAD[];
-extern const char MSG_FSENSOR[];
 extern const char MSG_HEATING[];
 extern const char MSG_HEATING_COMPLETE[];
 extern const char MSG_HOMEYZ[];
@@ -75,7 +73,6 @@ extern const char MSG_SELFTEST_FAN[];
 extern const char MSG_SELFTEST_FAN_NO[];
 extern const char MSG_SELFTEST_FAN_YES[];
 extern const char MSG_SELFTEST_CHECK_BED[];
-extern const char MSG_SELFTEST_CHECK_FSENSOR[];
 extern const char MSG_SELFTEST_MOTOR[];
 extern const char MSG_SELFTEST_FILAMENT_SENSOR[];
 extern const char MSG_SELFTEST_WIRINGERROR[];
@@ -105,7 +102,6 @@ extern const char WELCOME_MSG[];
 extern const char MSG_OFF[];
 extern const char MSG_ON[];
 extern const char MSG_NA[];
-extern const char MSG_AUTO_DEPLETE[];
 extern const char MSG_CUTTER[];
 extern const char MSG_NONE[];
 extern const char MSG_WARN[];
@@ -138,11 +134,6 @@ extern const char MSG_TIMEOUT[];
 extern const char MSG_BRIGHT[];
 extern const char MSG_DIM[];
 extern const char MSG_AUTO[];
-#ifdef IR_SENSOR_ANALOG
-extern const char MSG_IR_04_OR_NEWER[];
-extern const char MSG_IR_03_OR_OLDER[];
-extern const char MSG_IR_UNKNOWN[];
-#endif
 
 //not internationalized messages
 extern const char MSG_HOTEND_OFFSET[];
