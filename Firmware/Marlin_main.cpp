@@ -693,11 +693,11 @@ void setup() {
 	setup_killpin();
 	setup_powerhold();
 
-
+	if ((optiboot_status != 0) || (selectedSerialPort != 0))
+		SERIAL_PROTOCOLLNPGM("start");
 	SERIAL_ECHO_START;
 	printf_P(PSTR(" " FW_VERSION_FULL "\n"));
 
-	//SERIAL_ECHOPAIR("Active sheet before:", static_cast<unsigned long int>(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet))));
 
 	// Check startup - does nothing if bootloader sets MCUSR to 0
 	byte mcu = MCUSR;
@@ -735,7 +735,6 @@ void setup() {
 	} else { //printer version was changed so use default settings 
 		Config_ResetDefault();
 	}
-
 	tp_init();    // Initialize temperature loop
 
 	if (w25x20cl_success) {
@@ -744,61 +743,32 @@ void setup() {
     w25x20cl_err_msg();
     printf_P(_n("W25X20CL not responding.\n"));
 	}
-#ifdef EXTRUDER_ALTFAN_DETECT
-	SERIAL_ECHORPGM(_n("Extruder fan type: "));
-	if (extruder_altfan_detect())
-		SERIAL_ECHOLNRPGM(PSTR("ALTFAN"));
-	else
-		SERIAL_ECHOLNRPGM(PSTR("NOCTUA"));
-#endif //EXTRUDER_ALTFAN_DETECT
+
 
 	plan_init();  // Initialize planner;
 
+	factory_reset(); //If button is being held on startup at the time this function is called, and held for the required amount of time, intiate factory reset.
+	if (eeprom_read_dword((uint32_t*)(EEPROM_TOP - 4)) == 0x0ffffffff &&
+  eeprom_read_dword((uint32_t*)(EEPROM_TOP - 8)) == 0x0ffffffff) {
+    // Maiden startup. The firmware has been loaded and first started on a virgin RAMBo board,
+    // where all the EEPROM entries are set to 0x0ff.
+    // Once a firmware boots up, it forces at least a language selection, which changes
+    // EEPROM_LANG to number lower than 0x0ff.
+    // 1) Set a high power mode.
+    eeprom_update_byte((uint8_t*)EEPROM_SILENT, SILENT_MODE_OFF);
+    eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
+  }
 
-    lcd_encoder_diff=0;
-
-
+  lcd_encoder_diff=0;
 	st_init();    // Initialize stepper, this enables interrupts!
-  
-  // Initialize current_position accounting for software endstops to
-  // avoid unexpected initial shifts on the first move
-  clamp_to_software_endstops(current_position);
-  plan_set_position_curposXYZE();
-
 	setup_homepin();
-
-#if defined(Z_AXIS_ALWAYS_ON)
   enable_z();
-#endif
-
-
   eeprom_init();
 
 
-  // In the future, somewhere here would one compare the current firmware version against the firmware version stored in the EEPROM.
-  // If they differ, an update procedure may need to be performed. At the end of this block, the current firmware version
-  // is being written into the EEPROM, so the update procedure will be triggered only once.
-
-
-
-	if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
-	}
-
-	if (eeprom_read_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA) == 255) {
-		//eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 0);
-		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
-		int16_t z_shift = 0;
-		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
-		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
-	}
 	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
 		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
 	}
-	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
-	}
-
 
 
 	for (int i = 0; i<4; i++) { EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); }
@@ -809,7 +779,6 @@ void setup() {
   // Store the currently running firmware into an eeprom,
   // so the next time the firmware gets updated, it will know from which version it has been updated.
   update_current_firmware_version_to_eeprom();
-
 
 
   fCheckModeInit();
@@ -826,31 +795,7 @@ void trace();
 char chunk[CHUNK_SIZE+SAFETY_MARGIN];
 int chunkHead = 0;
 
-void serial_read_stream() {
 
-    lcd_clear();
-    lcd_puts_P(PSTR(" Upload in progress"));
-
-    // first wait for how many bytes we will receive
-    uint32_t bytesToReceive;
-
-    // receive the four bytes
-    char bytesToReceiveBuffer[4];
-    for (int i=0; i<4; i++) {
-      int data;
-      while ((data = MYSERIAL.read()) == -1) {};
-      bytesToReceiveBuffer[i] = data;
-    }
-
-    // make it a uint32
-    memcpy(&bytesToReceive, &bytesToReceiveBuffer, 4);
-
-    // we're ready, notify the sender
-    MYSERIAL.write('+');
-
-    // lock in the routine
-    uint32_t receivedBytes = 0;
-}
 
 /**
 * Output a "busy" message at regular intervals
@@ -862,6 +807,8 @@ void host_keepalive() {
 #endif //HOST_KEEPALIVE_FEATURE
   if (farm_mode) return;
   long ms = _millis();
+
+
 
   if (host_keepalive_interval && busy_state != NOT_BUSY) {
     if ((ms - prev_busy_signal_ms) < (long)(1000L * host_keepalive_interval)) return;
@@ -892,21 +839,61 @@ void host_keepalive() {
 void loop() {
 	KEEPALIVE_STATE(NOT_BUSY);
 
-  is_usb_printing = false;
+	if ((usb_printing_counter > 0) && ((_millis()-_usb_timer) > 1000)) {
+		is_usb_printing = true;
+		usb_printing_counter--;
+		_usb_timer = _millis();
+	}
+	if (usb_printing_counter == 0) {
+		is_usb_printing = false;
+	}
+    if (isPrintPaused && saved_printing_type == PRINTING_TYPE_USB) {//keep believing that usb is being printed. Prevents accessing dangerous menus while pausing.
+		is_usb_printing = true;
+	}
     
+
+  
   get_command();
   if(buflen) {
     cmdbuffer_front_already_processed = false;
     process_commands();
 
+
     if (! cmdbuffer_front_already_processed && buflen) {
       // ptr points to the start of the block currently being processed.
       // The first character in the block is the block type.      
       char *ptr = cmdbuffer + bufindr;
-      if(*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR){  
+      if (*ptr == CMDBUFFER_CURRENT_TYPE_SDCARD) {
+        // To support power panic, move the lenght of the command on the SD card to a planner buffer.
+        union {
+          struct {
+              char lo;
+              char hi;
+          } lohi;
+          uint16_t value;
+        } sdlen;
+        sdlen.value = 0;
+        {
+          // This block locks the interrupts globally for 3.25 us,
+          // which corresponds to a maximum repeat frequency of 307.69 kHz.
+          // This blocking is safe in the context of a 10kHz stepper driver interrupt
+          // or a 115200 Bd serial line receive interrupt, which will not trigger faster than 12kHz.
+          cli();
+          // Reset the command to something, which will be ignored by the power panic routine,
+          // so this buffer length will not be counted twice.
+          *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
+          // Extract the current buffer length.
+          sdlen.lohi.lo = *ptr ++;
+          sdlen.lohi.hi = *ptr;
+          // and pass it to the planner queue.
+          planner_add_sd_length(sdlen.value);
+          sei();
+        }
+      } else if((*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR) && !IS_SD_PRINTING){ 
         cli();
         *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
         // and one for each command to previous block in the planner queue.
+        planner_add_sd_length(1);
         sei();
       }
       // Now it is safe to release the already processed command block. If interrupted by the power panic now,
@@ -916,12 +903,14 @@ void loop() {
     }
     host_keepalive();
   }
+  
   //check heater every n milliseconds
+  manage_heater();
   isPrintPaused ? manage_inactivity(true) : manage_inactivity(false);
-  // checkHitEndstops();
+  checkHitEndstops();
   lcd_update(0);
+} //End of loop()
 
-}
 
 
 
