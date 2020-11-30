@@ -59,15 +59,6 @@
 #include "language.h"
 #include "ConfigurationStore.h"
 
-#ifdef MESH_BED_LEVELING
-#include "mesh_bed_leveling.h"
-#include "mesh_bed_calibration.h"
-#endif
-
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
-
 //===========================================================================
 //=============================public variables ============================
 //===========================================================================
@@ -661,7 +652,6 @@ void planner_abort_hard() {
     quickStop();
 
     // Apply inverse world correction matrix.
-    machine2world(current_position[X_AXIS], current_position[Y_AXIS]);
     memcpy(destination, current_position, sizeof(destination));
 #ifdef LIN_ADVANCE
     memcpy(position_float, current_position, sizeof(position_float));
@@ -765,49 +755,6 @@ void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate
   apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
 #endif // ENABLE_AUTO_BED_LEVELING
 
-    // Apply the machine correction matrix.
-    {
-      #if 0
-        SERIAL_ECHOPGM("Planner, current position - servos: ");
-        MYSERIAL.print(st_get_position_mm(X_AXIS), 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(st_get_position_mm(Y_AXIS), 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(st_get_position_mm(Z_AXIS), 5);
-        SERIAL_ECHOLNPGM("");
-
-        SERIAL_ECHOPGM("Planner, target position, initial: ");
-        MYSERIAL.print(x, 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(y, 5);
-        SERIAL_ECHOLNPGM("");
-
-        SERIAL_ECHOPGM("Planner, world2machine: ");
-        MYSERIAL.print(world2machine_rotation_and_skew[0][0], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_rotation_and_skew[0][1], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_rotation_and_skew[1][0], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_rotation_and_skew[1][1], 5);
-        SERIAL_ECHOLNPGM("");
-        SERIAL_ECHOPGM("Planner, offset: ");
-        MYSERIAL.print(world2machine_shift[0], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_shift[1], 5);
-        SERIAL_ECHOLNPGM("");
-      #endif
-
-        world2machine(x, y);
-
-      #if 0
-        SERIAL_ECHOPGM("Planner, target position, corrected: ");
-        MYSERIAL.print(x, 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(y, 5);
-        SERIAL_ECHOLNPGM("");
-      #endif
-    }
 
   // The target position of the tool in absolute steps
   // Calculate target position in absolute steps
@@ -1381,7 +1328,7 @@ void plan_set_position(float x, float y, float z, const float &e)
     apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
 #endif // ENABLE_AUTO_BED_LEVELING
 
-    world2machine(x, y);
+
 
   position[X_AXIS] = lround(x*cs.axis_steps_per_unit[X_AXIS]);
   position[Y_AXIS] = lround(y*cs.axis_steps_per_unit[Y_AXIS]);
@@ -1445,22 +1392,6 @@ void reset_acceleration_rates()
         axis_steps_per_sqr_second[i] = max_acceleration_units_per_sq_second[i] * cs.axis_steps_per_unit[i];
 }
 
-#ifdef TMC2130
-void update_mode_profile()
-{
-	if (tmc2130_mode == TMC2130_MODE_NORMAL)
-	{
-		max_feedrate = cs.max_feedrate_normal;
-		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_normal;
-	}
-	else if (tmc2130_mode == TMC2130_MODE_SILENT)
-	{
-		max_feedrate = cs.max_feedrate_silent;
-		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_silent;
-	}
-	reset_acceleration_rates();
-}
-#endif //TMC2130
 
 unsigned char number_of_blocks()
 {

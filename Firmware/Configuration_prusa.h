@@ -19,8 +19,11 @@
 // Developer flag
 #define DEVELOPER
 
+#define NUMTEMPPROBES 4
+
+
 // Printer name
-#define CUSTOM_MENDEL_NAME "MKP1"
+#define CUSTOM_MENDEL_NAME "Tester"
 #define PRINTER_NUMBER "015"
 
 // Electronics
@@ -63,7 +66,7 @@
 
 // Home position
 #define MANUAL_X_HOME_POS -10
-#define MANUAL_Y_HOME_POS 18
+#define MANUAL_Y_HOME_POS 14
 #define MANUAL_Z_HOME_POS 0.2
 
 // Travel limits after homing
@@ -73,6 +76,13 @@
 #define Y_MIN_POS -4 //orig -4
 #define Z_MAX_POS 225
 #define Z_MIN_POS 0.15
+
+// Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
+// The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
+// // For the other hotends it is their distance from the extruder 0 hotend.
+// #define EXTRUDER_OFFSET_X {0.0, 47} // (in mm) for each extruder, offset of the hotend on the X axis
+// #define EXTRUDER_OFFSET_Y {0.0, 0.0}  // (in mm) for each extruder, offset of the hotend on the Y axis
+// #define EXTRUDER_OFFSET_Z {0.0, -2}
 
 // Canceled home position
 #define X_CANCEL_POS -10
@@ -119,17 +129,19 @@
 //number of bytes from end of the file to start check
 #define END_FILE_SECTION 20000
 
+#define DIGIPOT_MOTOR_CURRENT { 135,135,135,135,135 }   // Values 0-255 (RAMBO 135 = ~0.75A, 185 = ~1A)
+
 #define Z_AXIS_ALWAYS_ON 1
 
 //Crash detection
-#define CRASHDET_TIMER 45 //seconds
-#define CRASHDET_COUNTER_MAX 3 
+// #define CRASHDET_TIMER 45 //seconds
+// #define CRASHDET_COUNTER_MAX 3 
 
 // New XYZ calibration
-#define NEW_XYZCAL
+// #define NEW_XYZCAL
 
 // Watchdog support
-#define WATCHDOG
+// #define WATCHDOG
 
 // Power panic
 // #define UVLO_SUPPORT
@@ -138,9 +150,9 @@
 // #define FANCHECK
 
 // Safety timer
-#define SAFETYTIMER
+// #define SAFETYTIMER
 #define DEFAULT_SAFETYTIMER_TIME_MINS 60
-#define FARM_DEFAULT_SAFETYTIMER_TIME_ms (45*60*1000ul)
+// #define FARM_DEFAULT_SAFETYTIMER_TIME_ms (45*60*1000ul)
 
 // Filament sensor
 // #define FILAMENT_SENSOR
@@ -167,7 +179,6 @@
 //#define _NO_ASM
 #define DEBUG_DCODES //D codes
 #define DEBUG_STACK_MONITOR        //Stack monitor in stepper ISR
-//#define DEBUG_FSENSOR_LOG          //Reports fsensor status to serial
 //#define DEBUG_CRASHDET_COUNTERS  //Display crash-detection counters on LCD
 //#define DEBUG_RESUME_PRINT       //Resume/save print debug enable 
 //#define DEBUG_UVLO_AUTOMATIC_RECOVER // Power panic automatic recovery debug output 
@@ -177,7 +188,7 @@
 //#define DEBUG_DISABLE_YMAXLIMIT  //y max limit ignored
 //#define DEBUG_DISABLE_ZMINLIMIT  //z min limit ignored
 //#define DEBUG_DISABLE_ZMAXLIMIT  //z max limit ignored
-#define DEBUG_DISABLE_STARTMSGS //no startup messages 
+// #define DEBUG_DISABLE_STARTMSGS //no startup messages 
 //#define DEBUG_DISABLE_MINTEMP   //mintemp error ignored
 //#define DEBUG_DISABLE_SWLIMITS  //sw limits ignored
 //#define DEBUG_DISABLE_LCD_STATUS_LINE  //empty four lcd line
@@ -187,17 +198,13 @@
 //#define DEBUG_XSTEP_DUP_PIN 21   //duplicate x-step output to pin 21 (SCL on P3)
 //#define DEBUG_YSTEP_DUP_PIN 21   //duplicate y-step output to pin 21 (SCL on P3)
 //#define DEBUG_DISABLE_FANCHECK     //disable fan check (no ISR INT7, check disabled)
-//#define DEBUG_DISABLE_FSENSORCHECK //disable fsensor check (no ISR INT7, check disabled)
 #define DEBUG_DUMP_TO_2ND_SERIAL   //dump received characters to 2nd serial line
 #define DEBUG_STEPPER_TIMER_MISSED // Stop on stepper timer overflow, beep and display a message.
 #define PLANNER_DIAGNOSTICS // Show the planner queue status on printer display.
 #define CMD_DIAGNOSTICS //Show cmd queue length on printer display
 #endif /* DEBUG_BUILD */
 
-//#define FSENSOR_QUALITY
-
-
-#define LINEARITY_CORRECTION
+// #define LINEARITY_CORRECTION
 // #define TMC2130_LINEARITY_CORRECTION
 // #define TMC2130_LINEARITY_CORRECTION_XYZ
 // #define TMC2130_VARIABLE_RESOLUTION
@@ -373,18 +380,23 @@
  *------------------------------------*/
 
 // Define Prusa filament runout sensor
-//#define FILAMENT_RUNOUT_SUPPORT
+// #define FILAMENT_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
+// #if EXTRUDERS > 1 && defined(FIL_RUNOUT2_PIN)
 #define FILAMENT_RUNOUT_SENSOR FIL_RUNOUT_PIN
+#define FILAMENT_RUNOUT2_SENSOR FIL_RUNOUT2_PIN
+// #else
+// #define FILAMENT_RUNOUT_SENSOR FIL_RUNOUT_PIN
+// #endif
 #endif
 
 // temperature runaway
-#define TEMP_RUNAWAY_BED_HYSTERESIS 5
-#define TEMP_RUNAWAY_BED_TIMEOUT 360
+// #define TEMP_RUNAWAY_BED_HYSTERESIS 5
+// #define TEMP_RUNAWAY_BED_TIMEOUT 360
 
-#define TEMP_RUNAWAY_EXTRUDER_HYSTERESIS 15
-#define TEMP_RUNAWAY_EXTRUDER_TIMEOUT 45
+// #define TEMP_RUNAWAY_EXTRUDER_HYSTERESIS 15
+// #define TEMP_RUNAWAY_EXTRUDER_TIMEOUT 45
 
 /*------------------------------------
  MOTOR CURRENT SETTINGS
@@ -397,35 +409,6 @@
  BED SETTINGS
  *------------------------------------*/
 
-// Define Mesh Bed Leveling system to enable it
-#define MESH_BED_LEVELING
-#ifdef MESH_BED_LEVELING
-
-#define MBL_Z_STEP 0.01
-
-// Mesh definitions
-#define MESH_MIN_X 35
-#define MESH_MAX_X 238
-#define MESH_MIN_Y 6
-#define MESH_MAX_Y 202
-
-// Mesh upsample definition
-#define MESH_NUM_X_POINTS 7
-#define MESH_NUM_Y_POINTS 7
-// Mesh measure definition
-#define MESH_MEAS_NUM_X_POINTS 3
-#define MESH_MEAS_NUM_Y_POINTS 3
-
-// Maximum bed level correction value
-#define BED_ADJUSTMENT_UM_MAX 100
-
-#define MESH_HOME_Z_CALIB 0.2
-#define MESH_HOME_Z_SEARCH 5.0f           // Z lift for homing, mesh bed leveling etc.
-
-#define X_PROBE_OFFSET_FROM_EXTRUDER 22     // Z probe to nozzle X offset: -left  +right
-#define Y_PROBE_OFFSET_FROM_EXTRUDER 1     // Z probe to nozzle Y offset: -front +behind
-#define Z_PROBE_OFFSET_FROM_EXTRUDER -0.5  // Z probe to nozzle Z offset: -below (always!)
-#endif
 
 // Bed Temperature Control
 // Select PID or bang-bang with PIDTEMPBED. If bang-bang, BED_LIMIT_SWITCHING will enable hysteresis

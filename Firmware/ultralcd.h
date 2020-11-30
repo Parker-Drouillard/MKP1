@@ -5,7 +5,6 @@
 #include "lcd.h"
 #include "conv2str.h"
 #include "menu.h"
-#include "mesh_bed_calibration.h"
 #include "config.h"
 
 #include "config.h"
@@ -86,8 +85,6 @@ extern int8_t lcd_show_multiscreen_message_yes_no_and_wait_P(const char *msg, bo
 extern bool lcd_calibrate_z_end_stop_manual(bool only_z);
 #endif
 
-// Show the result of the calibration process on the LCD screen.
-  extern void lcd_bed_calibration_show_result(BedSkewOffsetDetectionResultType result, uint8_t point_too_far_mask);
 
 extern void lcd_diag_show_end_stops();
 
@@ -147,8 +144,6 @@ extern bool bMenuFSDetect;
 void printf_IRSensorAnalogBoardChange();
 #endif //IR_SENSOR_ANALOG
 
-extern int8_t SilentModeMenu;
-extern uint8_t SilentModeMenu_MMU;
 
 extern bool cancel_heatup;
 extern bool isPrintPaused;
@@ -192,7 +187,6 @@ extern bool bFilamentAction;
 void mFilamentItem(uint16_t nTemp,uint16_t nTempBed);
 void mFilamentItemForce();
 void lcd_generic_preheat_menu();
-void unload_filament();
 
 void stack_error();
 void lcd_printer_connected();
@@ -216,7 +210,6 @@ bool lcd_wait_for_pinda(float temp);
 #endif //PINDA_THERMISTOR
 
 
-void bowden_menu();
 char reset_menu();
 uint8_t choose_menu_P(const char *header, const char *item, const char *last_item = nullptr);
 

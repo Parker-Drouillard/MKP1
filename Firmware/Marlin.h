@@ -358,8 +358,7 @@ extern unsigned long pause_time;
 extern unsigned long start_pause_print;
 extern unsigned long t_fan_rising_edge;
 
-extern bool mesh_bed_leveling_flag;
-extern bool mesh_bed_run_from_menu;
+
 
 extern bool sortAlpha;
 
@@ -401,13 +400,8 @@ extern LongTimer safetyTimer;
 //! I'd normally change this macro, but who knows what would happen in the MMU :)
 #define CHECK_FSENSOR ((IS_SD_PRINTING || is_usb_printing) && (mcode_in_progress != 600) && !saved_printing && e_active())
 
-extern void calculate_extruder_multipliers();
 
-// Similar to the default Arduino delay function, 
-// but it keeps the background tasks running.
-extern void delay_keep_alive(unsigned int ms);
 
-extern void check_babystep();
 
 extern void long_pause();
 extern void crashdet_stop_and_save_print();
@@ -444,7 +438,7 @@ extern void position_menu();
 
 extern void print_world_coordinates();
 extern void print_physical_coordinates();
-extern void print_mesh_bed_leveling_table();
+
 
 extern void stop_and_save_print_to_ram(float z_move, float e_move);
 extern void restore_print_from_ram_and_continue(float e_move);

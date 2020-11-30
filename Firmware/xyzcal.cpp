@@ -41,7 +41,6 @@ uint16_t xyzcal_calc_delay(uint16_t nd, uint16_t dd);
 void xyzcal_meassure_enter(void)
 {
 	DBG(_n("xyzcal_meassure_enter\n"));
-	disable_heater();
 	DISABLE_TEMPERATURE_INTERRUPT();
 #if (defined(FANCHECK) && defined(TACH_1) && (TACH_1 >-1))
 	DISABLE_FANCHECK_INTERRUPT();

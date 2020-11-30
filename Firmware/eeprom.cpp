@@ -81,7 +81,6 @@ void eeprom_init()
     {
         eeprom_switch_to_next_sheet();
     }
-    check_babystep();
 }
 
 //! @brief Get default sheet name for index

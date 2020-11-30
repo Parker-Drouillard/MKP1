@@ -89,16 +89,7 @@ extern uint16_t current_voltage_raw_IR;
 
 extern bool bedPWMDisabled;
 
-#ifdef PIDTEMP
-  extern int pid_cycle, pid_number_of_cycles;
-  extern float Kc,_Kp,_Ki,_Kd;
-  extern bool pid_tuning_finished;
-  float scalePID_i(float i);
-  float scalePID_d(float d);
-  float unscalePID_i(float i);
-  float unscalePID_d(float d);
 
-#endif
   
   
 #ifdef BABYSTEPPING
@@ -228,8 +219,6 @@ FORCE_INLINE bool isCoolingBed() {
 #define CHECK_ALL_HEATERS (checkAllHotends()||(target_temperature_bed!=0))
 
 int getHeaterPower(int heater);
-void disable_heater();
-void updatePID();
 
 
 FORCE_INLINE void autotempShutdown(){

@@ -7,13 +7,7 @@
 #include "ConfigurationStore.h"
 #include "Configuration_prusa.h"
 
-#ifdef MESH_BED_LEVELING
-#include "mesh_bed_leveling.h"
-#endif
 
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif
 
 
 M500_conf cs;
@@ -123,43 +117,7 @@ void Config_PrintSettings(uint8_t level)
 		echomagic, echomagic, cs.add_homing[X_AXIS], cs.add_homing[Y_AXIS], cs.add_homing[Z_AXIS]
 #endif //TMC2130
 	);
-#ifdef PIDTEMP
-	printf_P(PSTR("%SPID settings:\n%S   M301 P%.2f I%.2f D%.2f\n"),
-		echomagic, echomagic, cs.Kp, unscalePID_i(cs.Ki), unscalePID_d(cs.Kd));
-#endif
-#ifdef PIDTEMPBED
-	printf_P(PSTR("%SPID heatbed settings:\n%S   M304 P%.2f I%.2f D%.2f\n"),
-		echomagic, echomagic, cs.bedKp, unscalePID_i(cs.bedKi), unscalePID_d(cs.bedKd));
-#endif
-#ifdef FWRETRACT
-	printf_P(PSTR(
-		"%SRetract: S=Length (mm) F:Speed (mm/m) Z: ZLift (mm)\n%S   M207 S%.2f F%.2f Z%.2f\n"
-		"%SRecover: S=Extra length (mm) F:Speed (mm/m)\n%S   M208 S%.2f F%.2f\n"
-		"%SAuto-Retract: S=0 to disable, 1 to interpret extrude-only moves as retracts or recoveries\n%S   M209 S%d\n"
-		),
-		echomagic, echomagic, cs.retract_length, cs.retract_feedrate*60, cs.retract_zlift,
-		echomagic, echomagic, cs.retract_recover_length, cs.retract_recover_feedrate*60,
-		echomagic, echomagic, (cs.autoretract_enabled ? 1 : 0)
-	);
-#if EXTRUDERS > 1
-	printf_P(PSTR("%SMulti-extruder settings:\n%S   Swap retract length (mm):    %.2f\n%S   Swap rec. addl. length (mm): %.2f\n"),
-		echomagic, echomagic, retract_length_swap, echomagic, retract_recover_length_swap);
-#endif
-	if (cs.volumetric_enabled) {
-		printf_P(PSTR("%SFilament settings:\n%S   M200 D%.2f\n"),
-			echomagic, echomagic, cs.filament_size[0]);
-#if EXTRUDERS > 1
-		printf_P(PSTR("%S   M200 T1 D%.2f\n"),
-			echomagic, echomagic, cs.filament_size[1]);
-#if EXTRUDERS > 2
-		printf_P(PSTR("%S   M200 T1 D%.2f\n"),
-			echomagic, echomagic, cs.filament_size[2]);
-#endif
-#endif
-    } else {
-        printf_P(PSTR("%SFilament settings: Disabled\n"), echomagic);
-    }
-#endif
+
 	if (level >= 10) {
 #ifdef LIN_ADVANCE
 		printf_P(PSTR("%SLinear advance settings:%S   M900 K%.2f\n"),
@@ -245,7 +203,6 @@ bool Config_RetrieveSettings() {
         
 		if (cs.max_jerk[X_AXIS] > DEFAULT_XJERK) cs.max_jerk[X_AXIS] = DEFAULT_XJERK;
 		if (cs.max_jerk[Y_AXIS] > DEFAULT_YJERK) cs.max_jerk[Y_AXIS] = DEFAULT_YJERK;
-        calculate_extruder_multipliers();
 
 		//if max_feedrate_silent and max_acceleration_units_per_sq_second_silent were never stored to eeprom, use default values:
         for (uint8_t i = 0; i < (sizeof(cs.max_feedrate_silent)/sizeof(cs.max_feedrate_silent[0])); ++i) {
@@ -261,34 +218,9 @@ bool Config_RetrieveSettings() {
             }
         }
 
-#ifdef TMC2130
-		for (uint8_t j = X_AXIS; j <= Y_AXIS; j++)
-		{
-			if (cs.max_feedrate_normal[j] > NORMAL_MAX_FEEDRATE_XY)
-				cs.max_feedrate_normal[j] = NORMAL_MAX_FEEDRATE_XY;
-			if (cs.max_feedrate_silent[j] > SILENT_MAX_FEEDRATE_XY)
-				cs.max_feedrate_silent[j] = SILENT_MAX_FEEDRATE_XY;
-			if (cs.max_acceleration_units_per_sq_second_normal[j] > NORMAL_MAX_ACCEL_XY)
-				cs.max_acceleration_units_per_sq_second_normal[j] = NORMAL_MAX_ACCEL_XY;
-			if (cs.max_acceleration_units_per_sq_second_silent[j] > SILENT_MAX_ACCEL_XY)
-				cs.max_acceleration_units_per_sq_second_silent[j] = SILENT_MAX_ACCEL_XY;
-		}
-        
-		if(cs.axis_ustep_resolution[X_AXIS] == 0xff){ cs.axis_ustep_resolution[X_AXIS] = TMC2130_USTEPS_XY; }
-		if(cs.axis_ustep_resolution[Y_AXIS] == 0xff){ cs.axis_ustep_resolution[Y_AXIS] = TMC2130_USTEPS_XY; }
-		if(cs.axis_ustep_resolution[Z_AXIS] == 0xff){ cs.axis_ustep_resolution[Z_AXIS] = TMC2130_USTEPS_Z; }
-		if(cs.axis_ustep_resolution[E_AXIS] == 0xff){ cs.axis_ustep_resolution[E_AXIS] = TMC2130_USTEPS_E; }
-
-		tmc2130_set_res(X_AXIS, cs.axis_ustep_resolution[X_AXIS]);
-		tmc2130_set_res(Y_AXIS, cs.axis_ustep_resolution[Y_AXIS]);
-		tmc2130_set_res(Z_AXIS, cs.axis_ustep_resolution[Z_AXIS]);
-		tmc2130_set_res(E_AXIS, cs.axis_ustep_resolution[E_AXIS]);
-#endif //TMC2130
-
 		reset_acceleration_rates();
 
-		// Call updatePID (similar to when we have processed M301)
-		updatePID();
+	
         SERIAL_ECHO_START;
         SERIAL_ECHOLNPGM("Stored settings retrieved");
     } else {
@@ -315,14 +247,8 @@ void Config_ResetDefault()
 	// steps per sq second need to be updated to agree with the units per sq second
     reset_acceleration_rates();
     
-#ifdef PIDTEMP
-    updatePID();
-#ifdef PID_ADD_EXTRUSION_RATE
-    Kc = DEFAULT_Kc; //this is not stored by Config_StoreSettings
-#endif//PID_ADD_EXTRUSION_RATE
-#endif//PIDTEMP
 
-	calculate_extruder_multipliers();
+
 
 SERIAL_ECHO_START;
 SERIAL_ECHOLNPGM("Hardcoded Default Settings Loaded");
