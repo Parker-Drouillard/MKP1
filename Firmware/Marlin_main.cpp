@@ -677,146 +677,146 @@ static void w25x20cl_err_msg() {
 // are initialized by the main() routine provided by the Arduino framework.
 void setup() {
 	ultralcd_init();
-// 	spi_init();
-// 	lcd_splash();
-//   Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
+	spi_init();
+	lcd_splash();
+  Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
 
-// 	selectedSerialPort = eeprom_read_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE);
-// 	if (selectedSerialPort == 0xFF) {selectedSerialPort = 0;}
-// 	eeprom_update_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE, selectedSerialPort);
-// 	MYSERIAL.begin(BAUDRATE);
-// 	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
-// 	stdout = uartout;
+	selectedSerialPort = eeprom_read_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE);
+	if (selectedSerialPort == 0xFF) {selectedSerialPort = 0;}
+	eeprom_update_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE, selectedSerialPort);
+	MYSERIAL.begin(BAUDRATE);
+	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
+	stdout = uartout;
 
-// 	const bool w25x20cl_success = true;
+	const bool w25x20cl_success = true;
 
-// 	setup_killpin();
-// 	setup_powerhold();
+	setup_killpin();
+	setup_powerhold();
 
 
-// 	SERIAL_ECHO_START;
-// 	printf_P(PSTR(" " FW_VERSION_FULL "\n"));
+	SERIAL_ECHO_START;
+	printf_P(PSTR(" " FW_VERSION_FULL "\n"));
 
-// 	//SERIAL_ECHOPAIR("Active sheet before:", static_cast<unsigned long int>(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet))));
+	//SERIAL_ECHOPAIR("Active sheet before:", static_cast<unsigned long int>(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet))));
 
-// 	// Check startup - does nothing if bootloader sets MCUSR to 0
-// 	byte mcu = MCUSR;
-// 	if (mcu & 1) puts_P(MSG_POWERUP);
-// 	if (mcu & 2) puts_P(MSG_EXTERNAL_RESET);
-// 	if (mcu & 4) puts_P(MSG_BROWNOUT_RESET);
-// 	if (mcu & 8) puts_P(MSG_WATCHDOG_RESET);
-// 	if (mcu & 32) puts_P(MSG_SOFTWARE_RESET);
-// 	MCUSR = 0;
+	// Check startup - does nothing if bootloader sets MCUSR to 0
+	byte mcu = MCUSR;
+	if (mcu & 1) puts_P(MSG_POWERUP);
+	if (mcu & 2) puts_P(MSG_EXTERNAL_RESET);
+	if (mcu & 4) puts_P(MSG_BROWNOUT_RESET);
+	if (mcu & 8) puts_P(MSG_WATCHDOG_RESET);
+	if (mcu & 32) puts_P(MSG_SOFTWARE_RESET);
+	MCUSR = 0;
 
-// #ifdef STRING_VERSION_CONFIG_H
-// #ifdef STRING_CONFIG_H_AUTHOR
-// 	SERIAL_ECHO_START;
-// 	SERIAL_ECHORPGM(_n(" Last Updated: "));////MSG_CONFIGURATION_VER
-// 	SERIAL_ECHOPGM(STRING_VERSION_CONFIG_H);
-// 	SERIAL_ECHORPGM(_n(" | Author: "));////MSG_AUTHOR
-// 	SERIAL_ECHOLNPGM(STRING_CONFIG_H_AUTHOR);
-// 	SERIAL_ECHOPGM("Compiled: ");
-// 	SERIAL_ECHOLNPGM(__DATE__);
-// #endif
-// #endif
+#ifdef STRING_VERSION_CONFIG_H
+#ifdef STRING_CONFIG_H_AUTHOR
+	SERIAL_ECHO_START;
+	SERIAL_ECHORPGM(_n(" Last Updated: "));////MSG_CONFIGURATION_VER
+	SERIAL_ECHOPGM(STRING_VERSION_CONFIG_H);
+	SERIAL_ECHORPGM(_n(" | Author: "));////MSG_AUTHOR
+	SERIAL_ECHOLNPGM(STRING_CONFIG_H_AUTHOR);
+	SERIAL_ECHOPGM("Compiled: ");
+	SERIAL_ECHOLNPGM(__DATE__);
+#endif
+#endif
 
-// 	SERIAL_ECHO_START;
-// 	SERIAL_ECHORPGM(_n(" Free Memory: "));////MSG_FREE_MEMORY
-// 	SERIAL_ECHO(freeMemory());
-// 	SERIAL_ECHORPGM(_n("  PlannerBufferBytes: "));////MSG_PLANNER_BUFFER_BYTES
-// 	SERIAL_ECHOLN((int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
-// 	//lcd_update_enable(false); // why do we need this?? - andre
-// 	// loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
+	SERIAL_ECHO_START;
+	SERIAL_ECHORPGM(_n(" Free Memory: "));////MSG_FREE_MEMORY
+	SERIAL_ECHO(freeMemory());
+	SERIAL_ECHORPGM(_n("  PlannerBufferBytes: "));////MSG_PLANNER_BUFFER_BYTES
+	SERIAL_ECHOLN((int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
+	//lcd_update_enable(false); // why do we need this?? - andre
+	// loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
 	
-// 	bool previous_settings_retrieved = false; 
-// 	uint8_t hw_changed = check_printer_version();
-// 	if (!(hw_changed & 0b10)) { //if printer version wasn't changed, check for eeprom version and retrieve settings from eeprom in case that version wasn't changed
-// 		previous_settings_retrieved = Config_RetrieveSettings();
-// 	} else { //printer version was changed so use default settings 
-// 		Config_ResetDefault();
-// 	}
+	bool previous_settings_retrieved = false; 
+	uint8_t hw_changed = check_printer_version();
+	if (!(hw_changed & 0b10)) { //if printer version wasn't changed, check for eeprom version and retrieve settings from eeprom in case that version wasn't changed
+		previous_settings_retrieved = Config_RetrieveSettings();
+	} else { //printer version was changed so use default settings 
+		Config_ResetDefault();
+	}
 
-// 	tp_init();    // Initialize temperature loop
+	tp_init();    // Initialize temperature loop
 
-// 	if (w25x20cl_success) {
-//     lcd_splash(); // we need to do this again, because tp_init() kills lcd
-// 	} else {
-//     w25x20cl_err_msg();
-//     printf_P(_n("W25X20CL not responding.\n"));
-// 	}
-// #ifdef EXTRUDER_ALTFAN_DETECT
-// 	SERIAL_ECHORPGM(_n("Extruder fan type: "));
-// 	if (extruder_altfan_detect())
-// 		SERIAL_ECHOLNRPGM(PSTR("ALTFAN"));
-// 	else
-// 		SERIAL_ECHOLNRPGM(PSTR("NOCTUA"));
-// #endif //EXTRUDER_ALTFAN_DETECT
+	if (w25x20cl_success) {
+    lcd_splash(); // we need to do this again, because tp_init() kills lcd
+	} else {
+    w25x20cl_err_msg();
+    printf_P(_n("W25X20CL not responding.\n"));
+	}
+#ifdef EXTRUDER_ALTFAN_DETECT
+	SERIAL_ECHORPGM(_n("Extruder fan type: "));
+	if (extruder_altfan_detect())
+		SERIAL_ECHOLNRPGM(PSTR("ALTFAN"));
+	else
+		SERIAL_ECHOLNRPGM(PSTR("NOCTUA"));
+#endif //EXTRUDER_ALTFAN_DETECT
 
-// 	plan_init();  // Initialize planner;
-
-
-//     lcd_encoder_diff=0;
+	plan_init();  // Initialize planner;
 
 
-// 	st_init();    // Initialize stepper, this enables interrupts!
+    lcd_encoder_diff=0;
+
+
+	st_init();    // Initialize stepper, this enables interrupts!
   
-//   // Initialize current_position accounting for software endstops to
-//   // avoid unexpected initial shifts on the first move
-//   clamp_to_software_endstops(current_position);
-//   plan_set_position_curposXYZE();
+  // Initialize current_position accounting for software endstops to
+  // avoid unexpected initial shifts on the first move
+  clamp_to_software_endstops(current_position);
+  plan_set_position_curposXYZE();
 
-// 	setup_homepin();
+	setup_homepin();
 
-// #if defined(Z_AXIS_ALWAYS_ON)
-//   enable_z();
-// #endif
-
-
-//   eeprom_init();
+#if defined(Z_AXIS_ALWAYS_ON)
+  enable_z();
+#endif
 
 
-//   // In the future, somewhere here would one compare the current firmware version against the firmware version stored in the EEPROM.
-//   // If they differ, an update procedure may need to be performed. At the end of this block, the current firmware version
-//   // is being written into the EEPROM, so the update procedure will be triggered only once.
+  eeprom_init();
 
 
-
-// 	if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
-// 		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
-// 	}
-
-// 	if (eeprom_read_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA) == 255) {
-// 		//eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 0);
-// 		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
-// 		int16_t z_shift = 0;
-// 		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
-// 		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
-// 	}
-// 	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
-// 		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
-// 	}
-// 	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
-// 		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
-// 	}
+  // In the future, somewhere here would one compare the current firmware version against the firmware version stored in the EEPROM.
+  // If they differ, an update procedure may need to be performed. At the end of this block, the current firmware version
+  // is being written into the EEPROM, so the update procedure will be triggered only once.
 
 
 
-// 	for (int i = 0; i<4; i++) { EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); }
+	if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
+	}
+
+	if (eeprom_read_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA) == 255) {
+		//eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 0);
+		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
+		int16_t z_shift = 0;
+		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
+		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
+	}
+	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
+	}
+	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
+	}
+
+
+
+	for (int i = 0; i<4; i++) { EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); }
 	
-//   lcd_update_enable(true);
-//   lcd_clear();
-//   lcd_update(2);
-//   // Store the currently running firmware into an eeprom,
-//   // so the next time the firmware gets updated, it will know from which version it has been updated.
-//   update_current_firmware_version_to_eeprom();
+  lcd_update_enable(true);
+  lcd_clear();
+  lcd_update(2);
+  // Store the currently running firmware into an eeprom,
+  // so the next time the firmware gets updated, it will know from which version it has been updated.
+  update_current_firmware_version_to_eeprom();
 
 
 
-//   fCheckModeInit();
-//   KEEPALIVE_STATE(NOT_BUSY);
-// #ifdef WATCHDOG
-//   wdt_enable(WDTO_4S);
-// #endif //WATCHDOG
+  fCheckModeInit();
+  KEEPALIVE_STATE(NOT_BUSY);
+#ifdef WATCHDOG
+  wdt_enable(WDTO_4S);
+#endif //WATCHDOG
 }
 
 void trace();
@@ -890,36 +890,36 @@ void host_keepalive() {
 // The loop() function is called in an endless loop by the Arduino framework from the default main() routine.
 // Before loop(), the setup() function is called by the main() routine.
 void loop() {
-	// KEEPALIVE_STATE(NOT_BUSY);
+	KEEPALIVE_STATE(NOT_BUSY);
 
-  // is_usb_printing = false;
+  is_usb_printing = false;
     
-  // get_command();
-  // if(buflen) {
-  //   cmdbuffer_front_already_processed = false;
-  //   process_commands();
+  get_command();
+  if(buflen) {
+    cmdbuffer_front_already_processed = false;
+    process_commands();
 
-  //   if (! cmdbuffer_front_already_processed && buflen) {
-  //     // ptr points to the start of the block currently being processed.
-  //     // The first character in the block is the block type.      
-  //     char *ptr = cmdbuffer + bufindr;
-  //     if(*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR){  
-  //       cli();
-  //       *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
-  //       // and one for each command to previous block in the planner queue.
-  //       sei();
-  //     }
-  //     // Now it is safe to release the already processed command block. If interrupted by the power panic now,
-  //     // this block's SD card length will not be counted twice as its command type has been replaced 
-  //     // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
-  //     cmdqueue_pop_front();
-  //   }
-  //   host_keepalive();
-  // }
-  // //check heater every n milliseconds
-  // isPrintPaused ? manage_inactivity(true) : manage_inactivity(false);
-  // // checkHitEndstops();
-  // lcd_update(0);
+    if (! cmdbuffer_front_already_processed && buflen) {
+      // ptr points to the start of the block currently being processed.
+      // The first character in the block is the block type.      
+      char *ptr = cmdbuffer + bufindr;
+      if(*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR){  
+        cli();
+        *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
+        // and one for each command to previous block in the planner queue.
+        sei();
+      }
+      // Now it is safe to release the already processed command block. If interrupted by the power panic now,
+      // this block's SD card length will not be counted twice as its command type has been replaced 
+      // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
+      cmdqueue_pop_front();
+    }
+    host_keepalive();
+  }
+  //check heater every n milliseconds
+  isPrintPaused ? manage_inactivity(true) : manage_inactivity(false);
+  // checkHitEndstops();
+  lcd_update(0);
 
 }
 
