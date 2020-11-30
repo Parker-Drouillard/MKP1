@@ -16,12 +16,12 @@ extern uint16_t nPrinterType;
 extern PGM_P sPrinterName;
 
 // Firmware version
-#define FW_VERSION "3.9.1"
+#define FW_VERSION "1.0"
 #define FW_COMMIT_NR 3518
 // FW_VERSION_UNKNOWN means this is an unofficial build.
 // The firmware should only be checked into github with this symbol.
 #define FW_DEV_VERSION FW_VERSION_UNKNOWN
-#define FW_REPOSITORY "Unknown"
+#define FW_REPOSITORY "PEPCORP"
 #define FW_VERSION_FULL FW_VERSION "-" STR(FW_COMMIT_NR)
 
 // G-code language level
@@ -457,7 +457,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 #define HOST_KEEPALIVE_INTERVAL 2 // Number of seconds between "busy" messages. Set with M113.
 
 //LCD and SD support
-#define SDSUPPORT // Enable SD Card Support in Hardware Console
+// #define SDSUPPORT // Enable SD Card Support in Hardware Console
 //#define SDSLOW // Use slower SD transfer mode (not normally needed - uncomment if you're getting volume init error)
 #define SD_CHECK_AND_RETRY // Use CRC checks and retries on the SD communication
 #define ENCODER_PULSES_PER_STEP 4 // Increase if you have a high resolution encoder

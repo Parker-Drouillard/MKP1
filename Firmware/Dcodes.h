@@ -30,13 +30,5 @@ extern void dcode_81(); //D81 - Bed analysis. This command will log data to SD c
 
 	extern void dcode_106(); //D106 - Print measured fan speed for different pwm values
 
-#ifdef TMC2130
-	extern void dcode_2130(); //D2130 - TMC2130
-#endif //TMC2130
-
-#ifdef PAT9125
-	extern void dcode_9125(); //D9125 - PAT9125
-#endif //PAT9125
-
 
 #endif //DCODES_H

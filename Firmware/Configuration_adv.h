@@ -261,34 +261,6 @@
   #endif
 #endif
 
-/**
- * Linear Pressure Control v1.5
- *
- * Assumption: advance [steps] = k * (delta velocity [steps/s])
- * K=0 means advance disabled.
- *
- * NOTE: K values for LIN_ADVANCE 1.5 differs from earlier versions!
- *
- * Set K around 0.22 for 3mm PLA Direct Drive with ~6.5cm between the drive gear and heatbreak.
- * Larger K values will be needed for flexible filament and greater distances.
- * If this algorithm produces a higher speed offset than the extruder can handle (compared to E jerk)
- * print acceleration will be reduced during the affected moves to keep within the limit.
- *
- * See http://marlinfw.org/docs/features/lin_advance.html for full instructions.
- * Mention @Sebastianv650 on GitHub to alert the author of any issues.
- */
-#define LIN_ADVANCE
-
-#ifdef LIN_ADVANCE
-  #define LA_K_DEF    0        // Default K factor (Unit: mm compression per 1mm/s extruder speed)
-  #define LA_K_MAX    10       // Maximum acceptable K factor (exclusive, see notes in planner.cpp:plan_buffer_line)
-  #define LA_LA10_MIN LA_K_MAX // Lin. Advance 1.0 threshold value (inclusive)
-  //#define LA_FLOWADJ         // Adjust LA along with flow/M221 for uniform width
-  //#define LA_NOCOMPAT        // Disable Linear Advance 1.0 compatibility
-  //#define LA_LIVE_K          // Allow adjusting K in the Tune menu
-  //#define LA_DEBUG           // If enabled, this will generate debug information output over USB.
-  //#define LA_DEBUG_LOGIC     // @wavexx: setup logic channels for isr debugging
-#endif
 
 // Arc interpretation settings:
 #define MM_PER_ARC_SEGMENT 1

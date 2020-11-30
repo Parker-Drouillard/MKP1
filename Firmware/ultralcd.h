@@ -5,9 +5,6 @@
 #include "lcd.h"
 #include "conv2str.h"
 #include "menu.h"
-#include "mesh_bed_calibration.h"
-#include "config.h"
-
 #include "config.h"
 
 extern void menu_lcd_longpress_func(void);
@@ -46,7 +43,6 @@ void lcd_sdcard_stop();
 void lcd_pause_print();
 void lcd_resume_print();
 void lcd_print_stop();
-void prusa_statistics(int _message, uint8_t _col_nr = 0);
 void lcd_confirm_print();
 unsigned char lcd_choose_color();
 void lcd_load_filament_color_check();
@@ -60,12 +56,6 @@ void lcd_menu_statistics();
 void lcd_status_screen();                         // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 void lcd_menu_extruder_info();                    // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 void lcd_menu_show_sensors_state();               // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
-
-#ifdef TMC2130
-bool lcd_crash_detect_enabled();
-void lcd_crash_detect_enable();
-void lcd_crash_detect_disable();
-#endif
 
 extern const char* lcd_display_message_fullscreen_P(const char *msg, uint8_t &nlines);
 extern const char* lcd_display_message_fullscreen_P(const char *msg);
@@ -82,12 +72,7 @@ extern int8_t lcd_show_multiscreen_message_yes_no_and_wait_P(const char *msg, bo
 // Ask the user to move the Z axis up to the end stoppers and let
 // the user confirm that it has been done.
 
-#ifndef TMC2130
 extern bool lcd_calibrate_z_end_stop_manual(bool only_z);
-#endif
-
-// Show the result of the calibration process on the LCD screen.
-  extern void lcd_bed_calibration_show_result(BedSkewOffsetDetectionResultType result, uint8_t point_too_far_mask);
 
 extern void lcd_diag_show_end_stops();
 
@@ -130,21 +115,6 @@ extern int farm_no;
 extern int farm_timer;
 extern uint8_t farm_status;
 
-#ifdef TMC2130
-#define SILENT_MODE_NORMAL 0
-#define SILENT_MODE_STEALTH 1
-#define SILENT_MODE_OFF SILENT_MODE_NORMAL
-#else
-#define SILENT_MODE_POWER 0
-#define SILENT_MODE_SILENT 1
-#define SILENT_MODE_AUTO 2
-#define SILENT_MODE_OFF SILENT_MODE_POWER
-#endif
-
-
-extern int8_t SilentModeMenu;
-extern uint8_t SilentModeMenu_MMU;
-
 extern bool cancel_heatup;
 extern bool isPrintPaused;
 
@@ -154,102 +124,31 @@ void lcd_ignore_click(bool b=true);
 void lcd_commands();
 
 
-extern bool bSettings;                            // flag (i.e. 'fake parameter') for 'lcd_hw_setup_menu()' function
-void lcd_hw_setup_menu(void);                     // NOT static due to using inside "util" module ("nozzle_diameter_check()")
-
-
 void change_extr(int extr);
-
-#ifdef SNMM
-void extr_unload_all(); 
-void extr_unload_used();
-#endif //SNMM
 void extr_unload();
-
-enum class FilamentAction : uint_least8_t
-{
-    None, //!< 'none' state is used as flag for (filament) autoLoad (i.e. opposite for 'autoLoad' state)
-    Load,
-    AutoLoad,
-    UnLoad,
-    MmuLoad,
-    MmuUnLoad,
-    MmuEject,
-    MmuCut,
-    Preheat,
-    Lay1Cal,
-};
-
-extern FilamentAction eFilamentAction;
-extern bool bFilamentFirstRun;
-extern bool bFilamentPreheatState;
-extern bool bFilamentAction;
-void mFilamentItem(uint16_t nTemp,uint16_t nTempBed);
-void mFilamentItemForce();
-void lcd_generic_preheat_menu();
-void unload_filament();
-
 void stack_error();
 void lcd_printer_connected();
 void lcd_ping();
 
-void lcd_calibrate_extruder();
-void lcd_farm_sdcard_menu();
-
-//void getFileDescription(char *name, char *description);
-
-void lcd_farm_sdcard_menu_w();
-//void get_description();
 
 void lcd_wait_for_heater();
 void lcd_wait_for_cool_down();
 void lcd_extr_cal_reset();
 
-void lcd_temp_cal_show_result(bool result);
 #ifdef PINDA_THERMISTOR
 bool lcd_wait_for_pinda(float temp);
 #endif //PINDA_THERMISTOR
 
 
-void bowden_menu();
 char reset_menu();
 uint8_t choose_menu_P(const char *header, const char *item, const char *last_item = nullptr);
 
 void lcd_pinda_calibration_menu();
 void lcd_calibrate_pinda();
-void lcd_temp_calibration_set();
 
 void display_loading();
 
 void lcd_set_degree();
-
-#if (LANG_MODE != 0)
-void lcd_language();
-#endif
-
-void lcd_wizard();
-
-//! @brief Wizard state
-enum class WizState : uint8_t
-{
-    Run,            //!< run wizard? Main entry point.
-    Restore,        //!< restore calibration status
-    Selftest,       //!< self test
-    Xyz,            //!< xyz calibration
-    Z,              //!< z calibration
-    IsFil,          //!< Is filament loaded? First step of 1st layer calibration
-    PreheatPla,     //!< waiting for preheat nozzle for PLA
-    Preheat,        //!< Preheat for any material
-    LoadFilCold,    //!< Load filament for MMU
-    LoadFilHot,     //!< Load filament without MMU
-    IsPla,          //!< Is PLA filament?
-    Lay1CalCold,    //!< First layer calibration, temperature not selected yet
-    Lay1CalHot,     //!< First layer calibration, temperature already selected
-    RepeatLay1Cal,  //!< Repeat first layer calibration?
-    Finish,         //!< Deactivate wizard
-};
-
-void lcd_wizard(WizState state);
 
 extern void lcd_experimental_toggle();
 extern void lcd_experimental_menu();

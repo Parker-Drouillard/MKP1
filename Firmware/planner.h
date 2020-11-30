@@ -174,7 +174,7 @@ void plan_set_z_position(const float &z);
 void plan_set_e_position(const float &e);
 
 // Reset the E position to zero at the start of the next segment
-void plan_reset_next_e();
+// void plan_reset_next_e();
 
 inline void set_current_to_destination() { memcpy(current_position, destination, sizeof(current_position)); }
 inline void set_destination_to_current() { memcpy(destination, current_position, sizeof(destination)); }
@@ -276,7 +276,4 @@ extern uint8_t planner_queue_min();
 // Diagnostic function: Reset the minimum planner segments.
 extern void planner_queue_min_reset();
 #endif /* PLANNER_DIAGNOSTICS */
-
-extern void planner_add_sd_length(uint16_t sdlen);
-
 extern uint16_t planner_calc_sd_length();

@@ -89,8 +89,6 @@ extern const char MSG_STOP_PRINT[];
 extern const char MSG_STOPPED[];
 extern const char MSG_TEMP_CALIBRATION[];
 extern const char MSG_TEMP_CALIBRATION_DONE[];
-extern const char MSG_UNLOAD_FILAMENT[];
-extern const char MSG_UNLOADING_FILAMENT[];
 extern const char MSG_WATCH[];
 extern const char MSG_WIZARD_CALIBRATION_FAILED[];
 extern const char MSG_WIZARD_DONE[];

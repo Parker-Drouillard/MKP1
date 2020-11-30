@@ -1,6 +1,7 @@
 #include "macros.h"
 
 // RAMBO PIN ASSIGNMENTS
+//https://reprap.org/wiki/Rambo_development
 
 #define BOARD_NAME "Rambo"
 #define ELECTRONICS "Rambo 1.4"
@@ -13,19 +14,17 @@
 
 
 // LIMIT SWITCHES
-#define X_MIN_PIN   12
-//#define X_MAX_PIN  24    //Used for Fil Runout on E0
-#define X_MAX_PIN -1
+#define X_MIN_PIN   11
+#define X_MAX_PIN   -1
 #define Y_MIN_PIN   11
-//#define Y_MAX_PIN  23    //Used for Fil Runout on E1
-#define Y_MAX_PIN -1
-#define Z_MIN_PIN    10
-#define Z_MAX_PIN    30
+#define Y_MAX_PIN   -1
+#define Z_MIN_PIN   11
+#define Z_MAX_PIN   -1
 
 
 //Fil Runout sensors
-#define FIL_RUNOUT_PIN  24
-#define FIL_RUNOUT2_PIN 23
+#define FIL_RUNOUT_PIN  -1
+#define FIL_RUNOUT2_PIN -1
 
 
 //STEPPERS
@@ -61,7 +60,7 @@
 #define E1_MS1_PIN      63
 #define E1_MS2_PIN      64
 
-#define DIGIPOTSS_PIN   38
+#define DIGIPOTSS_PIN   51
 #define DIGIPOT_CHANNELS  { 4,5,3,0,1 }
 
 #define NUMTEMPPROBES 4
@@ -70,6 +69,13 @@
 #define PROBE_PIN2 2
 #define PROBE_PIN3 7
 
+#define NUM_DIST_PROBES 5
+#define TEST_PIN0  12
+#define TEST_PIN1  11
+#define TEST_PIN2  10
+#define TEST_PIN3  24
+#define TEST_PIN4  23
+#define TEST_PIN5  30
 
 //Temp sensors
 #define TEMP_0_PIN     0  //Analog input
@@ -115,11 +121,10 @@
 #define BTN_EN2         77            //6 - BTN_EN2       PJ6
 #define SDSS            53            //7 - SDSS          PB0
 #define BTN_EN1         76            //8 - BTN_EN1       PJ5
-// #define SCK_PIN         52            //9 - SCK_PIN       PB1
-// #define MISO_PIN        50            //10 - MISO_PIN     PB3
+#define SCK_PIN         52            //9 - SCK_PIN       PB1
+#define MISO_PIN        50            //10 - MISO_PIN     PB3
 
 #define SDPOWER -1
-
 
 
 #define SWI2C_SDA  20

@@ -20,9 +20,6 @@ void timer4_init(void)
 	SET_OUTPUT(BEEPER);
 	WRITE(BEEPER, LOW);
 	
-	#if defined(EXTRUDER_0_AUTO_FAN_PIN) && EXTRUDER_0_AUTO_FAN_PIN > -1
-		SET_OUTPUT(EXTRUDER_0_AUTO_FAN_PIN);
-	#endif
 	// Set timer mode 9 (PWM,Phase and Frequency Correct)
 	// Prescaler is CLK/1024
 	// Output compare is disabled on all timer pins
@@ -38,29 +35,6 @@ void timer4_init(void)
 	CRITICAL_SECTION_END;
 }
 
-#if defined(EXTRUDER_0_AUTO_FAN_PIN) && EXTRUDER_0_AUTO_FAN_PIN > -1
-void timer4_set_fan0(uint8_t duty)
-{
-	if (duty == 0 || duty == 255)
-	{
-		// We use digital logic if the duty cycle is 0% or 100%
-		TCCR4A &= ~(1 << COM4C1);
-		OCR4C = 0;
-		WRITE(EXTRUDER_0_AUTO_FAN_PIN, duty);
-	}
-	else
-	{
-		// Use the timer for fan speed. Enable the timer compare output and set the duty cycle.
-		// This function also handles the impossible scenario of a fan speed change during a Tone.
-		// Better be safe than sorry.
-		CRITICAL_SECTION_START;
-		// Enable the PWM output on the fan pin.
-		TCCR4A |= (1 << COM4C1);
-		OCR4C = (((uint32_t)duty) * ((uint32_t)((TIMSK4 & (1 << OCIE4A))?OCR4A:255))) / ((uint32_t)255);
-		CRITICAL_SECTION_END;
-	}
-}
-#endif //EXTRUDER_0_AUTO_FAN_PIN
 
 // Because of the timer mode change, we need two interrupts. We could also try to assume that the frequency is x2
 // and use a TOGGLE(), but this seems to work well enough so I left it as it is now.

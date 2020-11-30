@@ -7,14 +7,6 @@
 #include "ConfigurationStore.h"
 #include "Configuration_prusa.h"
 
-#ifdef MESH_BED_LEVELING
-#include "mesh_bed_leveling.h"
-#endif
-
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif
-
 
 M500_conf cs;
 
@@ -83,30 +75,7 @@ void Config_StoreSettings() {
 
 
 #ifndef DISABLE_M503
-void Config_PrintSettings(uint8_t level)
-{  // Always have this function, even with EEPROM_SETTINGS disabled, the current values will be shown
-#ifdef TMC2130
-	printf_P(PSTR(
-		"%SSteps per unit:\n%S  M92 X%.2f Y%.2f Z%.2f E%.2f\n"
-        "%SUStep resolution: \n%S M350 X%d Y%d Z%d E%d\n"
-		"%SMaximum feedrates - normal (mm/s):\n%S  M203 X%.2f Y%.2f Z%.2f E%.2f\n"
-		"%SMaximum feedrates - stealth (mm/s):\n%S  M203 X%.2f Y%.2f Z%.2f E%.2f\n"
-		"%SMaximum acceleration - normal (mm/s2):\n%S  M201 X%lu Y%lu Z%lu E%lu\n"
-		"%SMaximum acceleration - stealth (mm/s2):\n%S  M201 X%lu Y%lu Z%lu E%lu\n"
-		"%SAcceleration: S=acceleration, T=retract acceleration\n%S  M204 S%.2f T%.2f\n"
-		"%SAdvanced variables: S=Min feedrate (mm/s), T=Min travel feedrate (mm/s), B=minimum segment time (ms), X=maximum XY jerk (mm/s),  Z=maximum Z jerk (mm/s),  E=maximum E jerk (mm/s)\n%S  M205 S%.2f T%.2f B%.2f X%.2f Y%.2f Z%.2f E%.2f\n"
-		"%SHome offset (mm):\n%S  M206 X%.2f Y%.2f Z%.2f\n"
-		),
-		echomagic, echomagic, cs.axis_steps_per_unit[X_AXIS], cs.axis_steps_per_unit[Y_AXIS], cs.axis_steps_per_unit[Z_AXIS], cs.axis_steps_per_unit[E_AXIS],
-		echomagic, echomagic, cs.axis_ustep_resolution[X_AXIS], cs.axis_ustep_resolution[Y_AXIS], cs.axis_ustep_resolution[Z_AXIS], cs.axis_ustep_resolution[E_AXIS],
-		echomagic, echomagic, cs.max_feedrate_normal[X_AXIS], cs.max_feedrate_normal[Y_AXIS], cs.max_feedrate_normal[Z_AXIS], cs.max_feedrate_normal[E_AXIS],
-		echomagic, echomagic, cs.max_feedrate_silent[X_AXIS], cs.max_feedrate_silent[Y_AXIS], cs.max_feedrate_silent[Z_AXIS], cs.max_feedrate_silent[E_AXIS],
-		echomagic, echomagic, cs.max_acceleration_units_per_sq_second_normal[X_AXIS], cs.max_acceleration_units_per_sq_second_normal[Y_AXIS], cs.max_acceleration_units_per_sq_second_normal[Z_AXIS], cs.max_acceleration_units_per_sq_second_normal[E_AXIS],
-		echomagic, echomagic, cs.max_acceleration_units_per_sq_second_silent[X_AXIS], cs.max_acceleration_units_per_sq_second_silent[Y_AXIS], cs.max_acceleration_units_per_sq_second_silent[Z_AXIS], cs.max_acceleration_units_per_sq_second_silent[E_AXIS],
-		echomagic, echomagic, cs.acceleration, cs.retract_acceleration,
-		echomagic, echomagic, cs.minimumfeedrate, cs.mintravelfeedrate, cs.minsegmenttime, cs.max_jerk[X_AXIS], cs.max_jerk[Y_AXIS], cs.max_jerk[Z_AXIS], cs.max_jerk[E_AXIS],
-		echomagic, echomagic, cs.add_homing[X_AXIS], cs.add_homing[Y_AXIS], cs.add_homing[Z_AXIS]
-#else //TMC2130
+void Config_PrintSettings(uint8_t level) {  // Always have this function, even with EEPROM_SETTINGS disabled, the current values will be shown
 	printf_P(PSTR(
 		"%SSteps per unit:\n%S  M92 X%.2f Y%.2f Z%.2f E%.2f\n"
 		"%SMaximum feedrates (mm/s):\n%S  M203 X%.2f Y%.2f Z%.2f E%.2f\n"
@@ -121,50 +90,8 @@ void Config_PrintSettings(uint8_t level)
 		echomagic, echomagic, cs.acceleration, cs.retract_acceleration,
 		echomagic, echomagic, cs.minimumfeedrate, cs.mintravelfeedrate, cs.minsegmenttime, cs.max_jerk[X_AXIS], cs.max_jerk[Y_AXIS], cs.max_jerk[Z_AXIS], cs.max_jerk[E_AXIS],
 		echomagic, echomagic, cs.add_homing[X_AXIS], cs.add_homing[Y_AXIS], cs.add_homing[Z_AXIS]
-#endif //TMC2130
 	);
-#ifdef PIDTEMP
-	printf_P(PSTR("%SPID settings:\n%S   M301 P%.2f I%.2f D%.2f\n"),
-		echomagic, echomagic, cs.Kp, unscalePID_i(cs.Ki), unscalePID_d(cs.Kd));
-#endif
-#ifdef PIDTEMPBED
-	printf_P(PSTR("%SPID heatbed settings:\n%S   M304 P%.2f I%.2f D%.2f\n"),
-		echomagic, echomagic, cs.bedKp, unscalePID_i(cs.bedKi), unscalePID_d(cs.bedKd));
-#endif
-#ifdef FWRETRACT
-	printf_P(PSTR(
-		"%SRetract: S=Length (mm) F:Speed (mm/m) Z: ZLift (mm)\n%S   M207 S%.2f F%.2f Z%.2f\n"
-		"%SRecover: S=Extra length (mm) F:Speed (mm/m)\n%S   M208 S%.2f F%.2f\n"
-		"%SAuto-Retract: S=0 to disable, 1 to interpret extrude-only moves as retracts or recoveries\n%S   M209 S%d\n"
-		),
-		echomagic, echomagic, cs.retract_length, cs.retract_feedrate*60, cs.retract_zlift,
-		echomagic, echomagic, cs.retract_recover_length, cs.retract_recover_feedrate*60,
-		echomagic, echomagic, (cs.autoretract_enabled ? 1 : 0)
-	);
-#if EXTRUDERS > 1
-	printf_P(PSTR("%SMulti-extruder settings:\n%S   Swap retract length (mm):    %.2f\n%S   Swap rec. addl. length (mm): %.2f\n"),
-		echomagic, echomagic, retract_length_swap, echomagic, retract_recover_length_swap);
-#endif
-	if (cs.volumetric_enabled) {
-		printf_P(PSTR("%SFilament settings:\n%S   M200 D%.2f\n"),
-			echomagic, echomagic, cs.filament_size[0]);
-#if EXTRUDERS > 1
-		printf_P(PSTR("%S   M200 T1 D%.2f\n"),
-			echomagic, echomagic, cs.filament_size[1]);
-#if EXTRUDERS > 2
-		printf_P(PSTR("%S   M200 T1 D%.2f\n"),
-			echomagic, echomagic, cs.filament_size[2]);
-#endif
-#endif
-    } else {
-        printf_P(PSTR("%SFilament settings: Disabled\n"), echomagic);
-    }
-#endif
 	if (level >= 10) {
-#ifdef LIN_ADVANCE
-		printf_P(PSTR("%SLinear advance settings:%S   M900 K%.2f\n"),
-                 echomagic, echomagic, extruder_advance_K);
-#endif //LIN_ADVANCE
 	}
 }
 #endif
@@ -176,10 +103,7 @@ void Config_PrintSettings(uint8_t level)
 static_assert (NUM_AXIS == 4, "ConfigurationStore M500_conf not implemented for more axis."
         "Fix axis_steps_per_unit max_feedrate_normal max_acceleration_units_per_sq_second_normal max_jerk max_feedrate_silent"
         " max_acceleration_units_per_sq_second_silent array size.");
-#ifdef ENABLE_AUTO_BED_LEVELING
-static_assert (false, "zprobe_zoffset was not initialized in printers in field to -(Z_PROBE_OFFSET_FROM_EXTRUDER), so it contains"
-        "0.0, if this is not acceptable, increment EEPROM_VERSION to force use default_conf");
-#endif
+
 
 static_assert (sizeof(M500_conf) == 196, "sizeof(M500_conf) has changed, ensure that EEPROM_VERSION has been incremented, "
         "or if you added members in the end of struct, ensure that historically uninitialized values will be initialized."
@@ -224,11 +148,7 @@ static const M500_conf default_conf PROGMEM =
     },
     DEFAULT_MAX_FEEDRATE_SILENT,
     DEFAULT_MAX_ACCELERATION_SILENT,
-#ifdef TMC2130
-    { TMC2130_USTEPS_XY, TMC2130_USTEPS_XY, TMC2130_USTEPS_Z, TMC2130_USTEPS_E },
-#else // TMC2130
     {16,16,16,16},
-#endif
 };
 
 //! @brief Read M500 configuration
@@ -260,35 +180,8 @@ bool Config_RetrieveSettings() {
                 memcpy_P(&cs.max_acceleration_units_per_sq_second_silent[i],&default_conf.max_acceleration_units_per_sq_second_silent[i],sizeof(cs.max_acceleration_units_per_sq_second_silent[i]));
             }
         }
-
-#ifdef TMC2130
-		for (uint8_t j = X_AXIS; j <= Y_AXIS; j++)
-		{
-			if (cs.max_feedrate_normal[j] > NORMAL_MAX_FEEDRATE_XY)
-				cs.max_feedrate_normal[j] = NORMAL_MAX_FEEDRATE_XY;
-			if (cs.max_feedrate_silent[j] > SILENT_MAX_FEEDRATE_XY)
-				cs.max_feedrate_silent[j] = SILENT_MAX_FEEDRATE_XY;
-			if (cs.max_acceleration_units_per_sq_second_normal[j] > NORMAL_MAX_ACCEL_XY)
-				cs.max_acceleration_units_per_sq_second_normal[j] = NORMAL_MAX_ACCEL_XY;
-			if (cs.max_acceleration_units_per_sq_second_silent[j] > SILENT_MAX_ACCEL_XY)
-				cs.max_acceleration_units_per_sq_second_silent[j] = SILENT_MAX_ACCEL_XY;
-		}
-        
-		if(cs.axis_ustep_resolution[X_AXIS] == 0xff){ cs.axis_ustep_resolution[X_AXIS] = TMC2130_USTEPS_XY; }
-		if(cs.axis_ustep_resolution[Y_AXIS] == 0xff){ cs.axis_ustep_resolution[Y_AXIS] = TMC2130_USTEPS_XY; }
-		if(cs.axis_ustep_resolution[Z_AXIS] == 0xff){ cs.axis_ustep_resolution[Z_AXIS] = TMC2130_USTEPS_Z; }
-		if(cs.axis_ustep_resolution[E_AXIS] == 0xff){ cs.axis_ustep_resolution[E_AXIS] = TMC2130_USTEPS_E; }
-
-		tmc2130_set_res(X_AXIS, cs.axis_ustep_resolution[X_AXIS]);
-		tmc2130_set_res(Y_AXIS, cs.axis_ustep_resolution[Y_AXIS]);
-		tmc2130_set_res(Z_AXIS, cs.axis_ustep_resolution[Z_AXIS]);
-		tmc2130_set_res(E_AXIS, cs.axis_ustep_resolution[E_AXIS]);
-#endif //TMC2130
-
 		reset_acceleration_rates();
 
-		// Call updatePID (similar to when we have processed M301)
-		updatePID();
         SERIAL_ECHO_START;
         SERIAL_ECHOLNPGM("Stored settings retrieved");
     } else {
@@ -308,23 +201,12 @@ bool Config_RetrieveSettings() {
 }
 #endif
 
-void Config_ResetDefault()
-{
+void Config_ResetDefault() {
     memcpy_P(&cs,&default_conf, sizeof(cs));
 
 	// steps per sq second need to be updated to agree with the units per sq second
     reset_acceleration_rates();
-    
-#ifdef PIDTEMP
-    updatePID();
-#ifdef PID_ADD_EXTRUSION_RATE
-    Kc = DEFAULT_Kc; //this is not stored by Config_StoreSettings
-#endif//PID_ADD_EXTRUSION_RATE
-#endif//PIDTEMP
-
 	calculate_extruder_multipliers();
-
-SERIAL_ECHO_START;
-SERIAL_ECHOLNPGM("Hardcoded Default Settings Loaded");
-
+	SERIAL_ECHO_START;
+	SERIAL_ECHOLNPGM("Hardcoded Default Settings Loaded");
 }
