@@ -1009,13 +1009,13 @@ int8_t lcd_show_fullscreen_message_yes_no_and_wait_P(const char *msg, bool allow
 
 static void lcd_show_end_stops() {
 	lcd_set_cursor(0, 0);
-	lcd_puts_P((PSTR("End stops diag")));
+	lcd_puts_P(PSTR("End stops diag"));
 	lcd_set_cursor(0, 1);
-	lcd_puts_P((READ(X_MIN_PIN) ^ (bool)X_MIN_ENDSTOP_INVERTING) ? (PSTR("X1")) : (PSTR("X0")));
+	lcd_puts_P(READ(TEST_PIN0)  ? PSTR("X1") : PSTR("X0"));
 	lcd_set_cursor(0, 2);
-	lcd_puts_P((READ(Y_MIN_PIN) ^ (bool)Y_MIN_ENDSTOP_INVERTING) ? (PSTR("Y1")) : (PSTR("Y0")));
+	lcd_puts_P(READ(TEST_PIN1) ? PSTR("Y1") : PSTR("Y0"));
 	lcd_set_cursor(0, 3);
-	lcd_puts_P((READ(Z_MIN_PIN) ^ (bool)Z_MIN_ENDSTOP_INVERTING) ? (PSTR("Z1")) : (PSTR("Z0")));
+	lcd_puts_P(READ(TEST_PIN2) ? PSTR("Z1") : PSTR("Z0"));
 }
 
 static void menu_show_end_stops() {
@@ -1077,22 +1077,23 @@ static void lcd_show_sensors_state()
 	
 
 	lcd_puts_at_P(0, 0, _i("Sensor states:"));
+	lcd_space(6);
 	lcd_set_cursor(0,1);
-	lcd_print("1 ");
-	lcd_print_state(pinda_state[0]);
+	lcd_print("1: ");
+	lcd_puts_P(READ(TEST_PIN0)  ? PSTR("Y") : PSTR("N"));
 	lcd_space(2);
-	lcd_print("2 ");
-	lcd_print_state(pinda_state[1]);
+	lcd_print("2: ");
+	lcd_puts_P(READ(TEST_PIN1)  ? PSTR("Y") : PSTR("N"));
 	lcd_space(2);
-	lcd_print("3 ");
-	lcd_print_state(pinda_state[2]);
+	lcd_print("3: ");
+	lcd_puts_P(READ(TEST_PIN2)  ? PSTR("Y") : PSTR("N"));
 	lcd_space(4);
 	lcd_set_cursor(0,2);
-	lcd_print("4 ");
-	lcd_print_state(pinda_state[3]);
+	lcd_print("4: ");
+	lcd_puts_P(READ(TEST_PIN3)  ? PSTR("Y") : PSTR("N"));
 	lcd_space(2);
-	lcd_print("5 ");
-	lcd_print_state(pinda_state[4]);
+	lcd_print("5: ");
+	lcd_puts_P(READ(TEST_PIN4)  ? PSTR("Y") : PSTR("N"));
 	lcd_space(2);
 	lcd_print("6: N/A ");
 	lcd_space(2);
@@ -1626,7 +1627,7 @@ static void lcd_main_menu() {
 	MENU_ITEM_BACK_P(_T(MSG_WATCH));
 
 
-
+	MENU_ITEM_SUBMENU_P(_i("Test"), lcd_show_end_stops);
 	MENU_ITEM_SUBMENU_P(_T(MSG_SETTINGS), lcd_settings_menu);
 	MENU_ITEM_SUBMENU_P(_i("Statistics  "), lcd_menu_statistics);////MSG_STATISTICS
  	MENU_ITEM_SUBMENU_P(_i("Support"), lcd_support_menu);////MSG_SUPPORT

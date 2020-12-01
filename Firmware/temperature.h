@@ -60,6 +60,9 @@ extern float current_temperature[EXTRUDERS];
 extern int target_temperature_bed;
 extern float current_temperature_bed;
 
+extern uint16_t current_temperatures_raw_probes[NUMTEMPPROBES];
+extern float current_temperature_probes[NUMTEMPPROBES];
+
 #ifdef PINDA_THERMISTOR
 extern uint16_t current_temperature_raw_pinda;
 extern float current_temperature_pinda;

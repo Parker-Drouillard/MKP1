@@ -54,6 +54,10 @@ int target_temperature_bed = 0;
 int current_temperature_raw[EXTRUDERS] = { 0 };
 float current_temperature[EXTRUDERS] = { 0.0 };
 
+uint16_t current_temperatures_raw_probes[NUMTEMPPROBES] = { 0 };
+uint16_t current_temperatures_raw_probes_fast[NUMTEMPPROBES] = { 0 };
+float current_temperatures_probes[NUMTEMPPROBES] = { 0.0 };
+
 #ifdef PINDA_THERMISTOR
 uint16_t current_temperature_raw_pinda =  0 ; //value with more averaging applied
 uint16_t current_temperature_raw_pinda_fast = 0; //value read from adc
@@ -561,24 +565,16 @@ static float analog2tempAmbient(int raw) {
 /* Called to get the raw values into the the actual temperatures. The raw values are created in interrupt context,
     and this function is called from normal context as it is too slow to run in interrupts and will block the stepper routine otherwise */
 static void updateTemperaturesFromRawValues() {
-    for(uint8_t e=0;e<EXTRUDERS;e++) {
-        current_temperature[e] = analog2temp(current_temperature_raw[e], e);
-    }
 
-#ifdef PINDA_THERMISTOR
-	current_temperature_raw_pinda = (uint16_t)((uint32_t)current_temperature_raw_pinda * 3 + current_temperature_raw_pinda_fast) >> 2;
-	current_temperature_pinda = analog2tempBed(current_temperature_raw_pinda);
-#endif
+  for(int i = 0; i < NUMTEMPPROBES; i++){
+    current_temperatures_raw_probes[i] = (uint16_t)((uint32_t)current_temperatures_raw_probes[i] * 3 + current_temperatures_raw_probes_fast[i]) >> 2;
+    current_temperatures_probes[i] = analog2tempBed(current_temperatures_raw_probes[i]);
+  }
+// #ifdef PINDA_THERMISTOR
+// 	current_temperature_raw_pinda = (uint16_t)((uint32_t)current_temperature_raw_pinda * 3 + current_temperature_raw_pinda_fast) >> 2;
+// 	current_temperature_pinda = analog2tempBed(current_temperature_raw_pinda);
+// #endif
 
-#ifdef AMBIENT_THERMISTOR
-	current_temperature_ambient = analog2tempAmbient(current_temperature_raw_ambient); //thermistor for ambient is NTCG104LH104JT1 (2000)
-#endif
-   
-#ifdef DEBUG_HEATER_BED_SIM
-	current_temperature_bed = target_temperature_bed;
-#else //DEBUG_HEATER_BED_SIM
-	current_temperature_bed = analog2tempBed(current_temperature_bed_raw);
-#endif //DEBUG_HEATER_BED_SIM
 
     CRITICAL_SECTION_START;
     temp_meas_ready = false;
@@ -765,26 +761,10 @@ extern "C" {
 
 
 void adc_ready(void) { //callback from adc when sampling finished
-	current_temperature_raw[0] = adc_values[ADC_PIN_IDX(TEMP_0_PIN)]; //heater
-#if EXTRUDERS > 1
-  current_temperature_raw[1] = adc_values[ADC_PIN_IDX(TEMP_1_PIN)]; //Heater 2
-#endif
-#ifdef PINDA_THERMISTOR
-	current_temperature_raw_pinda_fast = adc_values[ADC_PIN_IDX(TEMP_PINDA_PIN)];
-#endif //PINDA_THERMISTOR
-	current_temperature_bed_raw = adc_values[ADC_PIN_IDX(TEMP_BED_PIN)];
-#ifdef VOLT_PWR_PIN
-	current_voltage_raw_pwr = adc_values[ADC_PIN_IDX(VOLT_PWR_PIN)];
-#endif
-#ifdef AMBIENT_THERMISTOR
-	current_temperature_raw_ambient = adc_values[ADC_PIN_IDX(TEMP_AMBIENT_PIN)]; // 5->6
-#endif //AMBIENT_THERMISTOR
-#ifdef VOLT_BED_PIN
-	current_voltage_raw_bed = adc_values[ADC_PIN_IDX(VOLT_BED_PIN)]; // 6->9
-#endif
-#ifdef IR_SENSOR_ANALOG
-     current_voltage_raw_IR = adc_values[ADC_PIN_IDX(VOLT_IR_PIN)];
-#endif //IR_SENSOR_ANALOG
+  current_temperatures_raw_probes[0] = adc_values[ADC_PIN_IDX(PROBE_PIN0)];
+  current_temperatures_raw_probes[1] = adc_values[ADC_PIN_IDX(PROBE_PIN1)];
+  current_temperatures_raw_probes[2] = adc_values[ADC_PIN_IDX(PROBE_PIN2)];
+  current_temperatures_raw_probes[3] = adc_values[ADC_PIN_IDX(PROBE_PIN3)];
 	temp_meas_ready = true;
 }
 

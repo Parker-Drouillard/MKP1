@@ -373,6 +373,12 @@ static LongTimer auto_report_temp_timer;
 static uint8_t auto_report_temp_period = 0;
 #endif //AUTO_REPORT_TEMPERATURES
 
+
+int currentCycle = 0;
+float probeTrigger[NUM_DIST_PROBES][NUMTESTCYCLES] = { 0.0 };
+bool probePrevTriggered[NUM_DIST_PROBES][NUMTESTCYCLES] = {false};
+float probeTriggerAvg[NUM_DIST_PROBES] = { 0.0 };
+
 //===========================================================================
 //=============================Routines======================================
 //===========================================================================
@@ -495,6 +501,11 @@ void servo_init() {
   #endif
 }
 
+static inline void go_to_current(float fr)
+{
+    plan_buffer_line_curposXYZE(fr);
+    st_synchronize();
+}
 
 bool fans_check_enabled = true;
 
@@ -1269,6 +1280,9 @@ static float probe_pt(float x, float y, float z_before) {
 
 #endif // #ifdef ENABLE_AUTO_BED_LEVELING
 
+
+
+
 #ifdef LIN_ADVANCE
 /**
   * M900: Set and/or Get advance K factor
@@ -1845,175 +1859,7 @@ void process_commands()
     case 1: // G1
       if(Stopped == false) {
 
-        #ifdef FILAMENT_RUNOUT_SUPPORT
-            
-            if(READ(FR_SENS)){
-
-                        int feedmultiplyBckp=feedmultiply;
-                        float target[4];
-                        float lastpos[4];
-                        target[X_AXIS]=current_position[X_AXIS];
-                        target[Y_AXIS]=current_position[Y_AXIS];
-                        target[Z_AXIS]=current_position[Z_AXIS];
-                        target[E_AXIS]=current_position[E_AXIS];
-                        lastpos[X_AXIS]=current_position[X_AXIS];
-                        lastpos[Y_AXIS]=current_position[Y_AXIS];
-                        lastpos[Z_AXIS]=current_position[Z_AXIS];
-                        lastpos[E_AXIS]=current_position[E_AXIS];
-                        //retract by E
-                        
-                        target[E_AXIS]+= FILAMENTCHANGE_FIRSTRETRACT ;
-                        
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 400, active_extruder);
-
-
-                        target[Z_AXIS]+= FILAMENTCHANGE_ZADD ;
-
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 300, active_extruder);
-
-                        target[X_AXIS]= FILAMENTCHANGE_XPOS ;
-                        
-                        target[Y_AXIS]= FILAMENTCHANGE_YPOS ;
-                         
-                 
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 70, active_extruder);
-
-                        target[E_AXIS]+= FILAMENTCHANGE_FINALRETRACT ;
-                          
-
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 20, active_extruder);
-
-                        //finish moves
-                        st_synchronize();
-                        //disable extruder steppers so filament can be removed
-                        disable_e0();
-                        disable_e1();
-                        disable_e2();
-                        _delay(100);
-                        
-                        //LCD_ALERTMESSAGEPGM(_T(MSG_FILAMENTCHANGE));
-                        uint8_t cnt=0;
-                        int counterBeep = 0;
-                        lcd_wait_interact();
-                        while(!lcd_clicked()){
-                          cnt++;
-                          manage_heater();
-                          manage_inactivity(true);
-                          //lcd_update(0);
-                          if(cnt==0)
-                          {
-                          #if BEEPER > 0
-                          
-                            if (counterBeep== 500){
-                              counterBeep = 0;
-                              
-                            }
-                          
-                            
-                            SET_OUTPUT(BEEPER);
-                            if (counterBeep== 0){
-if(eSoundMode!=e_SOUND_MODE_SILENT)
-                              WRITE(BEEPER,HIGH);
-                            }
-                            
-                            if (counterBeep== 20){
-                              WRITE(BEEPER,LOW);
-                            }
-                            
-                            
-                            
-                          
-                            counterBeep++;
-                          #else
-                          #endif
-                          }
-                        }
-                        
-                        WRITE(BEEPER,LOW);
-                        
-                        target[E_AXIS]+= FILAMENTCHANGE_FIRSTFEED ;
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 20, active_extruder); 
-                        
-                        
-                        target[E_AXIS]+= FILAMENTCHANGE_FINALFEED ;
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 2, active_extruder); 
-                        
-                 
-                        
-                        
-                        
-                        lcd_change_fil_state = 0;
-                        lcd_loading_filament();
-                        while ((lcd_change_fil_state == 0)||(lcd_change_fil_state != 1)){
-                        
-                          lcd_change_fil_state = 0;
-                          lcd_alright();
-                          switch(lcd_change_fil_state){
-                          
-                             case 2:
-                                     target[E_AXIS]+= FILAMENTCHANGE_FIRSTFEED ;
-                                     plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 20, active_extruder); 
-                        
-                        
-                                     target[E_AXIS]+= FILAMENTCHANGE_FINALFEED ;
-                                     plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 2, active_extruder); 
-                                      
-                                     
-                                     lcd_loading_filament();
-                                     break;
-                             case 3:
-                                     target[E_AXIS]+= FILAMENTCHANGE_FINALFEED ;
-                                     plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 2, active_extruder); 
-                                     lcd_loading_color();
-                                     break;
-                                          
-                             default:
-                                     lcd_change_success();
-                                     break;
-                          }
-                          
-                        }
-                        
-
-                        
-                      target[E_AXIS]+= 5;
-                      plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 2, active_extruder);
-                        
-                      target[E_AXIS]+= FILAMENTCHANGE_FIRSTRETRACT;
-                      plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 400, active_extruder);
-                        
-
-                        //current_position[E_AXIS]=target[E_AXIS]; //the long retract of L is compensated by manual filament feeding
-                        //plan_set_e_position(current_position[E_AXIS]);
-                        plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], 70, active_extruder); //should do nothing
-                        plan_buffer_line(lastpos[X_AXIS], lastpos[Y_AXIS], target[Z_AXIS], target[E_AXIS], 70, active_extruder); //move xy back
-                        plan_buffer_line(lastpos[X_AXIS], lastpos[Y_AXIS], lastpos[Z_AXIS], target[E_AXIS], 200, active_extruder); //move z back
-                        
-                        
-                        target[E_AXIS]= target[E_AXIS] - FILAMENTCHANGE_FIRSTRETRACT;
-                        
-                      
-                             
-                        plan_buffer_line(lastpos[X_AXIS], lastpos[Y_AXIS], lastpos[Z_AXIS], target[E_AXIS], 5, active_extruder); //final untretract
-                        
-                        
-                        plan_set_e_position(lastpos[E_AXIS]);
-                        
-                        feedmultiply=feedmultiplyBckp;
-                        
-                     
-                        
-                        char cmd[9];
-
-                        sprintf_P(cmd, PSTR("M220 S%i"), feedmultiplyBckp);
-                        enquecommand(cmd);
-
-            }
-
-
-
-        #endif
-
+      
             get_coordinates(); // For X Y Z E F
 
             // When recovering from a previous print move, restore the originally
@@ -2463,6 +2309,47 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
       break;
 
 #endif //SDSUPPORT
+
+    case 980:
+    {
+      //Reset for testing
+      lcd_display_message_fullscreen_P(_i("SAMPLING PROBES"))
+      for(int i = 0; i < NUMTESTCYCLES; i++){
+        for(int j = 0; j < NUM_DIST_PROBES; j++){
+          probeTrigger[j][i] = 0.0;
+          probePrevTriggered[j][i] = false;
+        }
+      }
+      for(int j = 0; j < NUM_DIST_PROBES; j++){
+        probeTriggerAvg[j] = 0;
+      }
+      enquecommand_P(PSTR("G90"));
+      enable_z_endstop(false);
+      current_position[Z_AXIS] = 5.0;
+      go_to_current(homing_feedrate[Z_AXIS]/60);
+      for(currentCycle = 0; currentCycle < NUMTESTCYCLES; currentCycle++){
+        current_position[Z_AXIS] = 10;
+        go_to_current(homing_feedrate[Z_AXIS]);
+        current_position[Z_AXIS] = 3;
+        go_to_current(homing_feedrate[Z_AXIS]/10);
+        // enquecommand_P(PSTR("G1 Z5 F2000"));
+        // st_synchronize();
+        // enquecommand_P(PSTR("G1 Z25 F2000"));  
+        // st_synchronize();
+      }
+      for(int j = 0; j < NUM_DIST_PROBES; j++){
+        for(int i = 0; i < NUMTESTCYCLES; i++){
+          probeTriggerAvg[j] += probeTrigger[j][i];
+        }
+        probeTriggerAvg[j] /= NUMTESTCYCLES;
+        SERIAL_PROTOCOLRPGM(_N("Probe: "));
+        SERIAL_PROTOCOL(j);
+        SERIAL_PROTOCOLRPGM(_N("   Avg: "));
+        SERIAL_PROTOCOLLN(probeTriggerAvg[j]);
+      }
+    
+    }
+
 
     /*!
 	### M31 - Report current print time <a href="https://reprap.org/wiki/G-code#M31:_Output_time_since_last_M109_or_SD_card_start_to_serial">M31: Output time since last M109 or SD card start to serial</a>

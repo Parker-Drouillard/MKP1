@@ -401,7 +401,11 @@ extern LongTimer safetyTimer;
 #define CHECK_FSENSOR ((IS_SD_PRINTING || is_usb_printing) && (mcode_in_progress != 600) && !saved_printing && e_active())
 
 
-
+#define NUMTESTCYCLES 20
+extern int currentCycle;
+extern float probeTrigger[NUM_DIST_PROBES][NUMTESTCYCLES];
+extern bool probePrevTriggered[NUM_DIST_PROBES][NUMTESTCYCLES];
+extern float probeTriggerAvg[NUM_DIST_PROBES];
 
 extern void long_pause();
 extern void crashdet_stop_and_save_print();

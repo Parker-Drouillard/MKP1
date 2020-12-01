@@ -438,147 +438,58 @@ FORCE_INLINE void stepper_next_block()
   //WRITE_NC(LOGIC_ANALYZER_CH2, false);
 }
 
+extern float probeTrigger[NUM_DIST_PROBES][NUMTESTCYCLES];
+extern bool probePrevTriggered[NUM_DIST_PROBES][NUMTESTCYCLES];
+extern float probeTriggerAvg[NUM_DIST_PROBES];
+
 // Check limit switches.
-FORCE_INLINE void stepper_check_endstops()
-{
-  if(check_endstops) 
-  {
-    #ifndef COREXY
-    if ((out_bits & (1<<X_AXIS)) != 0) // stepping along -X axis
-    #else
-    if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) != 0)) //-X occurs for -A and -B
-    #endif
-    {
-      #if ( (defined(X_MIN_PIN) && (X_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMINLIMIT)
-      #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-        x_min_endstop = (READ(X_TMC2130_DIAG) != 0);
-      #else
-        // Normal homing
-        x_min_endstop = (READ(X_MIN_PIN) != X_MIN_ENDSTOP_INVERTING);
-      #endif
-        if(x_min_endstop && old_x_min_endstop && (current_block->steps_x.wide > 0)) {
-          endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
-          endstop_x_hit=true;
-          step_events_completed.wide = current_block->step_event_count.wide;
-        }
-        old_x_min_endstop = x_min_endstop;
-      #endif
-    } else { // +direction
-      #if ( (defined(X_MAX_PIN) && (X_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMAXLIMIT)          
-        #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-            x_max_endstop = (READ(X_TMC2130_DIAG) != 0);
-        #else
-        // Normal homing
-        x_max_endstop = (READ(X_MAX_PIN) != X_MAX_ENDSTOP_INVERTING);
-        #endif
-        if(x_max_endstop && old_x_max_endstop && (current_block->steps_x.wide > 0)){
-          endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
-          endstop_x_hit=true;
-          step_events_completed.wide = current_block->step_event_count.wide;
-        }
-        old_x_max_endstop = x_max_endstop;
-      #endif
-    }
+FORCE_INLINE void stepper_check_endstops() {    
+  if ((out_bits & (1<<Z_AXIS)) != 0) { // -direction
+    // #if defined(Z_MIN_PIN) && (Z_MIN_PIN > -1) && !defined(DEBUG_DISABLE_ZMINLIMIT)
+    // if (! check_z_endstop) {
+    //     z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
 
-    #ifndef COREXY
-    if ((out_bits & (1<<Y_AXIS)) != 0) // -direction
-    #else
-    if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) == 0)) // -Y occurs for -A and +B
-    #endif
-    {        
-      #if ( (defined(Y_MIN_PIN) && (Y_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMINLIMIT)          
-      #ifdef TMC2130_SG_HOMING
-      // Stall guard homing turned on
-          y_min_endstop = (READ(Y_TMC2130_DIAG) != 0);
-      #else
-      // Normal homing
-      y_min_endstop = (READ(Y_MIN_PIN) != Y_MIN_ENDSTOP_INVERTING);
-      #endif
-        if(y_min_endstop && old_y_min_endstop && (current_block->steps_y.wide > 0)) {
-          endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
-          endstop_y_hit=true;
-          step_events_completed.wide = current_block->step_event_count.wide;
-        }
-        old_y_min_endstop = y_min_endstop;
-      #endif
-    } else { // +direction
-      #if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)                
-        #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-            y_max_endstop = (READ(Y_TMC2130_DIAG) != 0);
-        #else
-        // Normal homing
-        y_max_endstop = (READ(Y_MAX_PIN) != Y_MAX_ENDSTOP_INVERTING);
-        #endif
-        if(y_max_endstop && old_y_max_endstop && (current_block->steps_y.wide > 0)){
-          endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
-          endstop_y_hit=true;
-          step_events_completed.wide = current_block->step_event_count.wide;
-        }
-        old_y_max_endstop = y_max_endstop;
-      #endif
-    }
+    //   if(z_min_endstop && old_z_min_endstop && (current_block->steps_z.wide > 0)) {
+    //     endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+    //     endstop_z_hit=true;
+    //     step_events_completed.wide = current_block->step_event_count.wide;
+    //   }
+    //   old_z_min_endstop = z_min_endstop;
+    // }
+    // #endif
 
-    if ((out_bits & (1<<Z_AXIS)) != 0) // -direction
-    {
-      #if defined(Z_MIN_PIN) && (Z_MIN_PIN > -1) && !defined(DEBUG_DISABLE_ZMINLIMIT)
-      if (! check_z_endstop) {
-        #ifdef TMC2130_SG_HOMING
-          // Stall guard homing turned on
-
-	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
-        #else
-          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-        #endif //TMC2130_SG_HOMING
-        if(z_min_endstop && old_z_min_endstop && (current_block->steps_z.wide > 0)) {
-          endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
-          endstop_z_hit=true;
-          step_events_completed.wide = current_block->step_event_count.wide;
-        }
-        old_z_min_endstop = z_min_endstop;
+    // count_position[Z_AXIS];
+    if(!probePrevTriggered[0][currentCycle]){
+      if(READ(TEST_PIN0)){
+        probePrevTriggered[0][currentCycle] = true;
+        probeTrigger[0][currentCycle] = st_get_position_mm([Z_AXIS];
       }
-      #endif
-    } else { // +direction
-      #if defined(Z_MAX_PIN) && (Z_MAX_PIN > -1) && !defined(DEBUG_DISABLE_ZMAXLIMIT)
-        #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-
-        z_max_endstop = (READ(Z_TMC2130_DIAG) != 0);
-        #else
-        z_max_endstop = (READ(Z_MAX_PIN) != Z_MAX_ENDSTOP_INVERTING);
-        #endif //TMC2130_SG_HOMING
-        if(z_max_endstop && old_z_max_endstop && (current_block->steps_z.wide > 0)) {
-          endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
-          endstop_z_hit=true;
-          step_events_completed.wide = current_block->step_event_count.wide;
-        }
-        old_z_max_endstop = z_max_endstop;
-      #endif
     }
-  }
-
-  // Supporting stopping on a trigger of the Z-stop induction sensor, not only for the Z-minus movements.
-  #if defined(Z_MIN_PIN) && (Z_MIN_PIN > -1) && !defined(DEBUG_DISABLE_ZMINLIMIT)
-  if (check_z_endstop) {
-      // Check the Z min end-stop no matter what.
-      // Good for searching for the center of an induction target.
-      #ifdef TMC2130_SG_HOMING
-      // Stall guard homing turned on
-
-       z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
-      #else
-        z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-      #endif //TMC2130_SG_HOMING
-      if(z_min_endstop && old_z_min_endstop) {
-        endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
-        endstop_z_hit=true;
-        step_events_completed.wide = current_block->step_event_count.wide;
+    if(!probePrevTriggered[1][currentCycle]){
+      if(READ(TEST_PIN1)){
+        probePrevTriggered[1][currentCycle] = true;
+        probeTrigger[1][currentCycle] = st_get_position_mm([Z_AXIS];
       }
-      old_z_min_endstop = z_min_endstop;
-  }
-  #endif
+    }
+    if(!probePrevTriggered[2][currentCycle]){
+      if(READ(TEST_PIN2)){
+        probePrevTriggered[2][currentCycle] = true;
+        probeTrigger[2][currentCycle] = st_get_position_mm([Z_AXIS];
+      }
+    }
+    if(!probePrevTriggered[3][currentCycle]){
+      if(READ(TEST_PIN3)){
+        probePrevTriggered[3][currentCycle] = true;
+        probeTrigger[3][currentCycle] = st_get_position_mm([Z_AXIS];
+      }
+    }
+    if(!probePrevTriggered[4][currentCycle]){
+      if(READ(TEST_PIN4)){
+        probePrevTriggered[4][currentCycle] = true;
+        probeTrigger[4][currentCycle] = st_get_position_mm([Z_AXIS];
+      }
+    }
+  } 
 }
 
 
