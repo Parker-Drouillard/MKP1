@@ -1613,7 +1613,7 @@ void mainTest(){
 }
 
 void runPindaTest(){
-	current_position[Z_AXIS] = 3;
+	current_position[Z_AXIS] = 2;
 	go_to_current(homing_feedrate[Z_AXIS]/150);
 	bool allSet = true;
 	do{
