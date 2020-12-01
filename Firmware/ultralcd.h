@@ -17,7 +17,7 @@ extern void menu_lcd_lcdupdate_func(void);
 void ultralcd_init();
 void lcd_setstatus(const char* message);
 void lcd_setstatuspgm(const char* message);
-extern void pindaTest();
+extern void pindaTestStatus();
 extern void waitProbes();
 extern void runPindaTest();
 extern void mainTest();

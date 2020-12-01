@@ -85,7 +85,7 @@ static const char* lcd_display_message_fullscreen_nonBlocking_P(const char *msg,
 //static void lcd_status_screen();                // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 static void lcd_main_menu();
 void runPindaTest();
-void pindaTest();
+void pindaTestStatus();
 void mainTest();
 //static void lcd_move_menu();
 static void lcd_settings_menu();
@@ -1605,11 +1605,6 @@ void lcd_resume_print()
 
 void mainTest(){
 	MENU_BEGIN();
-	// if(lcd_show_fullscreen_message_yes_no_and_wait_P("Begin Probe Test?", false, true)){
-
-	// } else {
-	// 	lcd_main_menu();
-	// }
 	MENU_ITEM_TEXT_P(PSTR("Begin Probe Test?"));
 	MENU_ITEM_SUBMENU_P(_i("YES"), runPindaTest);
 	MENU_ITEM_SUBMENU_P(_i("NO"), lcd_main_menu);
@@ -1618,16 +1613,18 @@ void mainTest(){
 }
 
 void runPindaTest(){
-	lcd_set_cursor(0,0);
-	lcd_space(LCD_WIDTH);
-	lcd_set_cursor(0,1);
-	lcd_print("Please insert probes");
-	lcd_set_cursor(0,2);
-	lcd_space(LCD_WIDTH);
-	lcd_set_cursor(0,3);
-	lcd_space(LCD_WIDTH);
+	current_position[Z_AXIS] = 3;
+	go_to_current(homing_feedrate[Z_AXIS]/150);
 	bool allSet = true;
 	do{
+		lcd_set_cursor(0,0);
+		lcd_space(LCD_WIDTH);
+		lcd_set_cursor(0,1);
+		lcd_print("Please insert probes");
+		lcd_set_cursor(0,2);
+		lcd_space(LCD_WIDTH);
+		lcd_set_cursor(0,3);
+		lcd_space(LCD_WIDTH);
 		lcd_wait_for_click();
 		allSet = lcd_show_fullscreen_message_yes_no_and_wait_P(PSTR(" All probes ready?  "), false, true);
 	} while (!allSet);
@@ -1635,7 +1632,7 @@ void runPindaTest(){
 	enquecommand_P(PSTR("M980"));
 }
 
- void pindaTest(){
+ void pindaTestStatus(){
     lcd_set_cursor(0, 0); //line 1
 	lcd_print("Running test routine");
     lcd_set_cursor(0, 1); //line 0

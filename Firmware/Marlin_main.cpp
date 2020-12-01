@@ -2339,7 +2339,7 @@ void process_commands()
         SERIAL_PROTOCOLRPGM(_N("Cycle #"));
         SERIAL_PROTOCOLLN(routineCycle + 1);
         for(currentCycle = 0; currentCycle < NUMTESTCYCLES; currentCycle++){
-          pindaTest();
+          pindaTestStatus();
           current_position[Z_AXIS] = 3;
           go_to_current(homing_feedrate[Z_AXIS]/150);
           current_position[Z_AXIS] = 10;
