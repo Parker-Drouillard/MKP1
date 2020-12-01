@@ -84,8 +84,9 @@ static const char* lcd_display_message_fullscreen_nonBlocking_P(const char *msg,
 /* Different menus */
 //static void lcd_status_screen();                // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 static void lcd_main_menu();
-static void runTest(); //Main function for conducting probe testing
-static void mainTest();
+void runPindaTest();
+void pindaTest();
+void mainTest();
 //static void lcd_move_menu();
 static void lcd_settings_menu();
 static void lcd_calibration_menu();
@@ -366,10 +367,6 @@ void lcd_status_screen() {                         // NOT static due to using in
 		menu_submenu(mainTest);
 		lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
 	}
-}
-
-static void runTest(){
-
 }
 
 void lcd_commands()
@@ -1606,7 +1603,7 @@ void lcd_resume_print()
 }
 
 
-static void mainTest(){
+void mainTest(){
 	MENU_BEGIN();
 	// if(lcd_show_fullscreen_message_yes_no_and_wait_P("Begin Probe Test?", false, true)){
 
@@ -1614,10 +1611,118 @@ static void mainTest(){
 	// 	lcd_main_menu();
 	// }
 	MENU_ITEM_TEXT_P(PSTR("Begin Probe Test?"));
-	MENU_ITEM_GCODE_P(PSTR("YES"), PSTR("M980"));
+	MENU_ITEM_SUBMENU_P(_i("YES"), runPindaTest);
 	MENU_ITEM_SUBMENU_P(_i("NO"), lcd_main_menu);
 	MENU_ITEM_BACK_P(_T(MSG_WATCH));
 	MENU_END();
+}
+
+void runPindaTest(){
+	lcd_set_cursor(0,0);
+	lcd_space(LCD_WIDTH);
+	lcd_set_cursor(0,1);
+	lcd_print("Please insert probes");
+	lcd_set_cursor(0,2);
+	lcd_space(LCD_WIDTH);
+	lcd_set_cursor(0,3);
+	lcd_space(LCD_WIDTH);
+	bool allSet = true;
+	do{
+		lcd_wait_for_click();
+		allSet = lcd_show_fullscreen_message_yes_no_and_wait_P(PSTR(" All probes ready?  "), false, true);
+	} while (!allSet);
+
+	enquecommand_P(PSTR("M980"));
+}
+
+ void pindaTest(){
+    lcd_set_cursor(0, 0); //line 1
+	lcd_print("Running test routine");
+    lcd_set_cursor(0, 1); //line 0
+	lcd_space(LCD_WIDTH);
+    //Print the hotend temperature (9 chars total)
+	lcd_set_cursor(0, 2);
+	lcd_print("Cycles left: ");
+	lcd_set_cursor(13, 2);
+	lcd_print(itostr3(100-currentCycle));
+	lcd_set_cursor(0,3);
+	lcd_print("Routine #");
+	lcd_set_cursor(9,3);
+	lcd_print(routineCycle + 1);
+	lcd_set_cursor(10,3);
+	lcd_print(" of ");
+	lcd_print(NUMROUTINECYCLES);
+	lcd_space(5);
+}
+
+void waitProbes() { 
+	lcd_set_cursor(0,0);
+	lcd_space(LCD_WIDTH);
+	lcd_set_cursor(0,1);
+	lcd_print("Please remove probes");
+	lcd_set_cursor(0,2);
+	lcd_space(LCD_WIDTH);
+	lcd_set_cursor(0,3);
+	lcd_space(LCD_WIDTH);
+	lcd_wait_for_click();
+}
+
+
+//! |01234567890123456789|
+//! | All probes passed! |
+//! |Please remove all   |
+//! |probes and press to |
+//! |resume testing.     |
+//! ----------------------
+void displayProbeResults() {
+	bool allGood = true;
+	for(int i = 0; i < NUM_DIST_PROBES; i++) {
+		if(!probeResult[i]){
+			allGood = false;
+			break;
+		}
+	}
+	if(allGood){
+		lcd_set_cursor(0,0);
+		lcd_print(" All probes passed! ");
+		lcd_set_cursor(0,1);
+		lcd_print("Please remove all   ");
+		lcd_set_cursor(0,2);
+		lcd_print("probes and press to ");
+		lcd_set_cursor(0,3);
+		lcd_print("resume testing.     ");
+		lcd_wait_for_click();
+	} else {
+//! |01234567890123456789|
+//! |Some probes rejected|
+//! |Please dispose of   |
+//! |rejected probes as  |
+//! |required.           |
+//! ----------------------
+		lcd_set_cursor(0,0);
+		lcd_print("Some probes rejected");
+		lcd_set_cursor(0,1);
+		lcd_print("Please dispose of   ");
+		lcd_set_cursor(0,2);
+		lcd_print("rejected probes as  ");
+		lcd_set_cursor(0,3);
+		lcd_print("required.           ");
+		if(!probeResult[0]){
+			lcd_show_fullscreen_message_and_wait_P(PSTR("Reject probe #0"));
+		}
+		if(!probeResult[1]){
+			lcd_show_fullscreen_message_and_wait_P(PSTR("Reject probe #1"));
+		}
+		if(!probeResult[2]){
+			lcd_show_fullscreen_message_and_wait_P(PSTR("Reject probe #2"));
+		}
+		if(!probeResult[3]){
+			lcd_show_fullscreen_message_and_wait_P(PSTR("Reject probe #3"));
+		}
+		if(!probeResult[4]){
+			lcd_show_fullscreen_message_and_wait_P(PSTR("Reject probe #4"));
+		}
+	}
 }
 
 //Main LCD Menu

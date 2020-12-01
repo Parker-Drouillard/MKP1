@@ -375,9 +375,12 @@ static uint8_t auto_report_temp_period = 0;
 
 
 int currentCycle = 0;
+int routineCycle = 0;
 float probeTrigger[NUM_DIST_PROBES][NUMTESTCYCLES] = { 0.0 };
 bool probePrevTriggered[NUM_DIST_PROBES][NUMTESTCYCLES] = {false};
 float probeTriggerAvg[NUM_DIST_PROBES] = { 0.0 };
+float standardDeviation[NUM_DIST_PROBES] = { 0.0 };
+bool probeResult[NUM_DIST_PROBES] = { false };
 
 //===========================================================================
 //=============================Routines======================================
@@ -2313,41 +2316,81 @@ void process_commands()
     case 980:
     {
       //Reset for testing
-      lcd_display_message_fullscreen_P(_i("SAMPLING PROBES"))
-      for(int i = 0; i < NUMTESTCYCLES; i++){
-        for(int j = 0; j < NUM_DIST_PROBES; j++){
-          probeTrigger[j][i] = 0.0;
-          probePrevTriggered[j][i] = false;
-        }
-      }
-      for(int j = 0; j < NUM_DIST_PROBES; j++){
-        probeTriggerAvg[j] = 0;
-      }
+      lcd_display_message_fullscreen_P(_i("SAMPLING PROBES"));
+
+
       enquecommand_P(PSTR("G90"));
       enable_z_endstop(false);
-      current_position[Z_AXIS] = 5.0;
-      go_to_current(homing_feedrate[Z_AXIS]/60);
-      for(currentCycle = 0; currentCycle < NUMTESTCYCLES; currentCycle++){
-        current_position[Z_AXIS] = 10;
-        go_to_current(homing_feedrate[Z_AXIS]);
-        current_position[Z_AXIS] = 3;
-        go_to_current(homing_feedrate[Z_AXIS]/10);
-        // enquecommand_P(PSTR("G1 Z5 F2000"));
-        // st_synchronize();
-        // enquecommand_P(PSTR("G1 Z25 F2000"));  
-        // st_synchronize();
-      }
       for(int j = 0; j < NUM_DIST_PROBES; j++){
-        for(int i = 0; i < NUMTESTCYCLES; i++){
-          probeTriggerAvg[j] += probeTrigger[j][i];
-        }
-        probeTriggerAvg[j] /= NUMTESTCYCLES;
-        SERIAL_PROTOCOLRPGM(_N("Probe: "));
-        SERIAL_PROTOCOL(j);
-        SERIAL_PROTOCOLRPGM(_N("   Avg: "));
-        SERIAL_PROTOCOLLN(probeTriggerAvg[j]);
+        probeResult[j] = true;
       }
-    
+
+      for(routineCycle = 0; routineCycle < NUMROUTINECYCLES; routineCycle++){
+        current_position[Z_AXIS] = 20.0;
+        go_to_current(homing_feedrate[Z_AXIS]/200);
+        for(int j = 0; j < NUM_DIST_PROBES; j++){
+          probeTriggerAvg[j] = 0;
+          standardDeviation[j] = 0;
+          for(int i = 0; i < NUMTESTCYCLES; i++){
+            probeTrigger[j][i] = 0.0;
+            probePrevTriggered[j][i] = false;
+          }
+        }
+        SERIAL_PROTOCOLRPGM(_N("Cycle #"));
+        SERIAL_PROTOCOLLN(routineCycle + 1);
+        for(currentCycle = 0; currentCycle < NUMTESTCYCLES; currentCycle++){
+          pindaTest();
+          current_position[Z_AXIS] = 3;
+          go_to_current(homing_feedrate[Z_AXIS]/150);
+          current_position[Z_AXIS] = 10;
+          go_to_current(homing_feedrate[Z_AXIS]*300);
+        }
+
+        //Caclulation loop
+        for(int j = 0; j < NUM_DIST_PROBES; j++){
+
+          //If probe already failed, don't bother calculating.
+          if(probeResult[j]){
+            for(int i = 0; i < NUMTESTCYCLES; i++){
+              probeTriggerAvg[j] += probeTrigger[j][i];
+            }
+            float devSum = 0.0;
+            probeTriggerAvg[j] /= NUMTESTCYCLES;
+            for(int i = 0; i < NUMTESTCYCLES; i++){
+              float devCalc1 = abs(probeTrigger[j][i]) - abs(probeTriggerAvg[j]);
+              devSum += devCalc1*devCalc1;
+            }
+            standardDeviation[j] = sqrt(devSum/NUMTESTCYCLES)*1000;
+            if(standardDeviation[j] >= 10 || standardDeviation[j] <= 0){
+              probeResult[j] = false;
+            }
+          }
+          SERIAL_PROTOCOLRPGM(_N("Probe: "));
+          SERIAL_PROTOCOL(j);
+          SERIAL_PROTOCOLRPGM(_N("   Avg: "));
+          SERIAL_PROTOCOL(probeTriggerAvg[j]);
+          SERIAL_PROTOCOLRPGM(_N("   SDev: "));
+          SERIAL_PROTOCOL(standardDeviation[j]);
+          SERIAL_PROTOCOLRPGM(_N("   Pass/Fail: "));
+          SERIAL_PROTOCOLLN(probeResult[j]?"PASS":"FAIL");
+        }
+      }
+      current_position[Z_AXIS] = 20.0;
+      go_to_current(homing_feedrate[Z_AXIS]/200);
+      displayProbeResults();
+      bool ready = false;
+      do{
+        waitProbes();
+        ready = lcd_show_fullscreen_message_yes_no_and_wait_P(PSTR("All probes removed?"), false, true);
+      } while(!ready);
+
+      current_position[Z_AXIS] = 2;
+      go_to_current(homing_feedrate[Z_AXIS]/10);
+      if(lcd_show_fullscreen_message_yes_no_and_wait_P(PSTR("  Run test again?   "), false, true)){
+        runPindaTest();
+      } else {
+        lcd_return_to_status();
+      }
     }
 
 

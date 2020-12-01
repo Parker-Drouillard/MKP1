@@ -17,6 +17,11 @@ extern void menu_lcd_lcdupdate_func(void);
 void ultralcd_init();
 void lcd_setstatus(const char* message);
 void lcd_setstatuspgm(const char* message);
+extern void pindaTest();
+extern void waitProbes();
+extern void runPindaTest();
+extern void mainTest();
+extern void displayProbeResults();
 //! return to the main status screen and display the alert message
 //! Beware - it has sideeffects:
 //! - always returns the display to the main status screen

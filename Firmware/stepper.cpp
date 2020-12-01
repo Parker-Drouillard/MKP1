@@ -462,31 +462,31 @@ FORCE_INLINE void stepper_check_endstops() {
     if(!probePrevTriggered[0][currentCycle]){
       if(READ(TEST_PIN0)){
         probePrevTriggered[0][currentCycle] = true;
-        probeTrigger[0][currentCycle] = st_get_position_mm([Z_AXIS];
+        probeTrigger[0][currentCycle] = st_get_position_mm(Z_AXIS);
       }
     }
     if(!probePrevTriggered[1][currentCycle]){
       if(READ(TEST_PIN1)){
         probePrevTriggered[1][currentCycle] = true;
-        probeTrigger[1][currentCycle] = st_get_position_mm([Z_AXIS];
+        probeTrigger[1][currentCycle] = st_get_position_mm(Z_AXIS);
       }
     }
     if(!probePrevTriggered[2][currentCycle]){
       if(READ(TEST_PIN2)){
         probePrevTriggered[2][currentCycle] = true;
-        probeTrigger[2][currentCycle] = st_get_position_mm([Z_AXIS];
+        probeTrigger[2][currentCycle] = st_get_position_mm(Z_AXIS);
       }
     }
     if(!probePrevTriggered[3][currentCycle]){
       if(READ(TEST_PIN3)){
         probePrevTriggered[3][currentCycle] = true;
-        probeTrigger[3][currentCycle] = st_get_position_mm([Z_AXIS];
+        probeTrigger[3][currentCycle] = st_get_position_mm(Z_AXIS);
       }
     }
     if(!probePrevTriggered[4][currentCycle]){
       if(READ(TEST_PIN4)){
         probePrevTriggered[4][currentCycle] = true;
-        probeTrigger[4][currentCycle] = st_get_position_mm([Z_AXIS];
+        probeTrigger[4][currentCycle] = st_get_position_mm(Z_AXIS);
       }
     }
   } 

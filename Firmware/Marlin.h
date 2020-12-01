@@ -297,6 +297,7 @@ extern int extruder_multiply[EXTRUDERS]; // sets extrude multiply factor (in per
 extern float extruder_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 extern float current_position[NUM_AXIS] ;
 extern float destination[NUM_AXIS] ;
+
 extern float min_pos[3];
 extern float max_pos[3];
 extern bool axis_known_position[3];
@@ -401,12 +402,15 @@ extern LongTimer safetyTimer;
 #define CHECK_FSENSOR ((IS_SD_PRINTING || is_usb_printing) && (mcode_in_progress != 600) && !saved_printing && e_active())
 
 
-#define NUMTESTCYCLES 20
+#define NUMTESTCYCLES 100
+#define NUMROUTINECYCLES 5
 extern int currentCycle;
+extern int routineCycle;
 extern float probeTrigger[NUM_DIST_PROBES][NUMTESTCYCLES];
 extern bool probePrevTriggered[NUM_DIST_PROBES][NUMTESTCYCLES];
 extern float probeTriggerAvg[NUM_DIST_PROBES];
-
+extern float standardDeviation[NUM_DIST_PROBES];
+extern bool probeResult[NUM_DIST_PROBES];
 extern void long_pause();
 extern void crashdet_stop_and_save_print();
 
