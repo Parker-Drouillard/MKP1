@@ -68,11 +68,13 @@
 
 // Travel limits after homing
 #define X_MAX_POS 295
-#define X_MIN_POS -49.5
+#define X_MIN_POS -51.85
 #define Y_MAX_POS 285
-#define Y_MIN_POS -4 //orig -4
-#define Z_MAX_POS 225
+#define Y_MIN_POS 2.85 //orig -4
+#define Z_MAX_POS 220
 #define Z_MIN_POS 0.15
+
+
 
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
