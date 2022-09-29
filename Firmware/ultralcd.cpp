@@ -1805,9 +1805,9 @@ static void lcd_support_menu()
       MENU_ITEM_BACK_P(PSTR("FW - " FW_version));
   }*/
       
-  MENU_ITEM_BACK_P(_i("prusa3d.com"));////MSG_PRUSA3D
-  MENU_ITEM_BACK_P(_i("forum.prusa3d.com"));////MSG_PRUSA3D_FORUM
-  MENU_ITEM_BACK_P(_i("howto.prusa3d.com"));////MSG_PRUSA3D_HOWTO
+  MENU_ITEM_BACK_P(_i("pepcorp.ca"));////MSG_PRUSA3D
+  MENU_ITEM_BACK_P(_i("Property of Pep Corp."));////MSG_PRUSA3D_FORUM
+  MENU_ITEM_BACK_P(_i("info@pepcorp.ca"));////MSG_PRUSA3D_HOWTO
   MENU_ITEM_BACK_P(STR_SEPARATOR);
   MENU_ITEM_BACK_P(PSTR(FILAMENT_SIZE));
   MENU_ITEM_BACK_P(PSTR(ELECTRONICS));
