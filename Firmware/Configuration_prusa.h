@@ -21,7 +21,7 @@
 
 // Printer name
 #define CUSTOM_MENDEL_NAME "MKP1"
-#define PRINTER_NUMBER "015"
+#define PRINTER_NUMBER "027"
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO

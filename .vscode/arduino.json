@@ -1,7 +1,7 @@
 {
     "programmer": "AVR ISP",
     "board": "rambo:avr:rambo",
-    "port": "COM4",
+    "port": "COM3",
     "sketch": "Firmware\\Firmware.ino",
     "output": "../build"
 }
