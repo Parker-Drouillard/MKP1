@@ -128,6 +128,7 @@
 
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
 #include <SPI.h>
+static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS; //X Y Z E1 E0 Channel Addresses
 #endif
 
 #define VERSION_STRING  "1.0.2"
@@ -3384,9 +3385,12 @@ void process_commands()
 #endif
 
 	if (!buflen) return; //empty command
-  #ifdef FILAMENT_RUNOUT_SUPPORT
+#ifdef FILAMENT_RUNOUT_SUPPORT
     SET_INPUT(FR_SENS);
-  #endif
+#if EXTRUDERS > 1
+    SET_INPUT(FR2_SENS);
+#endif
+#endif
 
 #ifdef CMDBUFFER_DEBUG
   SERIAL_ECHOPGM("Processing a GCODE command: ");
@@ -3438,13 +3442,11 @@ void process_commands()
   }
 
 #ifdef TMC2130
-	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("CRASH_"), 6) == 0)
-	{
+	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("CRASH_"), 6) == 0) {
 
     // ### CRASH_DETECTED - TMC2130
     // ---------------------------------
-	  if(code_seen("CRASH_DETECTED"))
-	  {
+	  if(code_seen("CRASH_DETECTED")) {
 		  uint8_t mask = 0;
 		  if (code_seen('X')) mask |= X_AXIS_MASK;
 		  if (code_seen('Y')) mask |= Y_AXIS_MASK;
@@ -3453,25 +3455,23 @@ void process_commands()
 
     // ### CRASH_RECOVER - TMC2130
     // ----------------------------------
-	  else if(code_seen("CRASH_RECOVER"))
+	  else if(code_seen("CRASH_RECOVER")) {
 		  crashdet_recover();
+    }
 
     // ### CRASH_CANCEL - TMC2130
     // ----------------------------------
-	  else if(code_seen("CRASH_CANCEL"))
+	  else if(code_seen("CRASH_CANCEL")) {
 		  crashdet_cancel();
-	}
-	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("TMC_"), 4) == 0)
-	{
+    }
+	} else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("TMC_"), 4) == 0) {
     
     // ### TMC_SET_WAVE_ 
     // --------------------
-		if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_WAVE_"), 9) == 0)
-		{
+		if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_WAVE_"), 9) == 0) {
 			uint8_t axis = *(CMDBUFFER_CURRENT_STRING + 13);
 			axis = (axis == 'E')?3:(axis - 'X');
-			if (axis < 4)
-			{
+			if (axis < 4) {
 				uint8_t fac = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, NULL, 10);
 				tmc2130_set_wave(axis, 247, fac);
 			}
@@ -3479,12 +3479,10 @@ void process_commands()
     
     // ### TMC_SET_STEP_
     //  ------------------
-		else if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_STEP_"), 9) == 0)
-		{
+		else if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_STEP_"), 9) == 0) {
 			uint8_t axis = *(CMDBUFFER_CURRENT_STRING + 13);
 			axis = (axis == 'E')?3:(axis - 'X');
-			if (axis < 4)
-			{
+			if (axis < 4) {
 				uint8_t step = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, NULL, 10);
 				uint16_t res = tmc2130_get_res(axis);
 				tmc2130_goto_step(axis, step & (4*res - 1), 2, 1000, res);
@@ -3493,28 +3491,24 @@ void process_commands()
 
     // ### TMC_SET_CHOP_
     //  -------------------
-		else if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_CHOP_"), 9) == 0)
-		{
+		else if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_CHOP_"), 9) == 0) {
 			uint8_t axis = *(CMDBUFFER_CURRENT_STRING + 13);
 			axis = (axis == 'E')?3:(axis - 'X');
-			if (axis < 4)
-			{
+			if (axis < 4) {
 				uint8_t chop0 = tmc2130_chopper_config[axis].toff;
 				uint8_t chop1 = tmc2130_chopper_config[axis].hstr;
 				uint8_t chop2 = tmc2130_chopper_config[axis].hend;
 				uint8_t chop3 = tmc2130_chopper_config[axis].tbl;
 				char* str_end = 0;
-				if (CMDBUFFER_CURRENT_STRING[14])
-				{
+				if (CMDBUFFER_CURRENT_STRING[14]) {
 					chop0 = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, &str_end, 10) & 15;
-					if (str_end && *str_end)
-					{
+					if (str_end && *str_end) {
 						chop1 = (uint8_t)strtol(str_end, &str_end, 10) & 7;
-						if (str_end && *str_end)
-						{
+						if (str_end && *str_end) {
 							chop2 = (uint8_t)strtol(str_end, &str_end, 10) & 15;
-							if (str_end && *str_end)
+							if (str_end && *str_end) {
 								chop3 = (uint8_t)strtol(str_end, &str_end, 10) & 3;
+              }
 						}
 					}
 				}
@@ -3528,16 +3522,14 @@ void process_commands()
 		}
 	}
 #ifdef BACKLASH_X
-	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("BACKLASH_X"), 10) == 0)
-	{
+	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("BACKLASH_X"), 10) == 0) {
 		uint8_t bl = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 10, NULL, 10);
 		st_backlash_x = bl;
 		printf_P(_N("st_backlash_x = %hhd\n"), st_backlash_x);
 	}
 #endif //BACKLASH_X
 #ifdef BACKLASH_Y
-	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("BACKLASH_Y"), 10) == 0)
-	{
+	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("BACKLASH_Y"), 10) == 0) {
 		uint8_t bl = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 10, NULL, 10);
 		st_backlash_y = bl;
 		printf_P(_N("st_backlash_y = %hhd\n"), st_backlash_y);
@@ -7943,8 +7935,7 @@ Sigma_Exit:
 #ifdef TMC2130
         // See tmc2130_cur2val() for translation to 0 .. 63 range
         for (int i = 0; i < NUM_AXIS; i++)
-			if(code_seen(axis_codes[i]))
-			{
+			if(code_seen(axis_codes[i])) {
 				long cur_mA = code_value_long();
 				uint8_t val = tmc2130_cur2val(cur_mA);
 				tmc2130_set_current_h(i, val);
@@ -7952,24 +7943,19 @@ Sigma_Exit:
 				//if (i == E_AXIS) printf_P(PSTR("E-axis current=%ldmA\n"), cur_mA);
 			}
 
-#else //TMC2130
-      #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-        for(int i=0;i<NUM_AXIS;i++) if(code_seen(axis_codes[i])) st_current_set(i,code_value());
-        if(code_seen('B')) st_current_set(4,code_value());
-        if(code_seen('S')) for(int i=0;i<=4;i++) st_current_set(i,code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_XY_PIN
-        if(code_seen('X')) st_current_set(0, code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_Z_PIN
-        if(code_seen('Z')) st_current_set(1, code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_E_PIN
-        if(code_seen('E')) st_current_set(2, code_value());
-      #endif
-#endif //TMC2130
+#elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+        // for(int i=0;i<NUM_AXIS;i++) {
+        //   if(code_seen(axis_codes[i])) st_current_set(digipotChannels[i],code_value());
+        // }
+        if(code_seen('S')) { for(int i=0;i<NUM_AXIS;i++) st_current_set(digipotChannels[i],code_value()); }
+        if(code_seen('X')) { st_current_set(digipotChannels[0], code_value()); }
+        if(code_seen('Y')) { st_current_set(digipotChannels[1], code_value()); }
+        if(code_seen('Z')) { st_current_set(digipotChannels[2], code_value()); }
+        if(code_seen('E')) { st_current_set(digipotChannels[3], code_value()); }
+        if(code_seen('B')) { st_current_set(digipotChannels[4], code_value()); }
     }
     break;
+#endif
 
     /*!
 	### M908 - Control digital trimpot directly <a href="https://reprap.org/wiki/G-code#M908:_Control_digital_trimpot_directly">M908: Control digital trimpot directly</a>
@@ -7984,12 +7970,12 @@ Sigma_Exit:
     */
     case 908:
     {
-      #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+#if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
         uint8_t channel,current;
         if(code_seen('P')) channel=code_value();
         if(code_seen('S')) current=code_value();
         digitalPotWrite(channel, current);
-      #endif
+#endif
     }
     break;
 
@@ -8789,7 +8775,7 @@ void ClearToSend()
 		SERIAL_PROTOCOLLNRPGM(MSG_OK);
 }
 
-#if MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
+#if MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3 
 void update_currents() {
 	float current_high[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
 	float current_low[3] = DEFAULT_PWM_MOTOR_CURRENT;

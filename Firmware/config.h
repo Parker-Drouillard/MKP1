@@ -6,8 +6,8 @@
 #include "pins.h"
 
 //ADC Configuration
-#define ADC_CHAN_MSK      0b0000000010000111 //Used AD channels bit mask (0,1,2,7)
-#define ADC_CHAN_CNT      4
+#define ADC_CHAN_MSK      0b0000001101011111 //used AD channels bit mask (0,1,2,3,4,6,8,9)
+#define ADC_CHAN_CNT      8
 #define ADC_OVRSAMPL      16        //oversampling multiplier
 #define ADC_CALLBACK      adc_ready //callback function ()
 

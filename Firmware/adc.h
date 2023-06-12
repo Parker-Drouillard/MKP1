@@ -19,7 +19,7 @@ http://resnet.uoregon.edu/~gurney_j/jmpc/bitwise.html
 #define ADC_PIN_IDX(pin) BITCOUNT(ADC_CHAN_MSK & ((1 << (pin)) - 1))
 
 #if BITCOUNT(ADC_CHAN_MSK) != ADC_CHAN_CNT
-# error "ADC_CHAN_MSK oes not match ADC_CHAN_CNT"
+# error "ADC_CHAN_MSK does not match ADC_CHAN_CNT"
 #endif
 
 extern uint8_t adc_state;

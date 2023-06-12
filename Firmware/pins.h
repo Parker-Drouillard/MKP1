@@ -42,6 +42,13 @@
   #define _E2_PINS
 #endif
 
+#ifdef FILAMENT_RUNOUT_SUPPORT
+  #define FR_SENS FIL_RUNOUT_PIN
+#if EXTRUDERS > 1
+  #define FR2_SENS FIL_RUNOUT2_PIN
+#endif
+#endif
+
 #ifdef X_STOP_PIN
   #if X_HOME_DIR < 0
     #define X_MIN_PIN X_STOP_PIN
@@ -85,8 +92,7 @@
 #endif
 
 #define SENSITIVE_PINS {0, 1, X_STEP_PIN, X_DIR_PIN, X_ENABLE_PIN, X_MIN_PIN, Y_STEP_PIN, Y_DIR_PIN, Y_ENABLE_PIN, Y_MIN_PIN, Z_STEP_PIN, Z_DIR_PIN, Z_ENABLE_PIN, Z_MIN_PIN, Z_MAX_PIN, \
-                        HEATER_BED_PIN,\
-                        _E0_PINS _E1_PINS _E2_PINS             \
+                        HEATER_BED_PIN, _E0_PINS _E1_PINS _E2_PINS             \
                         analogInputToDigitalPin(TEMP_0_PIN), analogInputToDigitalPin(TEMP_1_PIN), analogInputToDigitalPin(TEMP_BED_PIN), analogInputToDigitalPin(TEMP_PINDA_PIN) }
 
 #endif //__PINS_H
