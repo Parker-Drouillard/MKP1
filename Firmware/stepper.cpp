@@ -1032,8 +1032,7 @@ FORCE_INLINE void advance_isr_scheduler() {
 }
 #endif // LIN_ADVANCE
 
-void st_init()
-{
+void st_init() {
 #ifdef TMC2130
 	tmc2130_init();
 #endif //TMC2130
@@ -1511,6 +1510,7 @@ void st_current_init(){ //Initialize Digipot Motor Current
     //Set timer5 to 31khz so the PWM of the motor power is as constant as possible. (removes a buzzing noise)
     TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
 #else
+
   for(int i = 0; i < 5; i++){
     digitalPotWrite(digipotChannels[i],motorCurrents[i]);
   }
@@ -1535,15 +1535,14 @@ void st_current_set(uint8_t address, int value){
 }
 #endif //MOTOR_CURRENT_PWM_XY_PIN
 
-void microstep_init()
-{
+void microstep_init() {
 
-  #if defined(E1_MS1_PIN) && E1_MS1_PIN > -1
+#if defined(E1_MS1_PIN) && E1_MS1_PIN > -1 //if second extruder exists
   pinMode(E1_MS1_PIN,OUTPUT);
   pinMode(E1_MS2_PIN,OUTPUT); 
-  #endif
+#endif //if second extruder exists
 
-  #if defined(X_MS1_PIN) && X_MS1_PIN > -1
+#if defined(X_MS1_PIN) && X_MS1_PIN > -1 //assumes XYZ & one E by default
   const uint8_t microstep_modes[] = MICROSTEP_MODES;
   pinMode(X_MS1_PIN,OUTPUT);
   pinMode(X_MS2_PIN,OUTPUT);  
@@ -1554,7 +1553,7 @@ void microstep_init()
   pinMode(E0_MS1_PIN,OUTPUT);
   pinMode(E0_MS2_PIN,OUTPUT);
   for(int i=0;i<=4;i++) microstep_mode(i,microstep_modes[i]);
-  #endif
+#endif
 }
 
 

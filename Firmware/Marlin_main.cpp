@@ -192,7 +192,7 @@ int extruder_multiply[EXTRUDERS] = {100
   #endif
 };
 
-int bowden_length[4] = {385, 385, 385, 385};
+int bowden_length[4] = {385, 385, 385, 385}; //Used for Single Nozzle Multi Material? (SNMM)
 
 bool is_usb_printing = false;
 bool homing_flag = false;
@@ -423,13 +423,13 @@ void serial_echopair_P(const char *s_P, unsigned long v)
 {
 #if 0
   char ch=pgm_read_byte(str);
-  while(ch)
-  {
+  while(ch) {
     MYSERIAL.write(ch);
     ch=pgm_read_byte(++str);
   }
 #else
 	// hmm, same size as the above version, the compiler did a good job optimizing the above
+  // it's almost like that's the compilers job...
 	while( uint8_t ch = pgm_read_byte(str) ){
 	  MYSERIAL.write((char)ch);
 	  ++str;
@@ -449,11 +449,11 @@ void serial_echopair_P(const char *s_P, unsigned long v)
     int freeMemory() {
       int free_memory;
 
-      if ((int)__brkval == 0)
+      if ((int)__brkval == 0) {
         free_memory = ((int)&free_memory) - ((int)&__bss_end);
-      else
+      } else {
         free_memory = ((int)&free_memory) - ((int)__brkval);
-
+      }
       return free_memory;
     }
   }
@@ -482,25 +482,25 @@ void setup_photpin() {
 }
 
 void setup_powerhold() {
-  #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
+#if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
     SET_OUTPUT(SUICIDE_PIN);
     WRITE(SUICIDE_PIN, HIGH);
-  #endif
-  #if defined(PS_ON_PIN) && PS_ON_PIN > -1
+#endif
+#if defined(PS_ON_PIN) && PS_ON_PIN > -1
     SET_OUTPUT(PS_ON_PIN);
 	#if defined(PS_DEFAULT_OFF)
 	  WRITE(PS_ON_PIN, PS_ON_ASLEEP);
-    #else
+  #else
 	  WRITE(PS_ON_PIN, PS_ON_AWAKE);
 	#endif
-  #endif
+#endif
 }
 
 void suicide() {
-  #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
+#if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
     SET_OUTPUT(SUICIDE_PIN);
     WRITE(SUICIDE_PIN, LOW);
-  #endif
+#endif
 }
 
 void servo_init() {
@@ -524,22 +524,19 @@ void servo_init() {
 
 bool fans_check_enabled = true;
 
-#ifdef TMC2130
+#ifdef TMC2130 //Not enabled for MKP1
 
-void crashdet_stop_and_save_print()
-{
+void crashdet_stop_and_save_print() {
 	stop_and_save_print_to_ram(10, -default_retraction); //XY - no change, Z 10mm up, E -1mm retract
 }
 
-void crashdet_restore_print_and_continue()
-{
+void crashdet_restore_print_and_continue() {
 	restore_print_from_ram_and_continue(default_retraction); //XYZ = orig, E +1mm unretract
 //	babystep_apply();
 }
 
 
-void crashdet_stop_and_save_print2()
-{
+void crashdet_stop_and_save_print2() {
 	cli();
 	planner_abort_hard(); //abort printing
 	cmdqueue_reset(); //empty cmdqueue
@@ -550,25 +547,21 @@ void crashdet_stop_and_save_print2()
 	sei();
 }
 
-void crashdet_detected(uint8_t mask)
-{
+void crashdet_detected(uint8_t mask) {
 	st_synchronize();
 	static uint8_t crashDet_counter = 0;
 	bool automatic_recovery_after_crash = true;
 
 	if (crashDet_counter++ == 0) {
 		crashDetTimer.start();
-	}
-	else if (crashDetTimer.expired(CRASHDET_TIMER * 1000ul)){
+	} else if (crashDetTimer.expired(CRASHDET_TIMER * 1000ul)){
 		crashDetTimer.stop();
 		crashDet_counter = 0;
-	}
-	else if(crashDet_counter == CRASHDET_COUNTER_MAX){
+	} else if(crashDet_counter == CRASHDET_COUNTER_MAX){
 		automatic_recovery_after_crash = false;
 		crashDetTimer.stop();
 		crashDet_counter = 0;
-	}
-	else {
+	}	else {
 		crashDetTimer.start();
 	}
 
@@ -576,13 +569,11 @@ void crashdet_detected(uint8_t mask)
 	lcd_clear();
 	lcd_update(2);
 
-	if (mask & X_AXIS_MASK)
-	{
+	if (mask & X_AXIS_MASK) {
 		eeprom_update_byte((uint8_t*)EEPROM_CRASH_COUNT_X, eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_X) + 1);
 		eeprom_update_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT, eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT) + 1);
 	}
-	if (mask & Y_AXIS_MASK)
-	{
+	if (mask & Y_AXIS_MASK) {
 		eeprom_update_byte((uint8_t*)EEPROM_CRASH_COUNT_Y, eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_Y) + 1);
 		eeprom_update_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT, eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT) + 1);
 	}
@@ -597,34 +588,32 @@ void crashdet_detected(uint8_t mask)
 
 	if (automatic_recovery_after_crash) {
 		enquecommand_P(PSTR("CRASH_RECOVER"));
-	}else{
+	} else {
 		setTargetHotend(0, active_extruder);
+    //wtf kind of a variable name is yesno...
 		bool yesno = lcd_show_fullscreen_message_yes_no_and_wait_P(_i("Crash detected. Resume print?"), false);
 		lcd_update_enable(true);
-		if (yesno)
-		{
+		if (yesno) {
 			enquecommand_P(PSTR("CRASH_RECOVER"));
-		}
-		else
-		{
+		}	else {
 			enquecommand_P(PSTR("CRASH_CANCEL"));
 		}
 	}
 }
 
-void crashdet_recover()
-{
+void crashdet_recover() {
 	crashdet_restore_print_and_continue();
-	if (lcd_crash_detect_enabled()) tmc2130_sg_stop_on_crash = true;
+	if (lcd_crash_detect_enabled()) {
+    tmc2130_sg_stop_on_crash = true;
+    }
 }
 
-void crashdet_cancel()
-{
+void crashdet_cancel() {
 	saved_printing = false;
 	tmc2130_sg_stop_on_crash = true;
 	if (saved_printing_type == PRINTING_TYPE_SD) {
 		lcd_print_stop();
-	}else if(saved_printing_type == PRINTING_TYPE_USB){
+	} else if (saved_printing_type == PRINTING_TYPE_USB){
 		SERIAL_ECHOLNRPGM(MSG_OCTOPRINT_CANCEL); //for Octoprint: works the same as clicking "Abort" button in Octoprint GUI
 		SERIAL_PROTOCOLLNRPGM(MSG_OK);
 	}
@@ -690,16 +679,14 @@ static void factory_reset(char level) {
 			eeprom_update_byte((uint8_t *)EEPROM_MMU_FAIL, 0);
 			eeprom_update_byte((uint8_t *)EEPROM_MMU_LOAD_FAIL, 0);
 
-
-			lcd_menu_statistics();
-            
+			lcd_menu_statistics();    
     break;
 
     // Level 2: Prepare for shipping
     case 2:
 			//lcd_puts_P(PSTR("Factory RESET"));
       //lcd_puts_at_P(1,2,PSTR("Shipping prep"));
-      
+
       // Force language selection at the next boot up.
 			lang_reset();
       // Force the "Follow calibration flow" message at the next boot up.
@@ -892,34 +879,29 @@ uint8_t check_printer_version() {
 #define LANGBOOT_BLOCKSIZE 0x1000u
 #define LANGBOOT_RAMBUFFER 0x0800
 
-void update_sec_lang_from_external_flash()
-{
-	if ((boot_app_magic == BOOT_APP_MAGIC) && (boot_app_flags & BOOT_APP_FLG_USER0))
-	{
+void update_sec_lang_from_external_flash() {
+	if ((boot_app_magic == BOOT_APP_MAGIC) && (boot_app_flags & BOOT_APP_FLG_USER0)) {
 		uint8_t lang = boot_reserved >> 4;
 		uint8_t state = boot_reserved & 0xf;
 		lang_table_header_t header;
 		uint32_t src_addr;
-		if (lang_get_header(lang, &header, &src_addr))
-		{
+		if (lang_get_header(lang, &header, &src_addr)) {
 			lcd_puts_at_P(1,3,PSTR("Language update."));
-			for (uint8_t i = 0; i < state; i++) fputc('.', lcdout);
+			for (uint8_t i = 0; i < state; i++) {
+        fputc('.', lcdout); 
+      }
 			_delay(100);
 			boot_reserved = (state + 1) | (lang << 4);
-			if ((state * LANGBOOT_BLOCKSIZE) < header.size)
-			{
+			if ((state * LANGBOOT_BLOCKSIZE) < header.size) {
 				cli();
 				uint16_t size = header.size - state * LANGBOOT_BLOCKSIZE;
 				if (size > LANGBOOT_BLOCKSIZE) size = LANGBOOT_BLOCKSIZE;
 				w25x20cl_rd_data(src_addr + state * LANGBOOT_BLOCKSIZE, (uint8_t*)LANGBOOT_RAMBUFFER, size);
-				if (state == 0)
-				{
+				if (state == 0) {
 					//TODO - check header integrity
 				}
 				bootapp_ram2flash(LANGBOOT_RAMBUFFER, _SEC_LANG_TABLE + state * LANGBOOT_BLOCKSIZE, size);
-			}
-			else
-			{
+			} else {
 				//TODO - check sec lang data integrity
 				eeprom_update_byte((unsigned char *)EEPROM_LANG, LANG_ID_SEC);
 			}
@@ -931,17 +913,14 @@ void update_sec_lang_from_external_flash()
 
 #ifdef DEBUG_W25X20CL
 
-uint8_t lang_xflash_enum_codes(uint16_t* codes)
-{
+uint8_t lang_xflash_enum_codes(uint16_t* codes) {
 	lang_table_header_t header;
 	uint8_t count = 0;
 	uint32_t addr = 0x00000;
-	while (1)
-	{
+	while (1) {
 		printf_P(_n("LANGTABLE%d:"), count);
 		w25x20cl_rd_data(addr, (uint8_t*)&header, sizeof(lang_table_header_t));
-		if (header.magic != LANG_MAGIC)
-		{
+		if (header.magic != LANG_MAGIC) {
 			printf_P(_n("NG!\n"));
 			break;
 		}
@@ -960,8 +939,7 @@ uint8_t lang_xflash_enum_codes(uint16_t* codes)
 	return count;
 }
 
-void list_sec_lang_from_external_flash()
-{
+void list_sec_lang_from_external_flash() {
 	uint16_t codes[8];
 	uint8_t count = lang_xflash_enum_codes(codes);
 	printf_P(_n("XFlash lang count = %hhd\n"), count);
@@ -998,16 +976,13 @@ void setup() {
 #ifdef W25X20CL
     bool w25x20cl_success = w25x20cl_init();
 	uint8_t optiboot_status = 1;
-	if (w25x20cl_success)
-	{
-		optiboot_status = optiboot_w25x20cl_enter();
+	if (w25x20cl_success) {
+    optiboot_status = optiboot_w25x20cl_enter();
 #if (LANG_MODE != 0) //secondary language support
-        update_sec_lang_from_external_flash();
+    update_sec_lang_from_external_flash();
 #endif //(LANG_MODE != 0)
-	}
-	else
-	{
-	    w25x20cl_err_msg();
+	}	else {
+    w25x20cl_err_msg();
 	}
 #else
 	const bool w25x20cl_success = true;
@@ -1056,8 +1031,7 @@ void setup() {
 #ifdef DEBUG_SEC_LANG
 	lang_table_header_t header;
 	uint32_t src_addr = 0x00000;
-	if (lang_get_header(1, &header, &src_addr))
-	{
+	if (lang_get_header(1, &header, &src_addr)) {
 //this is comparsion of some printing-methods regarding to flash space usage and code size/readability
 #define LT_PRINT_TEST 2
 //  flash usage
@@ -1122,62 +1096,33 @@ void setup() {
 #endif //(LT_PRINT_TEST==)
 #undef LT_PRINT_TEST
 
-#if 0
-		w25x20cl_rd_data(0x25ba, (uint8_t*)&block_buffer, 1024);
-		for (uint16_t i = 0; i < 1024; i++)
-		{
-			if ((i % 16) == 0) printf_P(_n("%04x:"), 0x25ba+i);
-			printf_P(_n(" %02x"), ((uint8_t*)&block_buffer)[i]);
-			if ((i % 16) == 15) putchar('\n');
-		}
-#endif
+
 		uint16_t sum = 0;
-		for (uint16_t i = 0; i < header.size; i++)
+		for (uint16_t i = 0; i < header.size; i++) {
 			sum += (uint16_t)pgm_read_byte((uint8_t*)(_SEC_LANG_TABLE + i)) << ((i & 1)?0:8);
+    }
 		printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
 		sum -= header.checksum; //subtract checksum
 		printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
 		sum = (sum >> 8) | ((sum & 0xff) << 8); //swap bytes
-		if (sum == header.checksum)
+		if (sum == header.checksum) {
 			printf_P(_n("Checksum OK\n"), sum);
-		else
+		} else {
 			printf_P(_n("Checksum NG\n"), sum);
-	}
-	else
+    }
+	}else {
 		printf_P(_n("lang_get_header failed!\n"));
-
-#if 0
-		for (uint16_t i = 0; i < 1024*10; i++)
-		{
-			if ((i % 16) == 0) printf_P(_n("%04x:"), _SEC_LANG_TABLE+i);
-			printf_P(_n(" %02x"), pgm_read_byte((uint8_t*)(_SEC_LANG_TABLE+i)));
-			if ((i % 16) == 15) putchar('\n');
-		}
-#endif
-
-#if 0
-	SERIAL_ECHOLN("Reading eeprom from 0 to 100: start");
-	for (int i = 0; i < 4096; ++i) {
-		int b = eeprom_read_byte((unsigned char*)i);
-		if (b != 255) {
-			SERIAL_ECHO(i);
-			SERIAL_ECHO(":");
-			SERIAL_ECHO(b);
-			SERIAL_ECHOLN("");
-		}
-	}
-	SERIAL_ECHOLN("Reading eeprom from 0 to 100: done");
-#endif
+  }
 
 #endif //DEBUG_SEC_LANG
 
 	// Check startup - does nothing if bootloader sets MCUSR to 0
 	byte mcu = MCUSR;
-	if (mcu & 1) puts_P(MSG_POWERUP);
-	if (mcu & 2) puts_P(MSG_EXTERNAL_RESET);
-	if (mcu & 4) puts_P(MSG_BROWNOUT_RESET);
-	if (mcu & 8) puts_P(MSG_WATCHDOG_RESET);
-	if (mcu & 32) puts_P(MSG_SOFTWARE_RESET);
+	if (mcu & 1) {puts_P(MSG_POWERUP);}
+	if (mcu & 2) {puts_P(MSG_EXTERNAL_RESET);}
+	if (mcu & 4) {puts_P(MSG_BROWNOUT_RESET);}
+	if (mcu & 8) {puts_P(MSG_WATCHDOG_RESET);}
+	if (mcu & 32) {puts_P(MSG_SOFTWARE_RESET);}
 	MCUSR = 0;
 
 #ifdef STRING_VERSION_CONFIG_H
@@ -1219,10 +1164,11 @@ void setup() {
 	}
 #ifdef EXTRUDER_ALTFAN_DETECT
 	SERIAL_ECHORPGM(_n("Extruder fan type: "));
-	if (extruder_altfan_detect())
+	if (extruder_altfan_detect()) {
 		SERIAL_ECHOLNRPGM(PSTR("ALTFAN"));
-	else
+	} else {
 		SERIAL_ECHOLNRPGM(PSTR("NOCTUA"));
+  }
 #endif //EXTRUDER_ALTFAN_DETECT
 
 	plan_init();  // Initialize planner;
@@ -1246,16 +1192,15 @@ void setup() {
 
 #ifdef TMC2130
 	uint8_t silentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
-	if (silentMode == 0xff) silentMode = 0;
+	if (silentMode == 0xff) {
+    silentMode = 0;
+  }
 	tmc2130_mode = TMC2130_MODE_NORMAL;
 
-	if (lcd_crash_detect_enabled() && !farm_mode)
-	{
+	if (lcd_crash_detect_enabled() && !farm_mode) {
 		lcd_crash_detect_enable();
 	    puts_P(_N("CrashDetect ENABLED!"));
-	}
-	else
-	{
+	}	else {
 	    lcd_crash_detect_disable();
 	    puts_P(_N("CrashDetect DISABLED"));
 	}
@@ -1326,8 +1271,8 @@ void setup() {
 
 	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
-	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
-	if (farm_no == static_cast<int>(0xFFFF)) farm_no = 0;
+	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) {farm_mode = false;} //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
+	if (farm_no == static_cast<int>(0xFFFF)) {farm_no = 0;}
 	if (farm_mode) {
 		prusa_statistics(8);
 	}
@@ -1339,37 +1284,29 @@ void setup() {
 	// but this times out if a blocking dialog is shown in setup().
 	card.initsd();
 #ifdef DEBUG_SD_SPEED_TEST
-	if (card.cardOK)
-	{
+	if (card.cardOK) {
 		uint8_t* buff = (uint8_t*)block_buffer;
 		uint32_t block = 0;
 		uint32_t sumr = 0;
 		uint32_t sumw = 0;
-		for (int i = 0; i < 1024; i++)
-		{
+		for (int i = 0; i < 1024; i++) {
 			uint32_t u = _micros();
 			bool res = card.card.readBlock(i, buff);
 			u = _micros() - u;
-			if (res)
-			{
+			if (res) {
 				printf_P(PSTR("readBlock %4d 512 bytes %lu us\n"), i, u);
 				sumr += u;
 				u = _micros();
 				res = card.card.writeBlock(i, buff);
 				u = _micros() - u;
-				if (res)
-				{
+				if (res) {
 					printf_P(PSTR("writeBlock %4d 512 bytes %lu us\n"), i, u);
 					sumw += u;
-				}
-				else
-				{
+				} else {
 					printf_P(PSTR("writeBlock %4d error\n"), i);
 					break;
 				}
-			}
-			else
-			{
+			} else {
 				printf_P(PSTR("readBlock %4d error\n"), i);
 				break;
 			}
@@ -1378,9 +1315,9 @@ void setup() {
 		uint32_t avg_wspeed = (1024 * 1000000) / (sumw / 512);
 		printf_P(PSTR("avg read speed %lu bytes/s\n"), avg_rspeed);
 		printf_P(PSTR("avg write speed %lu bytes/s\n"), avg_wspeed);
-	}
-	else
+	} else {
 		printf_P(PSTR("Card NG!\n"));
+  }
 #endif //DEBUG_SD_SPEED_TEST
 
   eeprom_init();
@@ -1410,8 +1347,9 @@ void setup() {
 #endif //DEBUG_W25X20CL
 
 //	lang_reset();
-	if (!lang_select(eeprom_read_byte((uint8_t*)EEPROM_LANG)))
+	if (!lang_select(eeprom_read_byte((uint8_t*)EEPROM_LANG))) {
 		lcd_language();
+  }
 
 #ifdef DEBUG_SEC_LANG
 
@@ -1531,22 +1469,22 @@ void setup() {
   update_current_firmware_version_to_eeprom();
 
 #ifdef TMC2130
-  	tmc2130_home_origin[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_ORIGIN);
+  tmc2130_home_origin[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_ORIGIN);
 	tmc2130_home_bsteps[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_BSTEPS);
 	tmc2130_home_fsteps[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_FSTEPS);
-	if (tmc2130_home_origin[X_AXIS] == 0xff) tmc2130_home_origin[X_AXIS] = 0;
-	if (tmc2130_home_bsteps[X_AXIS] == 0xff) tmc2130_home_bsteps[X_AXIS] = 48;
-	if (tmc2130_home_fsteps[X_AXIS] == 0xff) tmc2130_home_fsteps[X_AXIS] = 48;
+	if (tmc2130_home_origin[X_AXIS] == 0xff) {tmc2130_home_origin[X_AXIS] = 0;}
+	if (tmc2130_home_bsteps[X_AXIS] == 0xff) {tmc2130_home_bsteps[X_AXIS] = 48;}
+	if (tmc2130_home_fsteps[X_AXIS] == 0xff) {tmc2130_home_fsteps[X_AXIS] = 48;}
 
 	tmc2130_home_origin[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_ORIGIN);
 	tmc2130_home_bsteps[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_BSTEPS);
 	tmc2130_home_fsteps[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_FSTEPS);
-	if (tmc2130_home_origin[Y_AXIS] == 0xff) tmc2130_home_origin[Y_AXIS] = 0;
-	if (tmc2130_home_bsteps[Y_AXIS] == 0xff) tmc2130_home_bsteps[Y_AXIS] = 48;
-	if (tmc2130_home_fsteps[Y_AXIS] == 0xff) tmc2130_home_fsteps[Y_AXIS] = 48;
+	if (tmc2130_home_origin[Y_AXIS] == 0xff) {tmc2130_home_origin[Y_AXIS] = 0;}
+	if (tmc2130_home_bsteps[Y_AXIS] == 0xff) {tmc2130_home_bsteps[Y_AXIS] = 48;}
+	if (tmc2130_home_fsteps[Y_AXIS] == 0xff) {tmc2130_home_fsteps[Y_AXIS] = 48;}
 
 	tmc2130_home_enabled = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_ENABLED);
-	if (tmc2130_home_enabled == 0xff) tmc2130_home_enabled = 0;
+	if (tmc2130_home_enabled == 0xff) {tmc2130_home_enabled = 0;}
 #endif //TMC2130
 
 #ifdef UVLO_SUPPORT
@@ -1560,28 +1498,28 @@ void setup() {
 		  lcd_setstatuspgm(_T(WELCOME_MSG));
 	  }
 */
-      manage_heater(); // Update temperatures 
+    manage_heater(); // Update temperatures 
 #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
 		printf_P(_N("Power panic detected!\nCurrent bed temp:%d\nSaved bed temp:%d\n"), (int)degBed(), eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED));
 #endif 
-     if ( degBed() > ( (float)eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED) - AUTOMATIC_UVLO_BED_TEMP_OFFSET) ){ 
-          #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
-        puts_P(_N("Automatic recovery!")); 
-          #endif 
-         recover_print(1); 
+    if ( degBed() > ( (float)eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED) - AUTOMATIC_UVLO_BED_TEMP_OFFSET) ) { 
+#ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
+      puts_P(_N("Automatic recovery!")); 
+#endif 
+      recover_print(1); 
+    } else { 
+#ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
+      puts_P(_N("Normal recovery!")); 
+#endif 
+      if ( lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_RECOVER_PRINT), false) ) {
+        recover_print(0); 
+      } else { 
+        eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0); 
+        lcd_update_enable(true); 
+        lcd_update(2); 
+        lcd_setstatuspgm(_T(WELCOME_MSG)); 
       } 
-      else{ 
-          #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
-        puts_P(_N("Normal recovery!")); 
-          #endif 
-          if ( lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_RECOVER_PRINT), false) ) recover_print(0); 
-          else { 
-              eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0); 
-              lcd_update_enable(true); 
-              lcd_update(2); 
-              lcd_setstatuspgm(_T(WELCOME_MSG)); 
-          } 
-      }
+    }
   }
 
   // Only arm the uvlo interrupt _after_ a recovering print has been initialized and
@@ -1604,64 +1542,64 @@ char chunk[CHUNK_SIZE+SAFETY_MARGIN];
 int chunkHead = 0;
 
 void serial_read_stream() {
-    setAllTargetHotends(0);
-    setTargetBed(0);
+  setAllTargetHotends(0);
+  setTargetBed(0);
 
-    lcd_clear();
-    lcd_puts_P(PSTR(" Upload in progress"));
+  lcd_clear();
+  lcd_puts_P(PSTR(" Upload in progress"));
 
-    // first wait for how many bytes we will receive
-    uint32_t bytesToReceive;
+  // first wait for how many bytes we will receive
+  uint32_t bytesToReceive;
 
-    // receive the four bytes
-    char bytesToReceiveBuffer[4];
-    for (int i=0; i<4; i++) {
+  // receive the four bytes
+  char bytesToReceiveBuffer[4];
+  for (int i=0; i<4; i++) {
+    int data;
+    while ((data = MYSERIAL.read()) == -1) {};
+    bytesToReceiveBuffer[i] = data;
+  }
+
+  // make it a uint32
+  memcpy(&bytesToReceive, &bytesToReceiveBuffer, 4);
+
+  // we're ready, notify the sender
+  MYSERIAL.write('+');
+
+  // lock in the routine
+  uint32_t receivedBytes = 0;
+  while (prusa_sd_card_upload) {
+    int i;
+    for (i=0; i<CHUNK_SIZE; i++) {
       int data;
+      // check if we're not done
+      if (receivedBytes == bytesToReceive) {
+        break;
+      }
+
+      // read the next byte
       while ((data = MYSERIAL.read()) == -1) {};
-      bytesToReceiveBuffer[i] = data;
+      receivedBytes++;
+      // save it to the chunk
+      chunk[i] = data;
     }
 
-    // make it a uint32
-    memcpy(&bytesToReceive, &bytesToReceiveBuffer, 4);
+      // write the chunk to SD
+    card.write_command_no_newline(&chunk[0]);
 
-    // we're ready, notify the sender
+    // notify the sender we're ready for more data
     MYSERIAL.write('+');
 
-    // lock in the routine
-    uint32_t receivedBytes = 0;
-    while (prusa_sd_card_upload) {
-      int i;
-      for (i=0; i<CHUNK_SIZE; i++) {
-        int data;
-        // check if we're not done
-        if (receivedBytes == bytesToReceive) {
-          break;
-        }
+    // for safety
+    manage_heater();
 
-        // read the next byte
-        while ((data = MYSERIAL.read()) == -1) {};
-        receivedBytes++;
-        // save it to the chunk
-        chunk[i] = data;
-        }
-
-        // write the chunk to SD
-        card.write_command_no_newline(&chunk[0]);
-
-        // notify the sender we're ready for more data
-        MYSERIAL.write('+');
-
-        // for safety
-        manage_heater();
-
-        // check if we're done
-        if(receivedBytes == bytesToReceive) {
-          trace(); // beep
-          card.closefile();
-          prusa_sd_card_upload = false;
-          SERIAL_PROTOCOLLNRPGM(MSG_FILE_SAVED);
-        }
+    // check if we're done
+    if(receivedBytes == bytesToReceive) {
+      trace(); // beep
+      card.closefile();
+      prusa_sd_card_upload = false;
+      SERIAL_PROTOCOLLNRPGM(MSG_FILE_SAVED);
     }
+  }
 }
 
 /**
@@ -1672,7 +1610,7 @@ void host_keepalive() {
 #ifndef HOST_KEEPALIVE_FEATURE
   return;
 #endif //HOST_KEEPALIVE_FEATURE
-  if (farm_mode) return;
+  if (farm_mode) { return; }
   long ms = _millis();
 
 #ifdef AUTO_REPORT_TEMPERATURES
@@ -1685,7 +1623,7 @@ void host_keepalive() {
 #endif //AUTO_REPORT_TEMPERATURES
 
   if (host_keepalive_interval && busy_state != NOT_BUSY) {
-    if ((ms - prev_busy_signal_ms) < (long)(1000L * host_keepalive_interval)) return;
+    if ((ms - prev_busy_signal_ms) < (long)(1000L * host_keepalive_interval)) { return; }
      switch (busy_state) {
       case IN_HANDLER:
       case IN_PROCESS:
@@ -1727,13 +1665,13 @@ void loop() {
     
 #ifdef FANCHECK
   if (fan_check_error && isPrintPaused) {
-        KEEPALIVE_STATE(PAUSED_FOR_USER);
-        host_keepalive(); //prevent timeouts since usb processing is disabled until print is resumed. This is for a crude way of pausing a print on all hosts.
-    }
+    KEEPALIVE_STATE(PAUSED_FOR_USER);
+    host_keepalive(); //prevent timeouts since usb processing is disabled until print is resumed. This is for a crude way of pausing a print on all hosts.
+  }
 #endif
   if (prusa_sd_card_upload) {
-      //we read byte-by byte
-      serial_read_stream();
+    //we read byte-by byte
+    serial_read_stream();
   } else {
     get_command();
 #ifdef SDSUPPORT
@@ -1771,8 +1709,8 @@ void loop() {
           // To support power panic, move the lenght of the command on the SD card to a planner buffer.
           union {
             struct {
-                char lo;
-                char hi;
+              char lo;
+              char hi;
             } lohi;
             uint16_t value;
           } sdlen;
@@ -1793,7 +1731,7 @@ void loop() {
             planner_add_sd_length(sdlen.value);
             sei();
           }
-        } else if((*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR) && !IS_SD_PRINTING){ 
+        } else if((*ptr == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR) && !IS_SD_PRINTING) { 
           cli();
           *ptr ++ = CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED;
           // and one for each command to previous block in the planner queue.
@@ -1815,8 +1753,7 @@ void loop() {
   lcd_update(0);
 #ifdef TMC2130
 	tmc2130_check_overtemp();
-	if (tmc2130_sg_crash)
-	{
+	if (tmc2130_sg_crash) {
 		uint8_t crash = tmc2130_sg_crash;
 		tmc2130_sg_crash = 0;
 		switch (crash)
@@ -1887,46 +1824,45 @@ static void clean_up_after_endstop_move(int original_feedmultiply) {
 #ifdef ENABLE_AUTO_BED_LEVELING
 #ifdef AUTO_BED_LEVELING_GRID
 static void set_bed_level_equation_lsq(double *plane_equation_coefficients) {
-    vector_3 planeNormal = vector_3(-plane_equation_coefficients[0], -plane_equation_coefficients[1], 1);
-    planeNormal.debug("planeNormal");
-    plan_bed_level_matrix = matrix_3x3::create_look_at(planeNormal);
-    vector_3 corrected_position = plan_get_position();
-    current_position[X_AXIS] = corrected_position.x;
-    current_position[Y_AXIS] = corrected_position.y;
-    current_position[Z_AXIS] = corrected_position.z;
-    // put the bed at 0 so we don't go below it.
-    current_position[Z_AXIS] = cs.zprobe_zoffset; // in the lsq we reach here after raising the extruder due to the loop structure
+  vector_3 planeNormal = vector_3(-plane_equation_coefficients[0], -plane_equation_coefficients[1], 1);
+  planeNormal.debug("planeNormal");
+  plan_bed_level_matrix = matrix_3x3::create_look_at(planeNormal);
+  vector_3 corrected_position = plan_get_position();
+  current_position[X_AXIS] = corrected_position.x;
+  current_position[Y_AXIS] = corrected_position.y;
+  current_position[Z_AXIS] = corrected_position.z;
+  // put the bed at 0 so we don't go below it.
+  current_position[Z_AXIS] = cs.zprobe_zoffset; // in the lsq we reach here after raising the extruder due to the loop structure
 
-    plan_set_position_curposXYZE();
+  plan_set_position_curposXYZE();
 }
 
 #else // not AUTO_BED_LEVELING_GRID
 
 static void set_bed_level_equation_3pts(float z_at_pt_1, float z_at_pt_2, float z_at_pt_3) {
 
-    plan_bed_level_matrix.set_to_identity();
+  plan_bed_level_matrix.set_to_identity();
 
-    vector_3 pt1 = vector_3(ABL_PROBE_PT_1_X, ABL_PROBE_PT_1_Y, z_at_pt_1);
-    vector_3 pt2 = vector_3(ABL_PROBE_PT_2_X, ABL_PROBE_PT_2_Y, z_at_pt_2);
-    vector_3 pt3 = vector_3(ABL_PROBE_PT_3_X, ABL_PROBE_PT_3_Y, z_at_pt_3);
+  vector_3 pt1 = vector_3(ABL_PROBE_PT_1_X, ABL_PROBE_PT_1_Y, z_at_pt_1);
+  vector_3 pt2 = vector_3(ABL_PROBE_PT_2_X, ABL_PROBE_PT_2_Y, z_at_pt_2);
+  vector_3 pt3 = vector_3(ABL_PROBE_PT_3_X, ABL_PROBE_PT_3_Y, z_at_pt_3);
 
-    vector_3 from_2_to_1 = (pt1 - pt2).get_normal();
-    vector_3 from_2_to_3 = (pt3 - pt2).get_normal();
-    vector_3 planeNormal = vector_3::cross(from_2_to_1, from_2_to_3).get_normal();
-    planeNormal = vector_3(planeNormal.x, planeNormal.y, abs(planeNormal.z));
+  vector_3 from_2_to_1 = (pt1 - pt2).get_normal();
+  vector_3 from_2_to_3 = (pt3 - pt2).get_normal();
+  vector_3 planeNormal = vector_3::cross(from_2_to_1, from_2_to_3).get_normal();
+  planeNormal = vector_3(planeNormal.x, planeNormal.y, abs(planeNormal.z));
 
-    plan_bed_level_matrix = matrix_3x3::create_look_at(planeNormal);
+  plan_bed_level_matrix = matrix_3x3::create_look_at(planeNormal);
 
-    vector_3 corrected_position = plan_get_position();
-    current_position[X_AXIS] = corrected_position.x;
-    current_position[Y_AXIS] = corrected_position.y;
-    current_position[Z_AXIS] = corrected_position.z;
+  vector_3 corrected_position = plan_get_position();
+  current_position[X_AXIS] = corrected_position.x;
+  current_position[Y_AXIS] = corrected_position.y;
+  current_position[Z_AXIS] = corrected_position.z;
 
-    // put the bed at 0 so we don't go below it.
-    current_position[Z_AXIS] = cs.zprobe_zoffset;
+  // put the bed at 0 so we don't go below it.
+  current_position[Z_AXIS] = cs.zprobe_zoffset;
 
-    plan_set_position_curposXYZE();
-
+  plan_set_position_curposXYZE();
 }
 
 #endif // AUTO_BED_LEVELING_GRID

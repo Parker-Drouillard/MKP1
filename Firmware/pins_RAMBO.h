@@ -14,24 +14,22 @@
 #define __AVR_ATmega2560__
 #endif
 
-// #ifndef SWSPI
-// #define SWSPI
-// #endif 
+#define SDSUPPORT
 
 // LIMIT SWITCHES
 #define X_MIN_PIN   12
-//#define X_MAX_PIN  24    //Used for Fil Runout on E0
+#define X_MAX_PIN  24    //Used for Fil Runout on E0
 #define X_MAX_PIN -1
 #define Y_MIN_PIN   11
-//#define Y_MAX_PIN  23    //Used for Fil Runout on E1
+#define Y_MAX_PIN  23    //Used for Fil Runout on E1
 #define Y_MAX_PIN -1
 #define Z_MIN_PIN    10
 #define Z_MAX_PIN    30
 
 
 //Fil Runout sensors
-#define FIL_RUNOUT_PIN  24
-#define FIL_RUNOUT2_PIN 23
+#define FIL_RUNOUT_PIN  X_MAX_PIN
+#define FIL_RUNOUT2_PIN Y_MAX_PIN
 
 
 //STEPPERS
@@ -119,7 +117,7 @@
 #define BTN_EN2         77            // 6 - BTN_EN2       PJ6
 #define SDSS            53            // 7 - SDSS          PB0
 #define BTN_EN1         76            // 8 - BTN_EN1       PJ5
-#define SCK_PIN         52            // 9 - SCK_PIN       PB1
+// #define SCK_PIN         52            // 9 - SCK_PIN       PB1 - Already declared elsewhere
 #define MISO_PIN        50            //10 - MISO_PIN     PB3
 
 #define SDPOWER  -1
