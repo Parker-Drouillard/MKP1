@@ -21,7 +21,7 @@
 #include "pins_Einsy_1_0.h"
 #endif //MOTHERBOARD == BOARD_EINSY_1_0a
 
-#if MOTHERBOARD == BOARD_RAMBO //400
+#if MOTHERBOARD == BOARD_RAMBO //301
 #include "pins_RAMBO.h"
 #endif //MOTHERBOARD == BOARD_RAMBO
 

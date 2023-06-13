@@ -18,18 +18,18 @@
 
 // LIMIT SWITCHES
 #define X_MIN_PIN   12
-#define X_MAX_PIN  24    //Used for Fil Runout on E0
+// #define X_MAX_PIN  24    //Used for Fil Runout on E0
 #define X_MAX_PIN -1
 #define Y_MIN_PIN   11
-#define Y_MAX_PIN  23    //Used for Fil Runout on E1
+// #define Y_MAX_PIN  23    //Used for Fil Runout on E1
 #define Y_MAX_PIN -1
 #define Z_MIN_PIN    10
 #define Z_MAX_PIN    30
 
 
 //Fil Runout sensors
-#define FIL_RUNOUT_PIN  X_MAX_PIN
-#define FIL_RUNOUT2_PIN Y_MAX_PIN
+#define FIL_RUNOUT_PIN  24
+#define FIL_RUNOUT2_PIN 23
 
 
 //STEPPERS
