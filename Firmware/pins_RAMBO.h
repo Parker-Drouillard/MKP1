@@ -10,7 +10,7 @@
 #endif
 #define PINDA_THERMISTOR
 //#define AMBIENT_THERMISTOR
-
+#define SDSUPPORT
 
 // LIMIT SWITCHES
 #define X_MIN_PIN   12
@@ -63,7 +63,7 @@
 
 #define DIGIPOTSS_PIN   38
 #define DIGIPOT_CHANNELS  { 4,5,3,0,1 }
-
+#define DIGIPOT_MOTOR_CURRENT {135,135,135,135,135}
 
 
 
