@@ -672,21 +672,22 @@ void lcdui_print_status_screen(void) {
 	lcd_print(LCD_STR_DEGREE " ");
 	lcd_print("          ");
 	#endif
-
+#ifdef FIL_RUNOUT_SUPPORT
 	lcd_set_cursor(LCD_WIDTH - 7, 1); //Line 2 7 from right
 	lcd_print("0:");
 	if(READ(FILAMENT_RUNOUT_SENSOR)){
-		lcd_print("Y");
+		lcd_print("L");
 	} else {
 		lcd_print("N");
 	}
 	#if EXTRUDERS == 2
 		lcd_print(" 1:");
 		if(READ(FILAMENT_RUNOUT2_SENSOR)){
-			lcd_print("Y");
+			lcd_print("L");
 		} else {
 			lcd_print("N");
 		}
+#endif //FIL_RUNOUT_SUPPORT
 	#endif
 
     lcd_set_cursor(0, 2); //line 3

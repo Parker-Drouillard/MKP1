@@ -21,7 +21,7 @@
 
 // Printer name
 #define CUSTOM_MENDEL_NAME "MKP1"
-#define PRINTER_NUMBER "018"
+#define PRINTER_NUMBER "027"
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO
@@ -384,7 +384,7 @@
  *------------------------------------*/
 
 // Define Prusa filament runout sensor
-#define FILAMENT_RUNOUT_SUPPORT
+// #define FILAMENT_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
 // #if EXTRUDERS > 1 && defined(FIL_RUNOUT2_PIN)
