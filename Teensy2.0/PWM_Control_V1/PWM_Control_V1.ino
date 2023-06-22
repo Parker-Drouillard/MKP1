@@ -10,7 +10,7 @@ const word PWM_FREQ_HZ = 25000; //Adjust this value to adjust the frequency
 const int fanDeathSampleCount = 50; //Sample count required to determine a fan is bad/dead
 const long fanSampleInterval = 5; //Sample interval in ms to check fans
 const long changeTime = 500;
-const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFans_pin, E1BlowerFans_pin, E2AxialFan_pin, E2BlowerFans_pin, E2BlowerFans_pin};
+const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFanFront_pin, E1BlowerFanRear_pin, E2AxialFan_pin, E2BlowerFanFront_pin, E2BlowerFanRear_pin};
 const int tachPins[NUMFANS] = {tach0_pin, tach1_pin, tach2_pin, tach3_pin, tach4_pin, tach5_pin};
 
 int ledState = HIGH; // ledState used to set the LED
@@ -97,7 +97,7 @@ void homeSolenoid(){
 void updateAllFanStates(){
   for(int i = 0; i < NUMFANS; i++){
     // if(fanHealth[i]){
-      digitalWrite(fanPins[i],fanStates[i]);
+      digitalWrite(fanPins[i],fanStates[i] > 0 ? HIGH : LOW);
     // } else {
       // digitalWrite(fanPins[i],0); //If fan is unhealthy, do not turn it on. Health must first be reset.
     // }
@@ -129,7 +129,7 @@ void sampleHealthOfAllFans(){
     if(fanHealthSamples[i] >= fanDeathSampleCount && fanStates[i]){
       //If fan is unhealthy and the fan is on, set it to unhealthy and turn it off.
       fanHealth[i] = 0;
-      fanStates[i] = 0;
+      fanStates[i] = -1; 
     } else if(fanStates[i]) {
       //If fan is on and fan is in good health, make sure it is indicated
       fanHealth[i] = 1;

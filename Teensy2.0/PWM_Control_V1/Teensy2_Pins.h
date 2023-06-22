@@ -31,9 +31,11 @@
 
 
 //Extruder Pins
-const int E1BlowerFans_pin = 14;
+const int E1BlowerFanFront_pin = 14;
+const int E1BlowerFanRear_pin = 4;
 const int E1AxialFan_pin = 15;
-const int E2BlowerFans_pin = 10;
+const int E2BlowerFanFront_pin = 10;
+const int E2BlowerFanRear_pin = 9;
 const int E2AxialFan_pin = 12;
 
 //Solenoid Pins
