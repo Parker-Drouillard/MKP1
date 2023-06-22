@@ -66,10 +66,10 @@ bool z_max_endstop = false;
 // Variables used by The Stepper Driver Interrupt
 static unsigned char out_bits;        // The next stepping-bits to be output
 static dda_isteps_t
-               counter_x,       // Counter variables for the bresenham line tracer
-               counter_y,
-               counter_z,
-               counter_e;
+    counter_x,       // Counter variables for the bresenham line tracer
+    counter_y,
+    counter_z,
+    counter_e;
 volatile dda_usteps_t step_events_completed; // The number of step events executed in the current block
 static uint32_t  acceleration_time, deceleration_time;
 static uint16_t acc_step_rate; // needed for deccelaration start point
@@ -144,12 +144,16 @@ extern bool stepper_timer_overflow_state;
 extern uint16_t stepper_timer_overflow_last;
 #endif /* DEBUG_STEPPER_TIMER_MISSED */
 
+#ifdef DIGIPOT_CHANNELS
+  static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS ; //X Y Z E1 E0 Channel Addresses
+  int motorCurrents[5] = DIGIPOT_MOTOR_CURRENT ;
+#endif
+
 //===========================================================================
 //=============================functions         ============================
 //===========================================================================
 
-void checkHitEndstops()
-{
+void checkHitEndstops() {
  if( endstop_x_hit || endstop_y_hit || endstop_z_hit) {
    SERIAL_ECHO_START;
    SERIAL_ECHORPGM(MSG_ENDSTOPS_HIT);
@@ -170,8 +174,7 @@ void checkHitEndstops()
    endstop_y_hit=false;
    endstop_z_hit=false;
 #if defined(ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED) && defined(SDSUPPORT)
-   if (abort_on_endstop_hit)
-   {
+   if (abort_on_endstop_hit) {
      card.sdprinting = false;
      card.closefile();
      quickStop();
@@ -183,8 +186,7 @@ void checkHitEndstops()
  }
 }
 
-bool endstops_hit_on_purpose()
-{
+bool endstops_hit_on_purpose() {
   bool hit = endstop_x_hit || endstop_y_hit || endstop_z_hit;
   endstop_x_hit=false;
   endstop_y_hit=false;
@@ -192,30 +194,26 @@ bool endstops_hit_on_purpose()
   return hit;
 }
 
-bool endstop_z_hit_on_purpose()
-{
+bool endstop_z_hit_on_purpose() {
   bool hit = endstop_z_hit;
   endstop_z_hit=false;
   return hit;
 }
 
-bool enable_endstops(bool check)
-{
+bool enable_endstops(bool check) {
   bool old = check_endstops;
   check_endstops = check;
   return old;
 }
 
-bool enable_z_endstop(bool check)
-{
+bool enable_z_endstop(bool check) {
 	bool old = check_z_endstop;
 	check_z_endstop = check;
 	endstop_z_hit = false;
 	return old;
 }
 
-void invert_z_endstop(bool endstop_invert)
-{
+void invert_z_endstop(bool endstop_invert) {
   z_endstop_invert = endstop_invert;
 }
 
@@ -280,25 +278,22 @@ uint8_t st_backlash_x = 0;
 uint8_t st_backlash_y = 0;
 #endif //BACKLASH_Y
 
-FORCE_INLINE void stepper_next_block()
-{
+FORCE_INLINE void stepper_next_block() {
   // Anything in the buffer?
   //WRITE_NC(LOGIC_ANALYZER_CH2, true);
   current_block = plan_get_current_block();
   if (current_block != NULL) {
 #ifdef BACKLASH_X
-	if (current_block->steps_x.wide)
-	{ //X-axis movement
-		if ((current_block->direction_bits ^ last_dir_bits) & 1)
-		{
+	if (current_block->steps_x.wide) { //X-axis movement
+		if ((current_block->direction_bits ^ last_dir_bits) & 1) {
 			printf_P(PSTR("BL %d\n"), (current_block->direction_bits & 1)?st_backlash_x:-st_backlash_x);
-			if (current_block->direction_bits & 1)
+			if (current_block->direction_bits & 1) {
 				WRITE_NC(X_DIR_PIN, INVERT_X_DIR);
-			else
+			} else {
 				WRITE_NC(X_DIR_PIN, !INVERT_X_DIR);
+      }
 			_delay_us(100);
-			for (uint8_t i = 0; i < st_backlash_x; i++)
-			{
+			for (uint8_t i = 0; i < st_backlash_x; i++) {
 				WRITE_NC(X_STEP_PIN, !INVERT_X_STEP_PIN);
 				_delay_us(100);
 				WRITE_NC(X_STEP_PIN, INVERT_X_STEP_PIN);
@@ -310,18 +305,16 @@ FORCE_INLINE void stepper_next_block()
 	}
 #endif
 #ifdef BACKLASH_Y
-	if (current_block->steps_y.wide)
-	{ //Y-axis movement
-		if ((current_block->direction_bits ^ last_dir_bits) & 2)
-		{
+	if (current_block->steps_y.wide) { //Y-axis movement
+		if ((current_block->direction_bits ^ last_dir_bits) & 2) {
 			printf_P(PSTR("BL %d\n"), (current_block->direction_bits & 2)?st_backlash_y:-st_backlash_y);
-			if (current_block->direction_bits & 2)
+			if (current_block->direction_bits & 2) {
 				WRITE_NC(Y_DIR_PIN, INVERT_Y_DIR);
-			else
+			} else {
 				WRITE_NC(Y_DIR_PIN, !INVERT_Y_DIR);
+      }
 			_delay_us(100);
-			for (uint8_t i = 0; i < st_backlash_y; i++)
-			{
+			for (uint8_t i = 0; i < st_backlash_y; i++) {
 				WRITE_NC(Y_STEP_PIN, !INVERT_Y_STEP_PIN);
 				_delay_us(100);
 				WRITE_NC(Y_STEP_PIN, INVERT_Y_STEP_PIN);
@@ -441,103 +434,101 @@ FORCE_INLINE void stepper_next_block()
 }
 
 // Check limit switches.
-FORCE_INLINE void stepper_check_endstops()
-{
-  if(check_endstops) 
-  {
-    #ifndef COREXY
+FORCE_INLINE void stepper_check_endstops() {
+  if(check_endstops)  {
+#ifndef COREXY
     if ((out_bits & (1<<X_AXIS)) != 0) // stepping along -X axis
-    #else
+#else
     if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) != 0)) //-X occurs for -A and -B
-    #endif
+#endif
     {
-      #if ( (defined(X_MIN_PIN) && (X_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMINLIMIT)
-      #ifdef TMC2130_SG_HOMING
+#if ( (defined(X_MIN_PIN) && (X_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMINLIMIT)
+#ifdef TMC2130_SG_HOMING
         // Stall guard homing turned on
         x_min_endstop = (READ(X_TMC2130_DIAG) != 0);
-      #else
+#else
         // Normal homing
         x_min_endstop = (READ(X_MIN_PIN) != X_MIN_ENDSTOP_INVERTING);
-      #endif
+#endif
         if(x_min_endstop && old_x_min_endstop && (current_block->steps_x.wide > 0)) {
           endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
           endstop_x_hit=true;
           step_events_completed.wide = current_block->step_event_count.wide;
         }
         old_x_min_endstop = x_min_endstop;
-      #endif
+#endif
     } else { // +direction
-      #if ( (defined(X_MAX_PIN) && (X_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMAXLIMIT)          
-        #ifdef TMC2130_SG_HOMING
+#if ( (defined(X_MAX_PIN) && (X_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMAXLIMIT)          
+  #ifdef TMC2130_SG_HOMING
         // Stall guard homing turned on
             x_max_endstop = (READ(X_TMC2130_DIAG) != 0);
-        #else
+  #else
         // Normal homing
         x_max_endstop = (READ(X_MAX_PIN) != X_MAX_ENDSTOP_INVERTING);
-        #endif
+  #endif
         if(x_max_endstop && old_x_max_endstop && (current_block->steps_x.wide > 0)){
           endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
           endstop_x_hit=true;
           step_events_completed.wide = current_block->step_event_count.wide;
         }
         old_x_max_endstop = x_max_endstop;
-      #endif
+#endif
     }
 
-    #ifndef COREXY
+#ifndef COREXY
     if ((out_bits & (1<<Y_AXIS)) != 0) // -direction
-    #else
+#else
     if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) == 0)) // -Y occurs for -A and +B
-    #endif
+#endif
     {        
-      #if ( (defined(Y_MIN_PIN) && (Y_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMINLIMIT)          
-      #ifdef TMC2130_SG_HOMING
+#if ( (defined(Y_MIN_PIN) && (Y_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMINLIMIT)          
+  #ifdef TMC2130_SG_HOMING
       // Stall guard homing turned on
           y_min_endstop = (READ(Y_TMC2130_DIAG) != 0);
-      #else
+  #else
       // Normal homing
       y_min_endstop = (READ(Y_MIN_PIN) != Y_MIN_ENDSTOP_INVERTING);
-      #endif
+  #endif
         if(y_min_endstop && old_y_min_endstop && (current_block->steps_y.wide > 0)) {
           endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
           endstop_y_hit=true;
           step_events_completed.wide = current_block->step_event_count.wide;
         }
         old_y_min_endstop = y_min_endstop;
-      #endif
+#endif
     } else { // +direction
-      #if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)                
-        #ifdef TMC2130_SG_HOMING
+#if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)                
+  #ifdef TMC2130_SG_HOMING
         // Stall guard homing turned on
             y_max_endstop = (READ(Y_TMC2130_DIAG) != 0);
-        #else
+  #else
         // Normal homing
         y_max_endstop = (READ(Y_MAX_PIN) != Y_MAX_ENDSTOP_INVERTING);
-        #endif
+  #endif
         if(y_max_endstop && old_y_max_endstop && (current_block->steps_y.wide > 0)){
           endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
           endstop_y_hit=true;
           step_events_completed.wide = current_block->step_event_count.wide;
         }
         old_y_max_endstop = y_max_endstop;
-      #endif
+#endif
     }
 
     if ((out_bits & (1<<Z_AXIS)) != 0) // -direction
     {
-      #if defined(Z_MIN_PIN) && (Z_MIN_PIN > -1) && !defined(DEBUG_DISABLE_ZMINLIMIT)
+#if defined(Z_MIN_PIN) && (Z_MIN_PIN > -1) && !defined(DEBUG_DISABLE_ZMINLIMIT)
       if (! check_z_endstop) {
-        #ifdef TMC2130_SG_HOMING
+  #ifdef TMC2130_SG_HOMING
           // Stall guard homing turned on
-#ifdef TMC2130_STEALTH_Z
+    #ifdef TMC2130_STEALTH_Z
 		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
 	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
 		  else
-#endif //TMC2130_STEALTH_Z
+    #endif //TMC2130_STEALTH_Z
 	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
-        #else
+  #else
           z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-        #endif //TMC2130_SG_HOMING
+  #endif //TMC2130_SG_HOMING
         if(z_min_endstop && old_z_min_endstop && (current_block->steps_z.wide > 0)) {
           endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
           endstop_z_hit=true;
@@ -545,27 +536,27 @@ FORCE_INLINE void stepper_check_endstops()
         }
         old_z_min_endstop = z_min_endstop;
       }
-      #endif
+#endif
     } else { // +direction
-      #if defined(Z_MAX_PIN) && (Z_MAX_PIN > -1) && !defined(DEBUG_DISABLE_ZMAXLIMIT)
-        #ifdef TMC2130_SG_HOMING
+#if defined(Z_MAX_PIN) && (Z_MAX_PIN > -1) && !defined(DEBUG_DISABLE_ZMAXLIMIT)
+  #ifdef TMC2130_SG_HOMING
         // Stall guard homing turned on
-#ifdef TMC2130_STEALTH_Z
+    #ifdef TMC2130_STEALTH_Z
 		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
 	          z_max_endstop = false;
 		  else
-#endif //TMC2130_STEALTH_Z
+    #endif //TMC2130_STEALTH_Z
         z_max_endstop = (READ(Z_TMC2130_DIAG) != 0);
-        #else
+  #else
         z_max_endstop = (READ(Z_MAX_PIN) != Z_MAX_ENDSTOP_INVERTING);
-        #endif //TMC2130_SG_HOMING
+  #endif //TMC2130_SG_HOMING
         if(z_max_endstop && old_z_max_endstop && (current_block->steps_z.wide > 0)) {
           endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
           endstop_z_hit=true;
           step_events_completed.wide = current_block->step_event_count.wide;
         }
         old_z_max_endstop = z_max_endstop;
-      #endif
+#endif
     }
   }
 
@@ -1041,8 +1032,7 @@ FORCE_INLINE void advance_isr_scheduler() {
 }
 #endif // LIN_ADVANCE
 
-void st_init()
-{
+void st_init() {
 #ifdef TMC2130
 	tmc2130_init();
 #endif //TMC2130
@@ -1476,8 +1466,7 @@ void babystep(const uint8_t axis,const bool direction)
 #endif //BABYSTEPPING
 
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-void digitalPotWrite(int address, int value) // From Arduino DigitalPotControl example
-{
+void digitalPotWrite(int address, int value) { // From Arduino DigitalPotControl example
     digitalWrite(DIGIPOTSS_PIN,LOW); // take the SS pin low to select the chip
     SPI.transfer(address); //  send in the address and value via SPI:
     SPI.transfer(value);
@@ -1486,19 +1475,16 @@ void digitalPotWrite(int address, int value) // From Arduino DigitalPotControl e
 }
 #endif
 
-void EEPROM_read_st(int pos, uint8_t* value, uint8_t size)
-{
-    do
-    {
-        *value = eeprom_read_byte((unsigned char*)pos);
-        pos++;
-        value++;
-    }while(--size);
+void EEPROM_read_st(int pos, uint8_t* value, uint8_t size) {
+  do{
+    *value = eeprom_read_byte((unsigned char*)pos);
+    pos++;
+    value++;
+  } while(--size);
 }
 
 
-void st_current_init() //Initialize Digipot Motor Current
-{
+void st_current_init(){ //Initialize Digipot Motor Current
 #ifdef MOTOR_CURRENT_PWM_XY_PIN
   uint8_t SilentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
   SilentModeMenu = SilentMode;
@@ -1523,31 +1509,46 @@ void st_current_init() //Initialize Digipot Motor Current
     st_current_set(2, motor_current_setting[2]);
     //Set timer5 to 31khz so the PWM of the motor power is as constant as possible. (removes a buzzing noise)
     TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
+#elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+  pinMode(DIGIPOTSS_PIN,OUTPUT);
+  // for(int i = 0; i < 5; i++){
+  //   digitalPotWrite(DIGIPOT_CHANNELS[i],DIGIPOT_MOTOR_CURRENT[i]);
+  // }
+  digitalPotWrite(4, 135);
+  digitalPotWrite(5, 135);
+  digitalPotWrite(3, 135);
+  digitalPotWrite(0, 135);
+  digitalPotWrite(1, 135);
+
 #endif
 }
 
 
 
 #ifdef MOTOR_CURRENT_PWM_XY_PIN
-void st_current_set(uint8_t driver, int current)
-{
+void st_current_set(uint8_t driver, int current) {
   if (driver == 0) analogWrite(MOTOR_CURRENT_PWM_XY_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
   if (driver == 1) analogWrite(MOTOR_CURRENT_PWM_Z_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
   if (driver == 2) analogWrite(MOTOR_CURRENT_PWM_E_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
 }
 #else //MOTOR_CURRENT_PWM_XY_PIN
-void st_current_set(uint8_t, int ){}
+void st_current_set(int driver, int current) {
+  // digitalPotWrite(DIGIPOT_CHANNELS[driver],current);
+}
 #endif //MOTOR_CURRENT_PWM_XY_PIN
 
-void microstep_init()
-{
+void microstep_init() {
 
   #if defined(E1_MS1_PIN) && E1_MS1_PIN > -1
-  pinMode(E1_MS1_PIN,OUTPUT);
-  pinMode(E1_MS2_PIN,OUTPUT); 
+    pinMode(E1_MS1_PIN,OUTPUT);
+    pinMode(E1_MS2_PIN,OUTPUT); 
+  #endif
+  #if defined(E2_MS1_PIN) && E2_MS1_PIN > -1
+    pinMode(E2_MS1_PIN,OUTPUT);
+    pinMode(E2_MS2_PIN,OUTPUT);
   #endif
 
-  #if defined(X_MS1_PIN) && X_MS1_PIN > -1
+#if defined(X_MS1_PIN) && X_MS1_PIN > -1 //assumes XYZ & one E by default
   const uint8_t microstep_modes[] = MICROSTEP_MODES;
   pinMode(X_MS1_PIN,OUTPUT);
   pinMode(X_MS2_PIN,OUTPUT);  
@@ -1558,16 +1559,14 @@ void microstep_init()
   pinMode(E0_MS1_PIN,OUTPUT);
   pinMode(E0_MS2_PIN,OUTPUT);
   for(int i=0;i<=4;i++) microstep_mode(i,microstep_modes[i]);
-  #endif
+#endif
 }
 
 
 #ifndef TMC2130
 
-void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2)
-{
-  if(ms1 > -1) switch(driver)
-  {
+void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2) {
+  if(ms1 > -1) switch(driver) {
     case 0: digitalWrite( X_MS1_PIN,ms1); break;
     case 1: digitalWrite( Y_MS1_PIN,ms1); break;
     case 2: digitalWrite( Z_MS1_PIN,ms1); break;
@@ -1576,8 +1575,7 @@ void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2)
     case 4: digitalWrite(E1_MS1_PIN,ms1); break;
     #endif
   }
-  if(ms2 > -1) switch(driver)
-  {
+  if(ms2 > -1) switch(driver) {
     case 0: digitalWrite( X_MS2_PIN,ms2); break;
     case 1: digitalWrite( Y_MS2_PIN,ms2); break;
     case 2: digitalWrite( Z_MS2_PIN,ms2); break;
@@ -1588,10 +1586,8 @@ void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2)
   }
 }
 
-void microstep_mode(uint8_t driver, uint8_t stepping_mode)
-{
-  switch(stepping_mode)
-  {
+void microstep_mode(uint8_t driver, uint8_t stepping_mode) {
+  switch(stepping_mode) {
     case 1: microstep_ms(driver,MICROSTEP1); break;
     case 2: microstep_ms(driver,MICROSTEP2); break;
     case 4: microstep_ms(driver,MICROSTEP4); break;
@@ -1600,8 +1596,7 @@ void microstep_mode(uint8_t driver, uint8_t stepping_mode)
   }
 }
 
-void microstep_readings()
-{
+void microstep_readings() {
       SERIAL_PROTOCOLPGM("MS1,MS2 Pins\n");
       SERIAL_PROTOCOLPGM("X: ");
       SERIAL_PROTOCOL(   digitalRead(X_MS1_PIN));

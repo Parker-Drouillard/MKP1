@@ -672,21 +672,22 @@ void lcdui_print_status_screen(void) {
 	lcd_print(LCD_STR_DEGREE " ");
 	lcd_print("          ");
 	#endif
-
+#ifdef FIL_RUNOUT_SUPPORT
 	lcd_set_cursor(LCD_WIDTH - 7, 1); //Line 2 7 from right
 	lcd_print("0:");
 	if(READ(FILAMENT_RUNOUT_SENSOR)){
-		lcd_print("Y");
+		lcd_print("L");
 	} else {
 		lcd_print("N");
 	}
 	#if EXTRUDERS == 2
 		lcd_print(" 1:");
 		if(READ(FILAMENT_RUNOUT2_SENSOR)){
-			lcd_print("Y");
+			lcd_print("L");
 		} else {
 			lcd_print("N");
 		}
+#endif //FIL_RUNOUT_SUPPORT
 	#endif
 
     lcd_set_cursor(0, 2); //line 3
@@ -7390,7 +7391,7 @@ static bool lcd_selfcheck_pulleys(int axis)
 	for (i = 0; i < 5; i++) {
 		refresh_cmd_timeout();
 		current_position[axis] = current_position[axis] + move;
-		st_current_set(0, 850); //set motor current higher
+		// st_current_set(0, 850); //set motor current higher
 		plan_buffer_line_curposXYZE(200);
 		st_synchronize();
         //   if (SilentModeMenu != SILENT_MODE_OFF) st_current_set(0, tmp_motor[0]); //set back to normal operation currents
@@ -7416,13 +7417,11 @@ static bool lcd_selfcheck_pulleys(int axis)
 				plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 				st_synchronize();
 				return(true);
-			}
-			else {
+			} else {
 				lcd_selftest_error(TestError::Pulley, (axis == 0) ? "X" : "Y", "");
 				return(false);
 			}
-		}
-		else {
+		} else {
 			current_position[axis] -= 1;
 			plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 			st_synchronize();
@@ -7437,8 +7436,7 @@ static bool lcd_selfcheck_pulleys(int axis)
 #endif //not defined TMC2130
 
 
-static bool lcd_selfcheck_endstops()
-{
+static bool lcd_selfcheck_endstops() {
 	bool _result = true;
 
 	if (

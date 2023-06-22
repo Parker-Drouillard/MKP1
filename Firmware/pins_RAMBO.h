@@ -14,10 +14,10 @@
 
 // LIMIT SWITCHES
 #define X_MIN_PIN   12
-//#define X_MAX_PIN  24    //Used for Fil Runout on E0
+// #define X_MAX_PIN  24    //Used for Fil Runout on E0
 #define X_MAX_PIN -1
 #define Y_MIN_PIN   11
-//#define Y_MAX_PIN  23    //Used for Fil Runout on E1
+// #define Y_MAX_PIN  23    //Used for Fil Runout on E1
 #define Y_MAX_PIN -1
 #define Z_MIN_PIN    10
 #define Z_MAX_PIN    30
@@ -62,8 +62,11 @@
 #define E1_MS2_PIN      64
 
 #define DIGIPOTSS_PIN   38
-#define DIGIPOT_CHANNELS  { 4,5,3,0,1 }
-#define DIGIPOT_MOTOR_CURRENT {135,135,135,135,135}
+#define DIGIPOT_CHANNELS { 4,5,3,0,1 } // X Y Z E0 E1 digipot channels to stepper driver mapping
+// #ifndef DIGIPOT_MOTOR_CURRENT
+//   #define DIGIPOT_MOTOR_CURRENT { 135,135,135,135,135 } // Values 0-255 (RAMBO 135 =~ 0.75A, 185 =~ 1A)
+//   #define DIGIPOT_MOTOR_CURRENT_LOUD {135,135,135,135,135}
+// #endif
 
 
 
@@ -91,31 +94,29 @@
 
 //LCD SCREEN
 //Extension 1
-                                      //1 - 5v vcc        
-                                      //2 - Gnd         
-#define LCD_PINS_D7     75            //3 - LCD_PIN_D7    PJ4
-#define LCD_PINS_D6     74            //4 - LCD_PIN_D6    PJ7
-#define LCD_PINS_D5     73            //5 - LCD_PIN_D5    PJ3
-#define LCD_PINS_D4     72            //6 - LCD_PIN_D4    PJ2
-#define LCD_PINS_RS     70            //7 - LCD_PIN_RS    PG4
-#define LCD_PINS_ENABLE 71            //8 - LCD_PIN_EN    PG3
-#define BTN_ENC         78            //9 -  BTN_ENC      PE2
+//------------------------------------// 1 - 5v vcc        
+//------------------------------------// 2 - Gnd         
+#define LCD_PINS_D7     75            // 3 - LCD_PIN_D7    PJ4
+#define LCD_PINS_D6     74            // 4 - LCD_PIN_D6    PJ7
+#define LCD_PINS_D5     73            // 5 - LCD_PIN_D5    PJ3
+#define LCD_PINS_D4     72            // 6 - LCD_PIN_D4    PJ2
+#define LCD_PINS_RS     70            // 7 - LCD_PIN_RS    PG4
+#define LCD_PINS_ENABLE 71            // 8 - LCD_PIN_EN    PG3
+#define BTN_ENC         78            // 9 -  BTN_ENC      PE2
 #define BEEPER          79            //10 - BEEPER       PE6
 //Extension 2
-#define LED_PIN         13            //1 - PWR_LED       PH2
-                                      //2 - Gnd           
-#define KILL_PIN        80            //3 - KILL_PIN      PE7
-#define SDCARDDETECT    81            //4 - SDCARDDETECT  PD4
-#define MOSI_PIN        51            //5 - MOSI_PIN      PB2
-#define BTN_EN2         77            //6 - BTN_EN2       PJ6
-#define SDSS            53            //7 - SDSS          PB0
-#define BTN_EN1         76            //8 - BTN_EN1       PJ5
-// #define SCK_PIN         52            //9 - SCK_PIN       PB1
-// #define MISO_PIN        50            //10 - MISO_PIN     PB3
+#define LED_PIN         13            // 1 - PWR_LED       PH2
+//------------------------------------// 2 - Gnd           
+#define KILL_PIN        80            // 3 - KILL_PIN      PE7
+#define SDCARDDETECT    81            // 4 - SDCARDDETECT  PD4
+#define MOSI_PIN        51            // 5 - MOSI_PIN      PB2
+#define BTN_EN2         77            // 6 - BTN_EN2       PJ6
+#define SDSS            53            // 7 - SDSS          PB0
+#define BTN_EN1         76            // 8 - BTN_EN1       PJ5
+// #define SCK_PIN         52            // 9 - SCK_PIN       PB1 - Already declared elsewhere
+#define MISO_PIN        50            //10 - MISO_PIN     PB3
 
-#define SDPOWER -1
-
-
+#define SDPOWER  -1
 
 #define SWI2C_SDA  20
 #define SWI2C_SCL  21

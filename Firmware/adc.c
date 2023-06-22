@@ -37,15 +37,17 @@ void adc_init(void) {
 void adc_reset(void) {
 	adc_state = 0;
 	adc_count = 0;
-	uint8_t i; for (i = 0; i < ADC_CHAN_CNT; i++)
-	if ((adc_sim_mask & (1 << i)) == 0) { 
-		adc_values[i] = 0;
+	uint8_t i; 
+	for (i = 0; i < ADC_CHAN_CNT; i++) {
+		if ((adc_sim_mask & (1 << i)) == 0) { 
+			adc_values[i] = 0;
+		}
 	}
 }
 
 void adc_setmux(uint8_t ch) {
 	ch &= 0x0f;
-	if (ch & 0x08){
+	if (ch & 0x08) {
 		ADCSRB |= (1 << MUX5);
 	} else {
 		ADCSRB &= ~(1 << MUX5);
@@ -64,19 +66,16 @@ uint8_t adc_chan(uint8_t index) {
 	return chan;
 }
 
-void adc_cycle(void)
-{
-	if (adc_state & 0x80)
-	{
+void adc_cycle(void) {
+	if (adc_state & 0x80) {
 		uint8_t index = adc_state & 0x0f;
-		if ((adc_sim_mask & (1 << index)) == 0)
+		if ((adc_sim_mask & (1 << index)) == 0) {
 			adc_values[index] += ADC;
-		if (++index >= ADC_CHAN_CNT)
-		{
+		}
+		if (++index >= ADC_CHAN_CNT) {
 			index = 0;
 			adc_count++;
-			if (adc_count >= ADC_OVRSAMPL)
-			{
+			if (adc_count >= ADC_OVRSAMPL) {
 #ifdef ADC_CALLBACK
 				ADC_CALLBACK();
 #endif //ADC_CALLBACK
@@ -85,9 +84,7 @@ void adc_cycle(void)
 		}
 		adc_setmux(adc_chan(index));
 		adc_state = index;
-	}
-	else
-	{
+	} else {
 		ADCSRA |= (1 << ADSC); //start conversion
 		adc_state |= 0x80;
 	}
