@@ -5,12 +5,12 @@
 //          SCK  1   -- SPI SCK to RAMBO
 //          MOSI 2   -- SPI MOSI to RAMBO
 //          MISO 3   -- SPI MISO to RAMBO
-//          PWM  4
+//          PWM  4   -- Extruder ?? PWM
 //  SCL PWM INT0 5   -- I2C Reserved
 //  SDA     INT1 6   -- I2C Reserved  
 //       RX INT2 7
 //       TX INT3 8
-//      PWM      9
+//      PWM      9   -- Extruder ?? PWM
 //      PWM      10  -- Extruder1 Blower Fan PWM Control
 //   (LED)  A10  11
 //      PWM  A9  12  -- Extruder1 Axial Cooling Fan PWM Control
@@ -37,8 +37,8 @@ const int E2BlowerFans_pin = 10;
 const int E2AxialFan_pin = 12;
 
 //Solenoid Pins
-const int solenoidDeploy = 21;
-const int solenoidRetract = 20;
+const int solenoidForward = 21;
+const int solenoidReverse = 20;
 
 //Motor Pins
 const int motorForwardEnable = 23;
