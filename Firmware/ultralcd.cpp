@@ -7417,13 +7417,11 @@ static bool lcd_selfcheck_pulleys(int axis)
 				plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 				st_synchronize();
 				return(true);
-			}
-			else {
+			} else {
 				lcd_selftest_error(TestError::Pulley, (axis == 0) ? "X" : "Y", "");
 				return(false);
 			}
-		}
-		else {
+		} else {
 			current_position[axis] -= 1;
 			plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 			st_synchronize();
@@ -7438,8 +7436,7 @@ static bool lcd_selfcheck_pulleys(int axis)
 #endif //not defined TMC2130
 
 
-static bool lcd_selfcheck_endstops()
-{
+static bool lcd_selfcheck_endstops() {
 	bool _result = true;
 
 	if (
