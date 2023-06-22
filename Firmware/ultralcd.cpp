@@ -7391,7 +7391,7 @@ static bool lcd_selfcheck_pulleys(int axis)
 	for (i = 0; i < 5; i++) {
 		refresh_cmd_timeout();
 		current_position[axis] = current_position[axis] + move;
-		st_current_set(0, 850); //set motor current higher
+		// st_current_set(0, 850); //set motor current higher
 		plan_buffer_line_curposXYZE(200);
 		st_synchronize();
         //   if (SilentModeMenu != SILENT_MODE_OFF) st_current_set(0, tmp_motor[0]); //set back to normal operation currents

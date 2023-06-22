@@ -1523,28 +1523,43 @@ void st_current_init() //Initialize Digipot Motor Current
     st_current_set(2, motor_current_setting[2]);
     //Set timer5 to 31khz so the PWM of the motor power is as constant as possible. (removes a buzzing noise)
     TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
+#elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+  pinMode(DIGIPOTSS_PIN,OUTPUT);
+  // for(int i = 0; i < 5; i++){
+  //   digitalPotWrite(DIGIPOT_CHANNELS[i],DIGIPOT_MOTOR_CURRENT[i]);
+  // }
+  digitalPotWrite(4, 135);
+  digitalPotWrite(5, 135);
+  digitalPotWrite(3, 135);
+  digitalPotWrite(0, 135);
+  digitalPotWrite(1, 135);
+
 #endif
 }
 
 
 
 #ifdef MOTOR_CURRENT_PWM_XY_PIN
-void st_current_set(uint8_t driver, int current)
-{
+void st_current_set(uint8_t driver, int current) {
   if (driver == 0) analogWrite(MOTOR_CURRENT_PWM_XY_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
   if (driver == 1) analogWrite(MOTOR_CURRENT_PWM_Z_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
   if (driver == 2) analogWrite(MOTOR_CURRENT_PWM_E_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
 }
 #else //MOTOR_CURRENT_PWM_XY_PIN
-void st_current_set(uint8_t, int ){}
+void st_current_set(int driver, int current) {
+  // digitalPotWrite(DIGIPOT_CHANNELS[driver],current);
+}
 #endif //MOTOR_CURRENT_PWM_XY_PIN
 
-void microstep_init()
-{
+void microstep_init() {
 
   #if defined(E1_MS1_PIN) && E1_MS1_PIN > -1
-  pinMode(E1_MS1_PIN,OUTPUT);
-  pinMode(E1_MS2_PIN,OUTPUT); 
+    pinMode(E1_MS1_PIN,OUTPUT);
+    pinMode(E1_MS2_PIN,OUTPUT); 
+  #endif
+  #if defined(E2_MS1_PIN) && E2_MS1_PIN > -1
+    pinMode(E2_MS1_PIN,OUTPUT);
+    pinMode(E2_MS2_PIN,OUTPUT);
   #endif
 
   #if defined(X_MS1_PIN) && X_MS1_PIN > -1

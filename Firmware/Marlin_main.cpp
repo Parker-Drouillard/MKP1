@@ -7691,20 +7691,22 @@ Sigma_Exit:
 			}
 
 #else //TMC2130
-      #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-        for(int i=0;i<NUM_AXIS;i++) if(code_seen(axis_codes[i])) st_current_set(i,code_value());
-        if(code_seen('B')) st_current_set(4,code_value());
-        if(code_seen('S')) for(int i=0;i<=4;i++) st_current_set(i,code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_XY_PIN
-        if(code_seen('X')) st_current_set(0, code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_Z_PIN
-        if(code_seen('Z')) st_current_set(1, code_value());
-      #endif
-      #ifdef MOTOR_CURRENT_PWM_E_PIN
-        if(code_seen('E')) st_current_set(2, code_value());
-      #endif
+      // #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+      //   for(int i=0;i<NUM_AXIS;i++) {
+      //     if(code_seen(axis_codes[i])) st_current_set(i,code_value());
+      //   }
+      //   if(code_seen('B')) st_current_set(4,code_value());
+      //   if(code_seen('S')) for(int i=0;i<=4;i++) st_current_set(i,code_value());
+      // #endif
+      // #ifdef MOTOR_CURRENT_PWM_XY_PIN
+      //   if(code_seen('X')) st_current_set(0, code_value());
+      // #endif
+      // #ifdef MOTOR_CURRENT_PWM_Z_PIN
+      //   if(code_seen('Z')) st_current_set(1, code_value());
+      // #endif
+      // #ifdef MOTOR_CURRENT_PWM_E_PIN
+      //   if(code_seen('E')) st_current_set(2, code_value());
+      // #endif
 #endif //TMC2130
     }
     break;
@@ -8496,7 +8498,7 @@ void update_currents() {
 	if (destination[Z_AXIS] < Z_SILENT) {
 		//SERIAL_ECHOLNPGM("LOW");
 		for (uint8_t i = 0; i < 3; i++) {
-			st_current_set(i, current_low[i]);		
+			// st_current_set(i, current_low[i]);		
 			/*MYSERIAL.print(int(i));
 			SERIAL_ECHOPGM(": ");
 			MYSERIAL.println(current_low[i]);*/
@@ -8505,7 +8507,7 @@ void update_currents() {
 	else if (destination[Z_AXIS] > Z_HIGH_POWER) {
 		//SERIAL_ECHOLNPGM("HIGH");
 		for (uint8_t i = 0; i < 3; i++) {
-			st_current_set(i, current_high[i]);
+			// st_current_set(i, current_high[i]);
 			/*MYSERIAL.print(int(i));
 			SERIAL_ECHOPGM(": ");
 			MYSERIAL.println(current_high[i]);*/
@@ -8515,7 +8517,7 @@ void update_currents() {
 		for (uint8_t i = 0; i < 3; i++) {
 			float q = current_low[i] - Z_SILENT*((current_high[i] - current_low[i]) / (Z_HIGH_POWER - Z_SILENT));
 			tmp_motor[i] = ((current_high[i] - current_low[i]) / (Z_HIGH_POWER - Z_SILENT))*destination[Z_AXIS] + q;
-			st_current_set(i, tmp_motor[i]);			
+			// st_current_set(i, tmp_motor[i]);			
 			/*MYSERIAL.print(int(i));
 			SERIAL_ECHOPGM(": ");
 			MYSERIAL.println(tmp_motor[i]);*/
