@@ -11,8 +11,7 @@ extern FILE _uartout;
 
 extern void softReset();
 
-void bootapp_print_vars(void)
-{
+void bootapp_print_vars(void) {
 	fprintf_P(uartout, PSTR("boot_src_addr  =0x%08lx\n"), boot_src_addr);
 	fprintf_P(uartout, PSTR("boot_dst_addr  =0x%08lx\n"), boot_dst_addr);
 	fprintf_P(uartout, PSTR("boot_copy_size =0x%04x\n"), boot_copy_size);
@@ -22,13 +21,12 @@ void bootapp_print_vars(void)
 }
 
 
-void bootapp_ram2flash(uint16_t rptr, uint16_t fptr, uint16_t size)
-{
+void bootapp_ram2flash(uint16_t rptr, uint16_t fptr, uint16_t size) {
 	cli();
 	boot_app_magic = BOOT_APP_MAGIC;
 	boot_app_flags |= BOOT_APP_FLG_COPY;
 	boot_app_flags |= BOOT_APP_FLG_ERASE;
-/*	uint16_t ui; for (ui = 0; ui < size; ui++)
+	/*	uint16_t ui; for (ui = 0; ui < size; ui++)
 	{
 		uint8_t uc = ram_array[ui+rptr];
 		if (pgm_read_byte(ui+fptr) & uc != uc)
@@ -44,8 +42,7 @@ void bootapp_ram2flash(uint16_t rptr, uint16_t fptr, uint16_t size)
 	softReset();
 }
 
-void bootapp_reboot_user0(uint8_t reserved)
-{
+void bootapp_reboot_user0(uint8_t reserved) {
 	cli();
 	boot_app_magic = BOOT_APP_MAGIC;
 	boot_app_flags = BOOT_APP_FLG_USER0;

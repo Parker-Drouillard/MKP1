@@ -1,3 +1,4 @@
 {
-    "arduino.additionalUrls": ""
+    "arduino.additionalUrls": "",
+    "cmake.configureOnOpen": true
 }

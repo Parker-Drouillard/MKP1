@@ -384,7 +384,7 @@
  *------------------------------------*/
 
 // Define Prusa filament runout sensor
-// #define FILAMENT_RUNOUT_SUPPORT
+#define FILAMENT_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
 // #if EXTRUDERS > 1 && defined(FIL_RUNOUT2_PIN)
