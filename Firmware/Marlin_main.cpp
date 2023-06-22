@@ -7646,7 +7646,6 @@ Sigma_Exit:
 #endif //TMC2130
     }
     break;
-#endif
 
     /*!
 	### M908 - Control digital trimpot directly <a href="https://reprap.org/wiki/G-code#M908:_Control_digital_trimpot_directly">M908: Control digital trimpot directly</a>
