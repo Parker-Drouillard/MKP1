@@ -79,8 +79,8 @@
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.
-#define EXTRUDER_OFFSET_X {0.0, 47} // (in mm) for each extruder, offset of the hotend on the X axis
-#define EXTRUDER_OFFSET_Y {0.0, 0.0}  // (in mm) for each extruder, offset of the hotend on the Y axis
+#define EXTRUDER_OFFSET_X {0.0, 46.833} // (in mm) for each extruder, offset of the hotend on the X axis
+#define EXTRUDER_OFFSET_Y {0.0, 11.80}  // (in mm) for each extruder, offset of the hotend on the Y axis
 #define EXTRUDER_OFFSET_Z {0.0, -2}
 
 // Canceled home position
@@ -319,7 +319,7 @@
 #else
 #define HEATER_0_MAXTEMP 305
 #endif
-#define HEATER_1_MAXTEMP 305
+#define HEATER_1_MAXTEMP 410
 #define HEATER_2_MAXTEMP 305
 #define BED_MAXTEMP 125
 #define AMBIENT_MAXTEMP 100
@@ -438,9 +438,9 @@
 #define MESH_HOME_Z_CALIB 0.2
 #define MESH_HOME_Z_SEARCH 5.0f           // Z lift for homing, mesh bed leveling etc.
 
-#define X_PROBE_OFFSET_FROM_EXTRUDER 22     // Z probe to nozzle X offset: -left  +right
-#define Y_PROBE_OFFSET_FROM_EXTRUDER 1     // Z probe to nozzle Y offset: -front +behind
-#define Z_PROBE_OFFSET_FROM_EXTRUDER -0.5  // Z probe to nozzle Z offset: -below (always!)
+#define X_PROBE_OFFSET_FROM_EXTRUDER 20.5      // Z probe to nozzle X offset: -left  +right
+#define Y_PROBE_OFFSET_FROM_EXTRUDER 0     // Z probe to nozzle Y offset: -front +behind
+#define Z_PROBE_OFFSET_FROM_EXTRUDER -2  // Z probe to nozzle Z offset: -below (always!)
 #endif
 
 // Bed Temperature Control

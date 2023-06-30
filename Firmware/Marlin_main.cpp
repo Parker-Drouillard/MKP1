@@ -607,7 +607,7 @@ void crashdet_recover() {
 	crashdet_restore_print_and_continue();
 	if (lcd_crash_detect_enabled()) {
     tmc2130_sg_stop_on_crash = true;
-    }
+  }
 }
 
 void crashdet_cancel() {
@@ -636,9 +636,9 @@ void failstats_reset_print() {
 }
 
 void softReset() {
-    cli();
-    wdt_enable(WDTO_15MS);
-    while(1);
+  cli();
+  wdt_enable(WDTO_15MS);
+  while(1);
 }
 
 
@@ -1918,7 +1918,7 @@ static void do_blocking_move_to(float x, float y, float z) {
 }
 
 static void do_blocking_move_relative(float offset_x, float offset_y, float offset_z) {
-    do_blocking_move_to(current_position[X_AXIS] + offset_x, current_position[Y_AXIS] + offset_y, current_position[Z_AXIS] + offset_z);
+  do_blocking_move_to(current_position[X_AXIS] + offset_x, current_position[Y_AXIS] + offset_y, current_position[Z_AXIS] + offset_z);
 }
 
 
