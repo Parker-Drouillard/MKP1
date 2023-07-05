@@ -1,13 +1,19 @@
 #include "pins_RAMBO.h"
-#include "fastio.h"
+// #include "fastio.h"
 #include <SPI.h>
-#include "config.h"
-#include "Dcodes.h"
+// #include "config.h"
+// #include "Dcodes.h"
 #include "Marlin.h"
-#include "Configuration.h"
-#include "language.h"
-#include "cmdqueue.h"
-#include <EEPROM.h>
+// #include "Configuration.h"
+// #include "language.h"
+// #include "cmdqueue.h"
+// #include "swspi.h"
+// #include "eeprom.h"
+
+
+
+
+
 
 
 void eBoard_init(void) {
@@ -39,11 +45,7 @@ void extruderBoardTest(void) {
     // disable Slave Select
     digitalWrite(EBOARD_SS, HIGH);
 
-    // Serial.println ("Adding results:");
-    // Serial.println (a, 10);
-    // Serial.println (b, 10);
-    // Serial.println (c, 10);
-    // Serial.println (d, 10);
+	printf_P(PSTR("Adding results:\n %d\n %d\n %d\n %d\n"), a, b, c, d);
 
     // enable Slave Select
     digitalWrite(EBOARD_SS, LOW);   
@@ -58,9 +60,5 @@ void extruderBoardTest(void) {
     // disable Slave Select
     digitalWrite(EBOARD_SS, HIGH);
 
-    // Serial.println ("Subtracting results:");
-    // Serial.println (a, 10);
-    // Serial.println (b, 10);
-    // Serial.println (c, 10);
-    // Serial.println (d, 10);
+	printf_P(PSTR("Subtracting results:\n %d\n %d\n %d\n %d\n"), a, b, c, d);
 }
