@@ -44,12 +44,18 @@ bool solenoidHomed = false;
 // };
 
 
+#define SS SS_pin
+#define MISO MISO_pin
+#define MOSI MOSI_pin
+#define SCK SCK_pin
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////         SETUP                    /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
-  // spiInit();
+  pinMode(MISO, OUTPUT);
 
   // put your setup code here, to run once:
   for(int i = 0; i < NUMFANS; i++){
@@ -61,6 +67,7 @@ void setup() {
   pinMode(motorForwardEnable, OUTPUT);
   pinMode(motorReverseEnable, OUTPUT);
   Serial.begin(9600);
+  T2spiInit();
   Serial.print("PWM output begin.");
   digitalWrite(ledPin, ledState);
   updateAllFanStates(); //DigitalWrite all fan states
@@ -93,7 +100,6 @@ void loop() {
     command = 0;
   }
 
-  homeSolenoid();
 
   sampleHealthOfAllFans();
 
@@ -167,7 +173,6 @@ void homeSolenoid(){
   //solenoidForward Low && solenoidReverse High = Extend
   //solenoidForward HIGH && solenoidReverse HIGH = neither/inactive
   //solenoidForward LOW && solenoidReverse LOW = neither/inactive
-  Serial.println("SOL");
 
   digitalWrite(solenoidForward,HIGH);
   digitalWrite(solenoidReverse,LOW);
@@ -310,16 +315,17 @@ void blinkLED(){
 ///  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SPI STUFF ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ///~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void spiInit(){
-  SPCR = (1<<SPE);
+void T2spiInit(){
+  DDRB = (1<<MISO);
+  SPCR |= _BV(SPE);
+  SPCR |= _BV(SPIE);
 
+  Serial.println("SPI INIT");
 
-  pinMode(SS_pin, INPUT);
-  pinMode(SCK_pin, INPUT);
-  pinMode(MOSI_pin, INPUT);
-  pinMode(MISO_pin, OUTPUT);
-
-
+  // pinMode(SS_pin, INPUT);
+  // pinMode(SCK_pin, INPUT);
+  // pinMode(MOSI_pin, INPUT);
+  // pinMode(MISO_pin, OUTPUT);
 }
 
 

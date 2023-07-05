@@ -966,7 +966,6 @@ static void w25x20cl_err_msg() {
 void setup() {
 	ultralcd_init();
 	spi_init();
-  extruderBoardTest();
 	lcd_splash();
   Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
 
@@ -1536,6 +1535,7 @@ void setup() {
 #ifdef WATCHDOG
   wdt_enable(WDTO_4S);
 #endif //WATCHDOG
+  extruderBoardTest();
 }
 
 void trace();

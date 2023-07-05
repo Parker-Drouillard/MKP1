@@ -23,12 +23,14 @@ void eBoard_init(void) {
 }
 
 byte transferAndWait (const byte buf){
+    printf_P(PSTR("Transferring %c"), buf);
     byte a = SPI.transfer(buf);
     delayMicroseconds(20);
     return a;
 } // end of transferAndWait
 
 void extruderBoardTest(void) {
+    printf_P(PSTR("Running EBoardTest"));
     eBoard_init();
 
     byte a, b, c, d;
