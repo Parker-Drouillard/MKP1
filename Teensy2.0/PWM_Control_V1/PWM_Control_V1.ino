@@ -24,6 +24,13 @@ unsigned long previousMillis = 0;        // will store last time LED was updated
 unsigned long changeMillis = 0;
 unsigned long fanMillis = 0;
 
+//SPI stuff
+char buffer [128]; //data buffer
+volatile byte pos;
+volatile boolean process_it;
+
+bool solenoidHomed = false;
+
 // struct pwmFan{
 //   int pwmPin;
 //   int tachPin;
@@ -40,12 +47,7 @@ unsigned long fanMillis = 0;
 /////////         SETUP                    /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
-  // extruder E1 = {
-  //   pwmFan heatsinkFan = {
-      
-  //   }
-  // }
-
+  // spiInit();
 
   // put your setup code here, to run once:
   for(int i = 0; i < NUMFANS; i++){
@@ -76,11 +78,20 @@ void setup() {
 void loop() {
   //Blinking light to show life
   blinkLED();
+  if(process_it){
+    buffer [pos] = 0;
+    Serial.println(buffer);
+    handleCommands();
+    pos = 0;
+    process_it = false;
+  }
+
+  homeSolenoid();
 
   sampleHealthOfAllFans();
 
   updateAllFanStates(); //DigitalWrite all fan states
-  logHealthOfAllFans();
+  // logHealthOfAllFans();
  }
 
  
@@ -116,9 +127,8 @@ void fanConnectionTest() {
       }
       prevTestMillis = currentMillis;
       
-
       unsigned long currentTachReading = analogRead(tachPins[i])/4*60;
-      Serial.println(i + String("   Value: ") + currentTachReading + String("    Samples: ") + fanHealthSamples[i] + String("     Status: ") + fanStates[i]);
+      // Serial.println(i + String("   Value: ") + currentTachReading + String("    Samples: ") + fanHealthSamples[i] + String("     Status: ") + fanStates[i]);
       if(currentTachReading >= 10000 || currentTachReading < 4000) {
         fanHealthSamples[i] = fanHealthSamples[i]+1; //Increase counter if improper tach values sensed.
       } else {
@@ -150,6 +160,7 @@ void homeSolenoid(){
   //solenoidForward Low && solenoidReverse High = Extend
   //solenoidForward HIGH && solenoidReverse HIGH = neither/inactive
   //solenoidForward LOW && solenoidReverse LOW = neither/inactive
+  Serial.println("SOL");
 
   digitalWrite(solenoidForward,HIGH);
   digitalWrite(solenoidReverse,LOW);
@@ -289,3 +300,76 @@ void blinkLED(){
   }
 }
 
+///  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SPI STUFF ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+///~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void spiInit(){
+  SPCR = (1<<SPE);
+
+
+  pinMode(SS_pin, INPUT);
+  pinMode(SCK_pin, INPUT);
+  pinMode(MOSI_pin, INPUT);
+  pinMode(MISO_pin, OUTPUT);
+
+
+}
+
+
+void SPI_SlaveReceive(void){
+  while(!(SPSR & (1<<SPIF)));
+  return SPDR;
+}
+
+//http://www.gammon.com.au/forum/?id=10892&reply=1#reply1
+ISR (SPI_STC_vect) { // SPI interrupt routine
+
+  byte c = SPDR; //grab byte from SPI Data Register
+
+  // Add to buffer if there is room
+  if (pos < (sizeof (buffer) - 1)) {
+    buffer [pos++] = c;
+  }
+
+  // newline means time to process buffer
+  if (c == '\n'){
+    process_it = true;
+  }
+} // end of interrupt routine SPI_STC_vect
+
+
+
+
+
+
+void handleCommands(){
+
+  // switch(command){
+
+  //   case "M382": //Solenoid Up
+  //     if(!solenoidHomed){
+  //       homeSolenoid();
+  //     }
+  //     digitalWrite(solenoidForward,HIGH);
+  //     digitalWrite(solenoidReverse,LOW);
+  //     delay(40);
+  //     digitalWrite(solenoidForward,LOW);
+  //   break;
+
+  //   case "M383": //Solenoid Down
+  //     if(!solenoidHomed){
+  //       homeSolenoid();
+  //     }
+  //     digitalWrite(solenoidReverse,HIGH);
+  //     digitalWrite(solenoidForward,LOW);
+  //     delay(40);
+  //     digitalWrite(solenoidReverse,LOW);
+  //   break;
+    
+
+  //   default:
+  //   break;
+  // }
+
+  return;
+}

@@ -421,8 +421,7 @@ void serial_echopair_P(const char *s_P, double v)
 void serial_echopair_P(const char *s_P, unsigned long v)
     { serialprintPGM(s_P); SERIAL_ECHO(v); }
 
-/*FORCE_INLINE*/ void serialprintPGM(const char *str)
-{
+/*FORCE_INLINE*/ void serialprintPGM(const char *str) {
 #if 0
   char ch=pgm_read_byte(str);
   while(ch) {
