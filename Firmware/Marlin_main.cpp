@@ -139,6 +139,8 @@ static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS; //X Y Z E1 E0 Channel Addr
 
 #include "cmdqueue.h"
 
+#include "ExtruderBoard.h"
+
 //Macro for print fan speed
 #define FAN_PULSE_WIDTH_LIMIT ((fanSpeed > 100) ? 3 : 4) //time in ms
 
@@ -964,6 +966,7 @@ static void w25x20cl_err_msg() {
 void setup() {
 	ultralcd_init();
 	spi_init();
+  extruderBoardTest();
 	lcd_splash();
   Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
 

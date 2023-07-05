@@ -28,6 +28,8 @@ unsigned long fanMillis = 0;
 char buffer [128]; //data buffer
 volatile byte pos;
 volatile boolean process_it;
+// what to do with incoming data
+volatile byte command = 0;
 
 bool solenoidHomed = false;
 
@@ -78,12 +80,17 @@ void setup() {
 void loop() {
   //Blinking light to show life
   blinkLED();
-  if(process_it){
-    buffer [pos] = 0;
-    Serial.println(buffer);
-    handleCommands();
-    pos = 0;
-    process_it = false;
+  // if(process_it){
+  //   buffer [pos] = 0;
+  //   Serial.println(buffer);
+  //   handleCommands();
+  //   pos = 0;
+  //   process_it = false;
+  // }
+
+  // if SPI not active, clear current command
+  if (digitalRead (SS) == HIGH) {
+    command = 0;
   }
 
   homeSolenoid();
@@ -324,17 +331,38 @@ void SPI_SlaveReceive(void){
 //http://www.gammon.com.au/forum/?id=10892&reply=1#reply1
 ISR (SPI_STC_vect) { // SPI interrupt routine
 
-  byte c = SPDR; //grab byte from SPI Data Register
+  byte c = SPDR;
+ 
+  switch (command) {
+    // no command? then this is the command
+    case 0:
+      command = c;
+      SPDR = 0;
+    break;
+      
+    // add to incoming byte, return result
+    case 'a':
+      SPDR = c + 15;  // add 15
+    break;
+      
+    // subtract from incoming byte, return result
+    case 's':
+      SPDR = c - 8;  // subtract 8
+    break;
 
-  // Add to buffer if there is room
-  if (pos < (sizeof (buffer) - 1)) {
-    buffer [pos++] = c;
-  }
+  } // end of switch
 
-  // newline means time to process buffer
-  if (c == '\n'){
-    process_it = true;
-  }
+  // byte c = SPDR; //grab byte from SPI Data Register
+
+  // // Add to buffer if there is room
+  // if (pos < (sizeof (buffer) - 1)) {
+  //   buffer [pos++] = c;
+  // }
+
+  // // newline means time to process buffer
+  // if (c == '\n'){
+  //   process_it = true;
+  // }
 } // end of interrupt routine SPI_STC_vect
 
 
