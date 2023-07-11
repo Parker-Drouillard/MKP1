@@ -75,8 +75,7 @@
 
 extern uint8_t selectedSerialPort;
 
-struct ring_buffer
-{
+struct ring_buffer {
   unsigned char buffer[RX_BUFFER_SIZE];
   int head;
   int tail;
@@ -86,8 +85,7 @@ struct ring_buffer
   extern ring_buffer rx_buffer;
 #endif
 
-class MarlinSerial //: public Stream
-{
+class MarlinSerial {//: public Stream
 
   public:
     static void begin(long);
@@ -96,8 +94,7 @@ class MarlinSerial //: public Stream
     static int read(void);
     static void flush(void);
     
-    static /*FORCE_INLINE*/ int available(void)
-    {
+    static /*FORCE_INLINE*/ int available(void) {
       return (unsigned int)(RX_BUFFER_SIZE + rx_buffer.head - rx_buffer.tail) % RX_BUFFER_SIZE;
     }
     /*
@@ -109,103 +106,88 @@ class MarlinSerial //: public Stream
       M_UDRx = c;
     }
     */
-	static void write(uint8_t c)
-	{
-		if (selectedSerialPort == 0)
-		{
+	static void write(uint8_t c) {
+		if (selectedSerialPort == 0) {
 			while (!((M_UCSRxA) & (1 << M_UDREx)));
 			M_UDRx = c;
-		}
-		else if (selectedSerialPort == 1)
-		{
+		} else if (selectedSerialPort == 1) {
 			while (!((UCSR1A) & (1 << UDRE1)));
 			UDR1 = c;
 		}
 	}
     
-    static void checkRx(void)
-    {
-        if (selectedSerialPort == 0) {
-            if((M_UCSRxA & (1<<M_RXCx)) != 0) {
-                // Test for a framing error.
-                if (M_UCSRxA & (1<<M_FEx)) {
-                    // Characters received with the framing errors will be ignored.
-                    // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
-                    (void)(*(char *)M_UDRx);
-                } else {
-                    unsigned char c  =  M_UDRx;
-                    int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
-                    // if we should be storing the received character into the location
-                    // just before the tail (meaning that the head would advance to the
-                    // current location of the tail), we're about to overflow the buffer
-                    // and so we don't write the character or advance the head.
-                    if (i != rx_buffer.tail) {
-                        rx_buffer.buffer[rx_buffer.head] = c;
-                        rx_buffer.head = i;
-                    }
-                    //selectedSerialPort = 0;
+  static void checkRx(void) {
+    if (selectedSerialPort == 0) {
+      if((M_UCSRxA & (1<<M_RXCx)) != 0) {
+        // Test for a framing error.
+        if (M_UCSRxA & (1<<M_FEx)) {
+            // Characters received with the framing errors will be ignored.
+            // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
+            (void)(*(char *)M_UDRx);
+        } else {
+          unsigned char c  =  M_UDRx;
+          int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+          // if we should be storing the received character into the location
+          // just before the tail (meaning that the head would advance to the
+          // current location of the tail), we're about to overflow the buffer
+          // and so we don't write the character or advance the head.
+          if (i != rx_buffer.tail) {
+              rx_buffer.buffer[rx_buffer.head] = c;
+              rx_buffer.head = i;
+          }
+          //selectedSerialPort = 0;
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
 					UDR1 = c;
 #endif //DEBUG_DUMP_TO_2ND_SERIAL
-                }
-            }
-        } else { // if(selectedSerialPort == 1) {
-            if((UCSR1A & (1<<RXC1)) != 0) {
-                // Test for a framing error.
-                if (UCSR1A & (1<<FE1)) {
-                    // Characters received with the framing errors will be ignored.
-                    // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
-                    (void)(*(char *)UDR1);
-                } else {
-                    unsigned char c  =  UDR1;
-                    int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
-                    // if we should be storing the received character into the location
-                    // just before the tail (meaning that the head would advance to the
-                    // current location of the tail), we're about to overflow the buffer
-                    // and so we don't write the character or advance the head.
-                    if (i != rx_buffer.tail) {
-                        rx_buffer.buffer[rx_buffer.head] = c;
-                        rx_buffer.head = i;
-                    }
-                    //selectedSerialPort = 1;
+        }
+      }
+    } else { // if(selectedSerialPort == 1) {
+      if((UCSR1A & (1<<RXC1)) != 0) {
+        // Test for a framing error.
+        if (UCSR1A & (1<<FE1)) {
+          // Characters received with the framing errors will be ignored.
+          // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
+          (void)(*(char *)UDR1);
+        } else {
+          unsigned char c  =  UDR1;
+          int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+          // if we should be storing the received character into the location
+          // just before the tail (meaning that the head would advance to the
+          // current location of the tail), we're about to overflow the buffer
+          // and so we don't write the character or advance the head.
+          if (i != rx_buffer.tail) {
+              rx_buffer.buffer[rx_buffer.head] = c;
+              rx_buffer.head = i;
+          }
+          //selectedSerialPort = 1;
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
 					M_UDRx = c;
 #endif //DEBUG_DUMP_TO_2ND_SERIAL
-                }
-            }
         }
+      }
     }
+  }
     
-    
-    private:
+  private:
     static void printNumber(unsigned long, uint8_t);
     static void printFloat(double, uint8_t);
     
-    
   public:
     
-    static /*FORCE_INLINE*/ void write(const char *str)
-    {
-      while (*str)
+    static /*FORCE_INLINE*/ void write(const char *str) {
+      while (*str) {
         write(*str++);
-    }
-
-
-    static /*FORCE_INLINE*/ void write(const uint8_t *buffer, size_t size)
-    {
-      while (size--)
-        write(*buffer++);
-    }
-
-/*    static FORCE_INLINE void print(const String &s)
-    {
-      for (int i = 0; i < (int)s.length(); i++) {
-        write(s[i]);
       }
-    }*/
+    }
+
+
+    static /*FORCE_INLINE*/ void write(const uint8_t *buffer, size_t size) {
+      while (size--) {
+        write(*buffer++);
+      }
+    }
     
-    static FORCE_INLINE void print(const char *str)
-    {
+    static FORCE_INLINE void print(const char *str) {
       write(str);
     }
     static void print(char, int = BYTE);

@@ -403,12 +403,6 @@ void get_command() {
     while ((MYSERIAL.available() > 0 && !saved_printing) || (MYSERIAL.available() > 0 && isPrintPaused)) {  //is print is saved (crash detection or filament detection), dont process data from serial line
 	
         char serial_char = MYSERIAL.read();
-        /* if (selectedSerialPort == 1)
-        {
-            selectedSerialPort = 0; 
-            MYSERIAL.write(serial_char); // for debuging serial line 2 in farm_mode
-            selectedSerialPort = 1; 
-        } */ //RP - removed
         TimeSent = _millis();
         TimeNow = _millis();
 

@@ -34,8 +34,7 @@ uint8_t selectedSerialPort = 0;
   ring_buffer rx_buffer  =  { { 0 }, 0, 0 };
 #endif
 
-FORCE_INLINE void store_char(unsigned char c)
-{
+FORCE_INLINE void store_char(unsigned char c) {
   int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
 
   // if we should be storing the received character into the location
@@ -55,42 +54,37 @@ FORCE_INLINE void store_char(unsigned char c)
 // If the serial line is fully utilized, this corresponds to 3.16%
 // loading of the CPU (the interrupt invocation overhead not taken into account).
 // As the serial line is not fully utilized, the CPU load is likely around 1%.
-ISR(M_USARTx_RX_vect)
-{
+ISR(M_USARTx_RX_vect) {
+
 	// Test for a framing error.
-	if (M_UCSRxA & (1<<M_FEx))
-	{
+	if (M_UCSRxA & (1<<M_FEx)) {
 		// Characters received with the framing errors will be ignored.
 		// Dummy register read (discard)
 		(void)(*(char *)M_UDRx);
-	}
-	else
-	{
+	}	else {
 		// Read the input register.
 		unsigned char c = M_UDRx;
-		if (selectedSerialPort == 0)
+		if (selectedSerialPort == 0) {
 			store_char(c);
+    }
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
 		UDR1 = c;
 #endif //DEBUG_DUMP_TO_2ND_SERIAL
 	}
 }
 #ifndef SNMM
-ISR(USART1_RX_vect)
-{
+ISR(USART1_RX_vect) {
 	// Test for a framing error.
-	if (UCSR1A & (1<<FE1))
-	{
+	if (UCSR1A & (1<<FE1)) {
 		// Characters received with the framing errors will be ignored.
 		// Dummy register read (discard)
 		(void)(*(char *)UDR1);
-	}
-	else
-	{
+	} else {
 		// Read the input register.
 		unsigned char c = UDR1;
-		if (selectedSerialPort == 1)
+		if (selectedSerialPort == 1) {
 			store_char(c);
+    }
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
 		M_UDRx = c;
 #endif //DEBUG_DUMP_TO_2ND_SERIAL
@@ -101,8 +95,7 @@ ISR(USART1_RX_vect)
 
 // Public Methods //////////////////////////////////////////////////////////////
 
-void MarlinSerial::begin(long baud)
-{
+void MarlinSerial::begin(long baud) {
   uint16_t baud_setting;
   bool useU2X = true;
 
@@ -153,8 +146,7 @@ void MarlinSerial::begin(long baud)
 #endif
 }
 
-void MarlinSerial::end()
-{
+void MarlinSerial::end() {
   cbi(M_UCSRxB, M_RXENx);
   cbi(M_UCSRxB, M_TXENx);
   cbi(M_UCSRxB, M_RXCIEx);
@@ -168,8 +160,7 @@ void MarlinSerial::end()
 
 
 
-int MarlinSerial::peek(void)
-{
+int MarlinSerial::peek(void) {
   if (rx_buffer.head == rx_buffer.tail) {
     return -1;
   } else {
@@ -177,8 +168,7 @@ int MarlinSerial::peek(void)
   }
 }
 
-int MarlinSerial::read(void)
-{
+int MarlinSerial::read(void) {
   // if the head isn't ahead of the tail, we don't have any characters
   if (rx_buffer.head == rx_buffer.tail) {
     return -1;
@@ -189,8 +179,7 @@ int MarlinSerial::read(void)
   }
 }
 
-void MarlinSerial::flush()
-{
+void MarlinSerial::flush() {
   // don't reverse this or there may be problems if the RX interrupt
   // occurs after reading the value of rx_buffer_head but before writing
   // the value to rx_buffer_tail; the previous value of rx_buffer_head
@@ -200,35 +189,25 @@ void MarlinSerial::flush()
 }
 
 
-
-
 /// imports from print.h
 
-
-
-
-void MarlinSerial::print(char c, int base)
-{
+void MarlinSerial::print(char c, int base) {
   print((long) c, base);
 }
 
-void MarlinSerial::print(unsigned char b, int base)
-{
+void MarlinSerial::print(unsigned char b, int base) {
   print((unsigned long) b, base);
 }
 
-void MarlinSerial::print(int n, int base)
-{
+void MarlinSerial::print(int n, int base) {
   print((long) n, base);
 }
 
-void MarlinSerial::print(unsigned int n, int base)
-{
+void MarlinSerial::print(unsigned int n, int base) {
   print((unsigned long) n, base);
 }
 
-void MarlinSerial::print(long n, int base)
-{
+void MarlinSerial::print(long n, int base) {
   if (base == 0) {
     write(n);
   } else if (base == 10) {
@@ -242,81 +221,66 @@ void MarlinSerial::print(long n, int base)
   }
 }
 
-void MarlinSerial::print(unsigned long n, int base)
-{
-  if (base == 0) write(n);
-  else printNumber(n, base);
+void MarlinSerial::print(unsigned long n, int base) {
+  if {
+    (base == 0) write(n);
+  } else {
+    printNumber(n, base);
+  }
 }
 
-void MarlinSerial::print(double n, int digits)
-{
+void MarlinSerial::print(double n, int digits) {
   printFloat(n, digits);
 }
 
-void MarlinSerial::println(void)
-{
+void MarlinSerial::println(void) {
   print('\r');
   print('\n');  
 }
 
-/*void MarlinSerial::println(const String &s)
-{
-  print(s);
-  println();
-}*/
-
-void MarlinSerial::println(const char c[])
-{
+void MarlinSerial::println(const char c[]) {
   print(c);
   println();
 }
 
-void MarlinSerial::println(char c, int base)
-{
+void MarlinSerial::println(char c, int base) {
   print(c, base);
   println();
 }
 
-void MarlinSerial::println(unsigned char b, int base)
-{
+void MarlinSerial::println(unsigned char b, int base) {
   print(b, base);
   println();
 }
 
-void MarlinSerial::println(int n, int base)
-{
+void MarlinSerial::println(int n, int base) {
   print(n, base);
   println();
 }
 
-void MarlinSerial::println(unsigned int n, int base)
-{
+void MarlinSerial::println(unsigned int n, int base) {
   print(n, base);
   println();
 }
 
-void MarlinSerial::println(long n, int base)
-{
+void MarlinSerial::println(long n, int base) {
   print(n, base);
   println();
 }
 
-void MarlinSerial::println(unsigned long n, int base)
-{
+void MarlinSerial::println(unsigned long n, int base) {
   print(n, base);
   println();
 }
 
-void MarlinSerial::println(double n, int digits)
-{
+void MarlinSerial::println(double n, int digits) {
   print(n, digits);
   println();
 }
 
 // Private Methods /////////////////////////////////////////////////////////////
 
-void MarlinSerial::printNumber(unsigned long n, uint8_t base)
-{
+void MarlinSerial::printNumber(unsigned long n, uint8_t base) {
   unsigned char buf[8 * sizeof(long)]; // Assumes 8-bit chars. 
   unsigned long i = 0;
 
@@ -330,25 +294,25 @@ void MarlinSerial::printNumber(unsigned long n, uint8_t base)
     n /= base;
   }
 
-  for (; i > 0; i--)
+  for (; i > 0; i--) {
     print((char) (buf[i - 1] < 10 ?
       '0' + buf[i - 1] :
       'A' + buf[i - 1] - 10));
+  }
 }
 
-void MarlinSerial::printFloat(double number, uint8_t digits) 
-{ 
+void MarlinSerial::printFloat(double number, uint8_t digits)  { 
   // Handle negative numbers
-  if (number < 0.0)
-  {
-     print('-');
-     number = -number;
+  if (number < 0.0) {
+    print('-');
+    number = -number;
   }
 
   // Round correctly so that print(1.999, 2) prints as "2.00"
   double rounding = 0.5;
-  for (uint8_t i=0; i<digits; ++i)
+  for (uint8_t i=0; i<digits; ++i) {
     rounding /= 10.0;
+  }
   
   number += rounding;
 
@@ -358,12 +322,12 @@ void MarlinSerial::printFloat(double number, uint8_t digits)
   print(int_part);
 
   // Print the decimal point, but only if there are digits beyond
-  if (digits > 0)
+  if (digits > 0) {
     print("."); 
+  }
 
   // Extract digits from the remainder one at a time
-  while (digits-- > 0)
-  {
+  while (digits-- > 0) {
     remainder *= 10.0;
     int toPrint = int(remainder);
     print(toPrint);
