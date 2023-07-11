@@ -9,12 +9,12 @@ double dutyCycle = 0.5;           // interval at which to blink (milliseconds)
 const word PWM_FREQ_HZ = 25000; //Adjust this value to adjust the frequency
 const int fanDeathSampleCount = 1500; //Sample count required to determine a fan is bad/dead
 const long fanSampleInterval = 5; //Sample interval in ms to check fans
-const long changeTime = 10;
+const long changeTime = 150;
 // const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFanFront_pin, E1BlowerFanRear_pin, E2AxialFan_pin, E2BlowerFanFront_pin, E2BlowerFanRear_pin};
 // const int tachPins[NUMFANS] = {tach0_pin, tach1_pin, tach2_pin, tach3_pin, tach4_pin, tach5_pin};
 
 int ledState = HIGH; // ledState used to set the LED
-int fanStates[NUMFANS] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH}; //State of each fan, default ON.
+int fanStates[NUMFANS] = {HIGH, LOW, LOW, HIGH, LOW, LOW}; //State of each fan, default ON.
 int fanHealthSamples[NUMFANS] = {0, 0, 0, 0, 0, 0}; //Array used to count the number of bad samples from a fan to determine it is dead.
 int fanHealth[NUMFANS] = {1, 1, 1, 1, 1, 1}; //Health of all fans. Default GOOD, if bad, set to 0 for error handling
 
@@ -25,7 +25,7 @@ unsigned long changeMillis = 0;
 unsigned long fanMillis = 0;
 
 //SPI stuff
-char buffer [128]; //data buffer
+char commandBuffer [128]; //data buffer
 volatile byte pos;
 volatile boolean process_it;
 // what to do with incoming data
@@ -55,7 +55,14 @@ bool solenoidHomed = false;
 /////////         SETUP                    /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
+  Serial.begin(9600);
+
   pinMode(MISO, OUTPUT);
+
+  // SPCR |= _BV(SPE);
+  pos = 0;
+  process_it = false;
+  // SPI.attachInterrupt();
 
   // put your setup code here, to run once:
   for(int i = 0; i < NUMFANS; i++){
@@ -66,7 +73,6 @@ void setup() {
   pinMode(solenoidReverse,OUTPUT);
   pinMode(motorForwardEnable, OUTPUT);
   pinMode(motorReverseEnable, OUTPUT);
-  Serial.begin(9600);
   T2spiInit();
   Serial.print("PWM output begin.");
   digitalWrite(ledPin, ledState);
@@ -87,13 +93,19 @@ void setup() {
 void loop() {
   //Blinking light to show life
   blinkLED();
-  // if(process_it){
-  //   buffer [pos] = 0;
-  //   Serial.println(buffer);
-  //   handleCommands();
-  //   pos = 0;
-  //   process_it = false;
-  // }
+  if(process_it){
+    commandBuffer [pos] = 0;
+    Serial.println(commandBuffer);
+    // handleCommands();
+    if(strcmp(commandBuffer, "o")){
+      for(int i = 0; i < NUMFANS; i++){
+        fanStates[i] = HIGH;
+      }
+    }
+
+    pos = 0;
+    process_it = false;
+  }
 
   // if SPI not active, clear current command
   if (digitalRead (SS) == HIGH) {
@@ -102,7 +114,6 @@ void loop() {
 
 
   sampleHealthOfAllFans();
-
   updateAllFanStates(); //DigitalWrite all fan states
   // logHealthOfAllFans();
  }
@@ -115,6 +126,7 @@ void loop() {
 
 //Validation Functions
 void fanConnectionTest() {
+  Serial.println("\nBeginning fan test.");
   for(int i = 0; i < 6; i++){
     fanStates[i] = 0; //Shut off all fans prior to testing
   }
@@ -122,9 +134,10 @@ void fanConnectionTest() {
   delay(1000);
 
   //Loop for testing through all 6 fans
-  for(int i = 0; i < 6; i++){
-    unsigned long testDuration = 10000; //Test each fan for 10 seconds
-    unsigned long prevTestMillis = 0;
+  for(int i = 0; i < 6; i++) {
+    Serial.println(String("Testing fan ") + String(i));
+    unsigned long testDuration = 6000; //Test each fan for 6 seconds
+    unsigned long prevTestMillis = millis();
     fanStates[i] = 1; //Turn fan on to begin test.
     updateAllFanStates();
     delay(1000);
@@ -138,7 +151,7 @@ void fanConnectionTest() {
         updateAllFanStates();
         break;
       }
-      prevTestMillis = currentMillis;
+      // prevTestMillis = currentMillis;
       
       unsigned long currentTachReading = analogRead(tachPins[i])/4*60;
       // Serial.println(i + String("   Value: ") + currentTachReading + String("    Samples: ") + fanHealthSamples[i] + String("     Status: ") + fanStates[i]);
@@ -152,11 +165,11 @@ void fanConnectionTest() {
         fanHealth[i] = 0;
         fanStates[i] = -1;
       }
-      blinkLED();
+      // blinkLED();
       updateAllFanStates();
-      // logHealthOfAllFans();
     }
   }
+  logHealthOfAllFans();
 }
 
 
@@ -185,6 +198,14 @@ void homeSolenoid(){
   digitalWrite(solenoidReverse,LOW);
   delay(100);
 }
+
+void toggleSolenoid(){
+  if(!solenoidHomed){
+    return;
+  }
+
+}
+
 
 //============ FAN STUFF ==================================
 
@@ -238,7 +259,7 @@ void logHealthOfAllFans(){
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(fanStates[i])+String(" : "));
   }
-  Serial.print("\tSamples: ");
+  Serial.print("\tBad Samples: ");
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(fanHealthSamples[i]+String(" : ")));
   }
@@ -292,6 +313,9 @@ int checkFanHealth(int fanToCheck){
   }
 }
 
+void returnFanStatus(){
+
+}
 
 
 //============ LED STUFF ==================================
@@ -300,6 +324,7 @@ int checkFanHealth(int fanToCheck){
 void blinkLED(){
   unsigned long currentMillis = millis();
   if(currentMillis - previousMillis >= changeTime){
+    // Serial.println("Blink");
     previousMillis = currentMillis;
     if(ledState == LOW){
       ledState = HIGH;
@@ -318,7 +343,8 @@ void blinkLED(){
 void T2spiInit(){
   DDRB = (1<<MISO);
   SPCR |= _BV(SPE);
-  SPCR |= _BV(SPIE);
+  // SPCR |= _BV(SPIE);
+  SPI.attachInterrupt();
 
   Serial.println("SPI INIT");
 
@@ -329,46 +355,22 @@ void T2spiInit(){
 }
 
 
-void SPI_SlaveReceive(void){
-  while(!(SPSR & (1<<SPIF)));
-  return SPDR;
-}
+// void SPI_SlaveReceive(void){
+//   while(!(SPSR & (1<<SPIF)));
+//   return SPDR;
+// }
 
 //http://www.gammon.com.au/forum/?id=10892&reply=1#reply1
 ISR (SPI_STC_vect) { // SPI interrupt routine
-
+  Serial.println("SPI COMMAND RECEIVED");
   byte c = SPDR;
- 
-  switch (command) {
-    // no command? then this is the command
-    case 0:
-      command = c;
-      SPDR = 0;
-    break;
-      
-    // add to incoming byte, return result
-    case 'a':
-      SPDR = c + 15;  // add 15
-    break;
-      
-    // subtract from incoming byte, return result
-    case 's':
-      SPDR = c - 8;  // subtract 8
-    break;
-
-  } // end of switch
-
-  // byte c = SPDR; //grab byte from SPI Data Register
-
-  // // Add to buffer if there is room
-  // if (pos < (sizeof (buffer) - 1)) {
-  //   buffer [pos++] = c;
-  // }
-
-  // // newline means time to process buffer
-  // if (c == '\n'){
-  //   process_it = true;
-  // }
+  
+  if (pos < sizeof commandBuffer) {
+    commandBuffer [pos++] = c;
+    // Serial.println(commandBuffer);
+  }
+  
+  return;
 } // end of interrupt routine SPI_STC_vect
 
 

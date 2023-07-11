@@ -964,6 +964,7 @@ static void w25x20cl_err_msg() {
 // Before startup, the Timers-functions (PWM)/Analog RW and HardwareSerial provided by the Arduino-code 
 // are initialized by the main() routine provided by the Arduino framework.
 void setup() {
+  eBoard_init();
 	ultralcd_init();
 	spi_init();
 	lcd_splash();
@@ -1529,13 +1530,13 @@ void setup() {
   // the entire state machine initialized.
   setup_uvlo_interrupt();
 #endif //UVLO_SUPPORT
-
+  // turnOnFans();
+  // extruderBoardTest();
   fCheckModeInit();
   KEEPALIVE_STATE(NOT_BUSY);
 #ifdef WATCHDOG
   wdt_enable(WDTO_4S);
 #endif //WATCHDOG
-  extruderBoardTest();
 }
 
 void trace();
@@ -3123,7 +3124,7 @@ extern uint8_t st_backlash_y;
 //!
 //! * _This list is not updated. Current documentation is maintained inside the process_cmd function._ 
 //!
-//!@n PRUSA CODES
+//!@n VENDOR CODES
 //!@n P F - Returns FW versions
 //!@n P R - Returns revision of printer
 //!
@@ -3221,6 +3222,8 @@ extern uint8_t st_backlash_y;
 //!@n M302 - Allow cold extrudes, or set the minimum extrude S<temperature>.
 //!@n M303 - PID relay autotune S<temperature> sets the target temperature. (default target temperature = 150C)
 //!@n M304 - Set bed PID parameters P I and D
+//!@n M350 - Set microstepping mode.
+//!@n M351 - Toggle MS1 MS2 pins directly.
 //!@n M400 - Finish all moves
 //!@n M401 - Lower z-probe if present
 //!@n M402 - Raise z-probe if present
@@ -3241,8 +3244,6 @@ extern uint8_t st_backlash_y;
 //!@n M900 - Set LIN_ADVANCE options, if enabled. See Configuration_adv.h for details.
 //!@n M907 - Set digital trimpot motor current using axis codes.
 //!@n M908 - Control digital trimpot directly.
-//!@n M350 - Set microstepping mode.
-//!@n M351 - Toggle MS1 MS2 pins directly.
 //!
 //!@n M928 - Start SD logging (M928 filename.g) - ended by M29
 //!@n M999 - Restart after being stopped by error
@@ -3252,7 +3253,7 @@ extern uint8_t st_backlash_y;
 
 /** \ingroup GCodes */
 
-//! _This is a list of currently implemented G Codes in Prusa firmware (dynamically generated from doxygen)._ 
+//! _This is a list of currently implemented G Codes  
 /**
 They are shown in order of appearance in the code.
 There are reasons why some G Codes aren't in numerical order.
@@ -3409,6 +3410,31 @@ void process_commands() {
 
 #endif //BACKLASH_Y
 #endif //TMC2130
+
+
+  /*!
+    PEP CODES
+    PEP CORP Specific Commands
+
+    BBS - Breakout Board Status
+    BBFR - Breakout Board Fan Report
+    BBFS - Breakout Board Fan States
+    BBS [0 | 1 | 2 | 3 | 4 | 5 | A] - Set fan state for designated fan
+  
+  */
+  } else if (code_seen("PEP")){
+    if (code_seen("BBS")){
+      
+      // turnOnFans();
+    } else if (code_seen("BBFR")){
+
+    } else if (code_seen("BBFS")){
+
+    } else if (code_seen("BBS")){
+
+    }
+  
+  
   } else if(code_seen("PRUSA")){ 
     /*!
     ---------------------------------------------------------------------------------
@@ -5919,7 +5945,6 @@ Sigma_Exit:
     #endif
         break;
 
-    #if defined(FAN_PIN) && FAN_PIN > -1
 
       /*!
 	  ### M106 - Set fan speed <a href="https://reprap.org/wiki/G-code#M106:_Fan_On">M106: Fan On</a>
@@ -5931,12 +5956,17 @@ Sigma_Exit:
       - `S` - Specifies the duty cycle of the print fan. Allowed values are 0-255. If it's omitted, a value of 255 is used.
       */
       case 106: // M106 Sxxx Fan On S<speed> 0 .. 255
+#if defined(FAN_PIN) && FAN_PIN > -1
+
         if (code_seen('S')){
            fanSpeed=constrain(code_value(),0,255);
-        }
-        else {
+        } else {
           fanSpeed=255;
+#endif //FAN_PIN
+          // turnOnFans();
+#if defined(FAN_PIN) && FAN_PIN > -1
         }
+#endif
         break;
 
       /*!
@@ -5945,7 +5975,6 @@ Sigma_Exit:
       case 107:
         fanSpeed = 0;
         break;
-    #endif //FAN_PIN
 
     #if defined(PS_ON_PIN) && PS_ON_PIN > -1
 
@@ -8070,61 +8099,58 @@ Sigma_Exit:
   *---------------------------------------------------------------------------------
   *# D codes
   */
-  else if (code_seen('D')) // D codes (debug)
-  {
-    switch((int)code_value())
-    {
+  else if (code_seen('D')) { // D codes (debug)
+    switch((int)code_value()) {
 
-    /*!
-    ### D-1 - Endless Loop <a href="https://reprap.org/wiki/G-code#D-1:_Endless_Loop">D-1: Endless Loop</a>
-    */
-	case -1:
-		dcode__1(); break;
+      /*!
+      ### D-1 - Endless Loop <a href="https://reprap.org/wiki/G-code#D-1:_Endless_Loop">D-1: Endless Loop</a>
+      */
+      case -1:
+        dcode__1(); 
+      break;
 #ifdef DEBUG_DCODES
 
-    /*!
-    ### D0 - Reset <a href="https://reprap.org/wiki/G-code#D0:_Reset">D0: Reset</a>
-    #### Usage
-    
-        D0 [ B ]
-    
-    #### Parameters
-    - `B` - Bootloader
-    */
-	case 0:
-		dcode_0(); break;
-
-    /*!
-    *
-    ### D1 - Clear EEPROM and RESET <a href="https://reprap.org/wiki/G-code#D1:_Clear_EEPROM_and_RESET">D1: Clear EEPROM and RESET</a>
+      /*!
+      ### D0 - Reset <a href="https://reprap.org/wiki/G-code#D0:_Reset">D0: Reset</a>
+      #### Usage
       
-          D1
+          D0 [ B ]
       
-    *
-    */
-	case 1:
-		dcode_1(); break;
+      #### Parameters
+      - `B` - Bootloader
+      */
+      case 0:
+        dcode_0(); break;
 
-    /*!
-    ### D2 - Read/Write RAM <a href="https://reprap.org/wiki/G-code#D2:_Read.2FWrite_RAM">D3: Read/Write RAM</a>
-    This command can be used without any additional parameters. It will read the entire RAM.
-    #### Usage
-    
-        D2 [ A | C | X ]
-    
-    #### Parameters
-    - `A` - Address (x0000-x1fff)
-    - `C` - Count (1-8192)
-    - `X` - Data
+        /*!
+        *
+        ### D1 - Clear EEPROM and RESET <a href="https://reprap.org/wiki/G-code#D1:_Clear_EEPROM_and_RESET">D1: Clear EEPROM and RESET</a>
+        D1
+        *
+        */
+      case 1:
+        dcode_1(); break;
 
-	#### Notes
-	- The hex address needs to be lowercase without the 0 before the x
-	- Count is decimal 
-	- The hex data needs to be lowercase
-	
-    */
-	case 2:
-		dcode_2(); break;
+      /*!
+      ### D2 - Read/Write RAM <a href="https://reprap.org/wiki/G-code#D2:_Read.2FWrite_RAM">D3: Read/Write RAM</a>
+      This command can be used without any additional parameters. It will read the entire RAM.
+      #### Usage
+      
+          D2 [ A | C | X ]
+      
+      #### Parameters
+      - `A` - Address (x0000-x1fff)
+      - `C` - Count (1-8192)
+      - `X` - Data
+
+      #### Notes
+      - The hex address needs to be lowercase without the 0 before the x
+      - Count is decimal 
+      - The hex data needs to be lowercase
+      
+        */
+      case 2:
+        dcode_2(); break;
 #endif //DEBUG_DCODES
 #if defined DEBUG_DCODE3 || defined DEBUG_DCODES
 
@@ -8140,14 +8166,14 @@ Sigma_Exit:
     - `C` - Count (1-4096)
     - `X` - Data (hex)
 	
-	#### Notes
-	- The hex address needs to be lowercase without the 0 before the x
-	- Count is decimal 
-	- The hex data needs to be lowercase
-	
-    */
-	case 3:
-		dcode_3(); break;
+    #### Notes
+    - The hex address needs to be lowercase without the 0 before the x
+    - Count is decimal 
+    - The hex data needs to be lowercase
+    
+      */
+      case 3:
+        dcode_3(); break;
 #endif //DEBUG_DCODE3
 #ifdef DEBUG_DCODES
 
@@ -8383,10 +8409,7 @@ Sigma_Exit:
 
 #endif //DEBUG_DCODES
 	}
-  }
-
-  else
-  {
+  } else {
     SERIAL_ECHO_START;
     SERIAL_ECHORPGM(MSG_UNKNOWN_COMMAND);
     SERIAL_ECHO(CMDBUFFER_CURRENT_STRING);
@@ -8405,8 +8428,7 @@ Sigma_Exit:
 
 // ---------------------------------------------------
 
-void FlushSerialRequestResend()
-{
+void FlushSerialRequestResend() {
   //char cmdbuffer[bufindr][100]="Resend:";
   MYSERIAL.flush();
   printf_P(_N("%S: %ld\n%S\n"), _n("Resend"), gcode_LastN + 1, MSG_OK);
@@ -8437,8 +8459,7 @@ void update_currents() {
 			SERIAL_ECHOPGM(": ");
 			MYSERIAL.println(current_low[i]);*/
 		}		
-	}
-	else if (destination[Z_AXIS] > Z_HIGH_POWER) {
+	}	else if (destination[Z_AXIS] > Z_HIGH_POWER) {
 		//SERIAL_ECHOLNPGM("HIGH");
 		for (uint8_t i = 0; i < 3; i++) {
 			// st_current_set(i, current_high[i]);
@@ -8446,8 +8467,9 @@ void update_currents() {
 			SERIAL_ECHOPGM(": ");
 			MYSERIAL.println(current_high[i]);*/
 		}		
-	}
-	else {
+	}	else if {
+
+  }else {
 		for (uint8_t i = 0; i < 3; i++) {
 			float q = current_low[i] - Z_SILENT*((current_high[i] - current_low[i]) / (Z_HIGH_POWER - Z_SILENT));
 			tmp_motor[i] = ((current_high[i] - current_low[i]) / (Z_HIGH_POWER - Z_SILENT))*destination[Z_AXIS] + q;
@@ -8850,8 +8872,9 @@ static uint16_t nFSCheckCount=0;
 			} else {
 #ifdef PAT9125
 				fsensor_autoload_check_stop();
-                if (fsensor_enabled && !saved_printing)
-                    fsensor_update();
+        if (fsensor_enabled && !saved_printing) {
+          fsensor_update();
+        }
 #endif //PAT9125
 
 			}
@@ -8918,22 +8941,22 @@ static uint16_t nFSCheckCount=0;
     controllerFan(); //Check if fan should be turned on to cool stepper drivers down
   #endif
   #ifdef EXTRUDER_RUNOUT_PREVENT
-    if( (_millis() - previous_millis_cmd) >  EXTRUDER_RUNOUT_SECONDS*1000 )
-    if(degHotend(active_extruder)>EXTRUDER_RUNOUT_MINTEMP)
-    {
-     bool oldstatus=READ(E0_ENABLE_PIN);
-     enable_e0();
-     float oldepos=current_position[E_AXIS];
-     float oldedes=destination[E_AXIS];
-     plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS],
-                      destination[E_AXIS]+EXTRUDER_RUNOUT_EXTRUDE*EXTRUDER_RUNOUT_ESTEPS/cs.axis_steps_per_unit[E_AXIS],
-                      EXTRUDER_RUNOUT_SPEED/60.*EXTRUDER_RUNOUT_ESTEPS/cs.axis_steps_per_unit[E_AXIS], active_extruder);
-     current_position[E_AXIS]=oldepos;
-     destination[E_AXIS]=oldedes;
-     plan_set_e_position(oldepos);
-     previous_millis_cmd=_millis();
-     st_synchronize();
-     WRITE(E0_ENABLE_PIN,oldstatus);
+    if( (_millis() - previous_millis_cmd) >  EXTRUDER_RUNOUT_SECONDS*1000 ){
+      if(degHotend(active_extruder)>EXTRUDER_RUNOUT_MINTEMP) {
+        bool oldstatus=READ(E0_ENABLE_PIN);
+        enable_e0();
+        float oldepos=current_position[E_AXIS];
+        float oldedes=destination[E_AXIS];
+        plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS],
+                          destination[E_AXIS]+EXTRUDER_RUNOUT_EXTRUDE*EXTRUDER_RUNOUT_ESTEPS/cs.axis_steps_per_unit[E_AXIS],
+                          EXTRUDER_RUNOUT_SPEED/60.*EXTRUDER_RUNOUT_ESTEPS/cs.axis_steps_per_unit[E_AXIS], active_extruder);
+        current_position[E_AXIS]=oldepos;
+        destination[E_AXIS]=oldedes;
+        plan_set_e_position(oldepos);
+        previous_millis_cmd=_millis();
+        st_synchronize();
+        WRITE(E0_ENABLE_PIN,oldstatus);
+      }
     }
   #endif
   #ifdef TEMP_STAT_LEDS
@@ -8942,8 +8965,7 @@ static uint16_t nFSCheckCount=0;
   check_axes_activity();
 }
 
-void kill(const char *full_screen_message, unsigned char id)
-{
+void kill(const char *full_screen_message, unsigned char id) {
 	printf_P(_N("KILL: %d\n"), id);
 	//return;
   cli(); // Stop interrupts
@@ -8997,8 +9019,7 @@ void kill(const char *full_screen_message, unsigned char id)
 //   will introduce either over/under extrusion on the current segment, and will not
 //   survive a power panic. Switching Stop() to use the pause machinery instead (with
 //   the addition of disabling the headers) could allow true recovery in the future.
-void Stop()
-{
+void Stop() {
   disable_heater();
   if(Stopped == false) {
     Stopped = true;
@@ -9012,8 +9033,7 @@ void Stop()
 
 bool IsStopped() { return Stopped; };
 
-void finishAndDisableSteppers()
-{
+void finishAndDisableSteppers() {
   st_synchronize();
   disable_x();
   disable_y();

@@ -1,5 +1,4 @@
-#include "pins_RAMBO.h"
-// #include "fastio.h"
+#include "pins_RAMBO.h"#// #include "fastio.h"
 #include <SPI.h>
 // #include "config.h"
 // #include "Dcodes.h"
@@ -12,22 +11,34 @@
 
 
 
-
-
-
-
-void eBoard_init(void) {
-    SET_OUTPUT(EBOARD_SS);
-    digitalWrite(EBOARD_SS, 1); //slave is selected when pin low
-    // SPI.setClockDivider(SPI_CLOCK_DIV8);
-}
-
 byte transferAndWait (const byte buf){
-    printf_P(PSTR("Transferring %c"), buf);
     byte a = SPI.transfer(buf);
     delayMicroseconds(20);
     return a;
 } // end of transferAndWait
+
+
+void eBoard_init(void) {
+    printf_P(PSTR("EBoard Init\n"));
+    SET_OUTPUT(EBOARD_SS);
+    digitalWrite(EBOARD_SS, HIGH); //slave is selected when pin low
+    // SPI.setClockDivider(SPI_CLOCK_DIV8);
+
+    // digitalWrite(EBOARD_SS, LOW); //slave is selected when pin low
+    // transferAndWait('h');
+    // transferAndWait('t');
+
+    // digitalWrite(EBOARD_SS, HIGH);
+}
+
+void turnOnFans(){
+    digitalWrite(EBOARD_SS, LOW);
+    transferAndWait('o');
+
+    digitalWrite(EBOARD_SS, HIGH); //slave is selected when pin low
+}
+
+
 
 void extruderBoardTest(void) {
     printf_P(PSTR("Running EBoardTest"));
@@ -63,4 +74,17 @@ void extruderBoardTest(void) {
     digitalWrite(EBOARD_SS, HIGH);
 
 	printf_P(PSTR("Subtracting results:\n %d\n %d\n %d\n %d\n"), a, b, c, d);
+}
+
+void sendText (const char * toSend){
+    digitalWrite(EBOARD_SS, LOW);
+
+    SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
+    for (char c; c = *toSend; toSend++){
+        delayMicroseconds(20);
+        SPI.transfer(c);
+        printf_P(c);
+    }
+    SPI.endTransaction();
+    digitalWrite(EBOARD_SS, HIGH); //slave is selected when pin low
 }
