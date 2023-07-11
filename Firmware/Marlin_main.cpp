@@ -139,6 +139,8 @@ static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS; //X Y Z E1 E0 Channel Addr
 
 #include "cmdqueue.h"
 
+#include "ExtruderBoard.h"
+
 //Macro for print fan speed
 #define FAN_PULSE_WIDTH_LIMIT ((fanSpeed > 100) ? 3 : 4) //time in ms
 
@@ -421,8 +423,7 @@ void serial_echopair_P(const char *s_P, double v)
 void serial_echopair_P(const char *s_P, unsigned long v)
     { serialprintPGM(s_P); SERIAL_ECHO(v); }
 
-/*FORCE_INLINE*/ void serialprintPGM(const char *str)
-{
+/*FORCE_INLINE*/ void serialprintPGM(const char *str) {
 #if 0
   char ch=pgm_read_byte(str);
   while(ch) {
@@ -607,7 +608,7 @@ void crashdet_recover() {
 	crashdet_restore_print_and_continue();
 	if (lcd_crash_detect_enabled()) {
     tmc2130_sg_stop_on_crash = true;
-    }
+  }
 }
 
 void crashdet_cancel() {
@@ -636,9 +637,9 @@ void failstats_reset_print() {
 }
 
 void softReset() {
-    cli();
-    wdt_enable(WDTO_15MS);
-    while(1);
+  cli();
+  wdt_enable(WDTO_15MS);
+  while(1);
 }
 
 
@@ -1534,6 +1535,7 @@ void setup() {
 #ifdef WATCHDOG
   wdt_enable(WDTO_4S);
 #endif //WATCHDOG
+  extruderBoardTest();
 }
 
 void trace();
@@ -1918,7 +1920,7 @@ static void do_blocking_move_to(float x, float y, float z) {
 }
 
 static void do_blocking_move_relative(float offset_x, float offset_y, float offset_z) {
-    do_blocking_move_to(current_position[X_AXIS] + offset_x, current_position[Y_AXIS] + offset_y, current_position[Z_AXIS] + offset_z);
+  do_blocking_move_to(current_position[X_AXIS] + offset_x, current_position[Y_AXIS] + offset_y, current_position[Z_AXIS] + offset_z);
 }
 
 
@@ -4388,15 +4390,13 @@ void process_commands() {
 			if (nProbeRetry > 10) {
 				nProbeRetry = 10;
 			}
-		}
-		else {
+		} else {
 			nProbeRetry = eeprom_read_byte((uint8_t*)EEPROM_MBL_PROBE_NR);
 		}
 		bool magnet_elimination = (eeprom_read_byte((uint8_t*)EEPROM_MBL_MAGNET_ELIMINATION) > 0);
 		
 #ifndef PINDA_THERMISTOR
-		if (run == false && temp_cal_active == true && calibration_status_pinda() == true && target_temperature_bed >= 50)
-		{
+		if (run == false && temp_cal_active == true && calibration_status_pinda() == true && target_temperature_bed >= 50) {
 			temp_compensation_start();
 			run = true;
 			repeatcommand_front(); // repeat G80 with all its parameters
@@ -4414,8 +4414,8 @@ void process_commands() {
 
 		mbl.reset(); //reset mesh bed leveling
 
-					 // Reset baby stepping to zero, if the babystepping has already been loaded before. The babystepsTodo value will be
-					 // consumed during the first movements following this statement.
+    // Reset baby stepping to zero, if the babystepping has already been loaded before. The babystepsTodo value will be
+    // consumed during the first movements following this statement.
 		babystep_undo();
 
 		// Cycle through all points and probe them
@@ -4427,8 +4427,7 @@ void process_commands() {
 		current_position[Y_AXIS] = BED_Y0;
 
 		#ifdef SUPPORT_VERBOSITY
-		if (verbosity_level >= 1)
-		{
+		if (verbosity_level >= 1) {
 		    bool clamped = world2machine_clamp(current_position[X_AXIS], current_position[Y_AXIS]);
 			clamped ? SERIAL_PROTOCOLPGM("First calibration point clamped.\n") : SERIAL_PROTOCOLPGM("No clamping for first calibration point.\n");
 		}
@@ -4462,8 +4461,7 @@ void process_commands() {
 				continue; //skip
 			}*/
 			if (iy & 1) ix = (nMeasPoints - 1) - ix; // Zig zag
-			if (nMeasPoints == 7) //if we have 7x7 mesh, compare with Z-calibration for points which are in 3x3 mesh
-			{
+			if (nMeasPoints == 7) { //if we have 7x7 mesh, compare with Z-calibration for points which are in 3x3 mesh
 				has_z = ((ix % 3 == 0) && (iy % 3 == 0)) && is_bed_z_jitter_data_valid(); 
 			}
 			float z0 = 0.f;
@@ -4471,8 +4469,7 @@ void process_commands() {
 				uint16_t z_offset_u = 0;
 				if (nMeasPoints == 7) {
 					z_offset_u = eeprom_read_word((uint16_t*)(EEPROM_BED_CALIBRATION_Z_JITTER + 2 * ((ix/3) + iy - 1)));
-				}
-				else {
+				}	else {
 					z_offset_u = eeprom_read_word((uint16_t*)(EEPROM_BED_CALIBRATION_Z_JITTER + 2 * (ix + iy * 3 - 1)));
 				}
 				z0 = mbl.z_values[0][0] + *reinterpret_cast<int16_t*>(&z_offset_u) * 0.01;
@@ -4484,8 +4481,11 @@ void process_commands() {
 			}
 
 			// Move Z up to MESH_HOME_Z_SEARCH.
-			if((ix == 0) && (iy == 0)) current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
-			else current_position[Z_AXIS] += 2.f / nMeasPoints; //use relative movement from Z coordinate where PINDa triggered on previous point. This makes calibration faster.
+			if((ix == 0) && (iy == 0)) {
+        current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
+      } else {
+        current_position[Z_AXIS] += 2.f / nMeasPoints; 
+        }//use relative movement from Z coordinate where PINDa triggered on previous point. This makes calibration faster.
 			float init_z_bckp = current_position[Z_AXIS];
 			plan_buffer_line_curposXYZE(Z_LIFT_FEEDRATE);
 			st_synchronize();
@@ -4578,40 +4578,40 @@ void process_commands() {
 		plan_buffer_line_curposXYZE(Z_LIFT_FEEDRATE);
 		st_synchronize();
 		if (mesh_point != nMeasPoints * nMeasPoints) {
-               Sound_MakeSound(e_SOUND_TYPE_StandardAlert);
-               bool bState;
-               do   {                             // repeat until Z-leveling o.k.
-                    lcd_display_message_fullscreen_P(_i("Some problem encountered, Z-leveling enforced ..."));
+      Sound_MakeSound(e_SOUND_TYPE_StandardAlert);
+      bool bState;
+      do {                             // repeat until Z-leveling o.k.
+        lcd_display_message_fullscreen_P(_i("Some problem encountered, Z-leveling enforced ..."));
 #ifdef TMC2130
-                    lcd_wait_for_click_delay(MSG_BED_LEVELING_FAILED_TIMEOUT);
-                    calibrate_z_auto();           // Z-leveling (X-assembly stay up!!!)
+        lcd_wait_for_click_delay(MSG_BED_LEVELING_FAILED_TIMEOUT);
+        calibrate_z_auto();           // Z-leveling (X-assembly stay up!!!)
 #else // TMC2130
-                    lcd_wait_for_click_delay(0);  // ~ no timeout
-                    lcd_calibrate_z_end_stop_manual(true); // Z-leveling (X-assembly stay up!!!)
+        lcd_wait_for_click_delay(0);  // ~ no timeout
+        lcd_calibrate_z_end_stop_manual(true); // Z-leveling (X-assembly stay up!!!)
 #endif // TMC2130
-                    // ~ Z-homing (can not be used "G28", because X & Y-homing would have been done before (Z-homing))
-                    bState=enable_z_endstop(false);
-                    current_position[Z_AXIS] -= 1;
-                    plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
-                    st_synchronize();
-                    enable_z_endstop(true);
+        // ~ Z-homing (can not be used "G28", because X & Y-homing would have been done before (Z-homing))
+        bState=enable_z_endstop(false);
+        current_position[Z_AXIS] -= 1;
+        plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
+        st_synchronize();
+        enable_z_endstop(true);
 #ifdef TMC2130
-                    tmc2130_home_enter(Z_AXIS_MASK);
+        tmc2130_home_enter(Z_AXIS_MASK);
 #endif // TMC2130
-                    current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
-                    plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
-                    st_synchronize();
+        current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
+        plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
+        st_synchronize();
 #ifdef TMC2130
-                    tmc2130_home_exit();
+        tmc2130_home_exit();
 #endif // TMC2130
-                    enable_z_endstop(bState);
-                    } while (st_get_position_mm(Z_AXIS) > MESH_HOME_Z_SEARCH); // i.e. Z-leveling not o.k.
-//               plan_set_z_position(MESH_HOME_Z_SEARCH); // is not necessary ('do-while' loop always ends at the expected Z-position)
-               custom_message_type=CustomMsg::Status; // display / status-line recovery
-               lcd_update_enable(true);           // display / status-line recovery
-               gcode_G28(true, true, true);       // X & Y & Z-homing (must be after individual Z-homing (problem with spool-holder)!)
-               repeatcommand_front();             // re-run (i.e. of "G80")
-               break;
+        enable_z_endstop(bState);
+      } while (st_get_position_mm(Z_AXIS) > MESH_HOME_Z_SEARCH); // i.e. Z-leveling not o.k.
+        //plan_set_z_position(MESH_HOME_Z_SEARCH); // is not necessary ('do-while' loop always ends at the expected Z-position)
+        custom_message_type=CustomMsg::Status; // display / status-line recovery
+        lcd_update_enable(true);           // display / status-line recovery
+        gcode_G28(true, true, true);       // X & Y & Z-homing (must be after individual Z-homing (problem with spool-holder)!)
+        repeatcommand_front();             // re-run (i.e. of "G80")
+        break;
 		}
 		clean_up_after_endstop_move(l_feedmultiply);
 //		SERIAL_ECHOLNPGM("clean up finished ");
@@ -8036,11 +8036,9 @@ Sigma_Exit:
               homeaxis(Y_AXIS);
             }
             memcpy(destination, current_position, sizeof(destination));
-            // Offset extruder (only by XY)
+            // Offset extruder XYZ
             for (int i = 0; i < 3; i++) {
-              current_position[i] = current_position[i] -
-              extruder_offset[i][active_extruder] +
-              extruder_offset[i][tmp_extruder];
+              current_position[i] = current_position[i] - extruder_offset[i][active_extruder] + extruder_offset[i][tmp_extruder];
               if(current_position[i] < min_pos[i][active_extruder]){
                 current_position[i] = min_pos[i][active_extruder];
               }

@@ -31,12 +31,8 @@
 
 
 //Extruder Pins
-const int E1BlowerFanFront_pin = 14;
-const int E1BlowerFanRear_pin = 4;
-const int E1AxialFan_pin = 15;
-const int E2BlowerFanFront_pin = 10;
-const int E2BlowerFanRear_pin = 9;
-const int E2AxialFan_pin = 12;
+
+const int fanPWMPins[6] = {4,9,10,12,14,15};
 
 //Solenoid Pins
 const int solenoidForward = 21;
@@ -56,9 +52,5 @@ const int MOSI_pin = 2;
 const int MISO_pin = 3;
 
 //Tachometers
-const int tach0_pin = 19;  //Extruder 1 Axial Fan (Heatsink)
-const int tach1_pin = 18;  //Extruder 1 Front Blower Fan
-const int tach2_pin = 17;  //Extruder 1 Rear Blower Fan
-const int tach3_pin = 16;  //Extruder 2 Axial Fan (Heatsink)
-const int tach4_pin = 13;  //Extruder 2 Front Blower Fan
-const int tach5_pin = 22;  //Extruder 2 Rear Blower Fan
+
+const int tachPins[6] = {19,18,17,16,13,22}; 

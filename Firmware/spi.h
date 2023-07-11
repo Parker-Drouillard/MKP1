@@ -15,7 +15,7 @@
 #define DD_MOSI 2
 #define DD_MISO 3
 
-#if defined(__cplusplus)
+#if defined(__cplusplus) 
 extern "C" {
 #endif //defined(__cplusplus)
 
