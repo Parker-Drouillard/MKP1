@@ -222,8 +222,8 @@ void MarlinSerial::print(long n, int base) {
 }
 
 void MarlinSerial::print(unsigned long n, int base) {
-  if {
-    (base == 0) write(n);
+  if (base == 0) {
+    write(n);
   } else {
     printNumber(n, base);
   }
