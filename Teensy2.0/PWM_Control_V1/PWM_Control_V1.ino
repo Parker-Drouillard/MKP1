@@ -7,11 +7,11 @@
 double dutyCycle = 0.5;           // interval at which to blink (milliseconds)
 
 const word PWM_FREQ_HZ = 25000; //Adjust this value to adjust the frequency
-const int fanDeathSampleCount = 50; //Sample count required to determine a fan is bad/dead
+const int fanDeathSampleCount = 1500; //Sample count required to determine a fan is bad/dead
 const long fanSampleInterval = 5; //Sample interval in ms to check fans
-const long changeTime = 500;
-const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFanFront_pin, E1BlowerFanRear_pin, E2AxialFan_pin, E2BlowerFanFront_pin, E2BlowerFanRear_pin};
-const int tachPins[NUMFANS] = {tach0_pin, tach1_pin, tach2_pin, tach3_pin, tach4_pin, tach5_pin};
+const long changeTime = 10;
+// const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFanFront_pin, E1BlowerFanRear_pin, E2AxialFan_pin, E2BlowerFanFront_pin, E2BlowerFanRear_pin};
+// const int tachPins[NUMFANS] = {tach0_pin, tach1_pin, tach2_pin, tach3_pin, tach4_pin, tach5_pin};
 
 int ledState = HIGH; // ledState used to set the LED
 int fanStates[NUMFANS] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH}; //State of each fan, default ON.
@@ -24,13 +24,42 @@ unsigned long previousMillis = 0;        // will store last time LED was updated
 unsigned long changeMillis = 0;
 unsigned long fanMillis = 0;
 
+//SPI stuff
+char buffer [128]; //data buffer
+volatile byte pos;
+volatile boolean process_it;
+// what to do with incoming data
+volatile byte command = 0;
+
+bool solenoidHomed = false;
+
+// struct pwmFan{
+//   int pwmPin;
+//   int tachPin;
+// };
+
+// struct extruder{
+//   pwmFan heatsinkFan;
+//   pwmFan blowerFans[2];
+// };
+
+
+#define SS SS_pin
+#define MISO MISO_pin
+#define MOSI MOSI_pin
+#define SCK SCK_pin
+
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////         SETUP                    /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
+  pinMode(MISO, OUTPUT);
+
   // put your setup code here, to run once:
   for(int i = 0; i < NUMFANS; i++){
-    pinMode(fanPins[i], OUTPUT);
+    pinMode(fanPWMPins[i], OUTPUT);
   }
   pinMode(ledPin,OUTPUT);
   pinMode(solenoidForward,OUTPUT);
@@ -38,11 +67,14 @@ void setup() {
   pinMode(motorForwardEnable, OUTPUT);
   pinMode(motorReverseEnable, OUTPUT);
   Serial.begin(9600);
+  T2spiInit();
   Serial.print("PWM output begin.");
   digitalWrite(ledPin, ledState);
   updateAllFanStates(); //DigitalWrite all fan states
 
-  delay(10);
+  delay(100);
+
+  // fanConnectionTest();
 
   homeSolenoid();
   resetAllFanHealth();
@@ -55,10 +87,24 @@ void setup() {
 void loop() {
   //Blinking light to show life
   blinkLED();
+  // if(process_it){
+  //   buffer [pos] = 0;
+  //   Serial.println(buffer);
+  //   handleCommands();
+  //   pos = 0;
+  //   process_it = false;
+  // }
+
+  // if SPI not active, clear current command
+  if (digitalRead (SS) == HIGH) {
+    command = 0;
+  }
+
 
   sampleHealthOfAllFans();
 
   updateAllFanStates(); //DigitalWrite all fan states
+  // logHealthOfAllFans();
  }
 
  
@@ -66,6 +112,55 @@ void loop() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////         FUNCTIONS                /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Validation Functions
+void fanConnectionTest() {
+  for(int i = 0; i < 6; i++){
+    fanStates[i] = 0; //Shut off all fans prior to testing
+  }
+  updateAllFanStates();
+  delay(1000);
+
+  //Loop for testing through all 6 fans
+  for(int i = 0; i < 6; i++){
+    unsigned long testDuration = 10000; //Test each fan for 10 seconds
+    unsigned long prevTestMillis = 0;
+    fanStates[i] = 1; //Turn fan on to begin test.
+    updateAllFanStates();
+    delay(1000);
+
+    while(true){
+      unsigned long currentMillis = millis();
+      if(currentMillis - prevTestMillis >= testDuration){ //Test for this fan has been concluded.
+        //End test, cleanup, and move on to next.
+
+        fanStates[i] = 0; //Shut fan off
+        updateAllFanStates();
+        break;
+      }
+      prevTestMillis = currentMillis;
+      
+      unsigned long currentTachReading = analogRead(tachPins[i])/4*60;
+      // Serial.println(i + String("   Value: ") + currentTachReading + String("    Samples: ") + fanHealthSamples[i] + String("     Status: ") + fanStates[i]);
+      if(currentTachReading >= 10000 || currentTachReading < 4000) {
+        fanHealthSamples[i] = fanHealthSamples[i]+1; //Increase counter if improper tach values sensed.
+      } else {
+        fanHealthSamples[i] = 0; //Reset counter if a nominal value was read
+      }
+
+      if(fanHealthSamples[i] >= fanDeathSampleCount){
+        fanHealth[i] = 0;
+        fanStates[i] = -1;
+      }
+      blinkLED();
+      updateAllFanStates();
+      // logHealthOfAllFans();
+    }
+  }
+}
+
+
+
 
 //============ SOLENOID STUFF ==================================
 
@@ -97,7 +192,7 @@ void homeSolenoid(){
 void updateAllFanStates(){
   for(int i = 0; i < NUMFANS; i++){
     // if(fanHealth[i]){
-      digitalWrite(fanPins[i],fanStates[i] > 0 ? HIGH : LOW);
+      digitalWrite(fanPWMPins[i],fanStates[i] > 0 ? HIGH : LOW);
     // } else {
       // digitalWrite(fanPins[i],0); //If fan is unhealthy, do not turn it on. Health must first be reset.
     // }
@@ -143,11 +238,11 @@ void logHealthOfAllFans(){
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(fanStates[i])+String(" : "));
   }
-  Serial.print("Samples: ");
+  Serial.print("\tSamples: ");
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(fanHealthSamples[i]+String(" : ")));
   }
-  Serial.println();
+  Serial.print("\tValues: ");
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(analogRead(tachPins[i])/4*60)+String(" : "));
   }
@@ -212,7 +307,103 @@ void blinkLED(){
       ledState = LOW;
     }
     digitalWrite(ledPin, ledState);
-    logHealthOfAllFans();
+    // logHealthOfAllFans();
+//    Serial.println(analogRead(11));
   }
 }
 
+///  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SPI STUFF ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+///~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void T2spiInit(){
+  DDRB = (1<<MISO);
+  SPCR |= _BV(SPE);
+  SPCR |= _BV(SPIE);
+
+  Serial.println("SPI INIT");
+
+  // pinMode(SS_pin, INPUT);
+  // pinMode(SCK_pin, INPUT);
+  // pinMode(MOSI_pin, INPUT);
+  // pinMode(MISO_pin, OUTPUT);
+}
+
+
+void SPI_SlaveReceive(void){
+  while(!(SPSR & (1<<SPIF)));
+  return SPDR;
+}
+
+//http://www.gammon.com.au/forum/?id=10892&reply=1#reply1
+ISR (SPI_STC_vect) { // SPI interrupt routine
+
+  byte c = SPDR;
+ 
+  switch (command) {
+    // no command? then this is the command
+    case 0:
+      command = c;
+      SPDR = 0;
+    break;
+      
+    // add to incoming byte, return result
+    case 'a':
+      SPDR = c + 15;  // add 15
+    break;
+      
+    // subtract from incoming byte, return result
+    case 's':
+      SPDR = c - 8;  // subtract 8
+    break;
+
+  } // end of switch
+
+  // byte c = SPDR; //grab byte from SPI Data Register
+
+  // // Add to buffer if there is room
+  // if (pos < (sizeof (buffer) - 1)) {
+  //   buffer [pos++] = c;
+  // }
+
+  // // newline means time to process buffer
+  // if (c == '\n'){
+  //   process_it = true;
+  // }
+} // end of interrupt routine SPI_STC_vect
+
+
+
+
+
+
+void handleCommands(){
+
+  // switch(command){
+
+  //   case "M382": //Solenoid Up
+  //     if(!solenoidHomed){
+  //       homeSolenoid();
+  //     }
+  //     digitalWrite(solenoidForward,HIGH);
+  //     digitalWrite(solenoidReverse,LOW);
+  //     delay(40);
+  //     digitalWrite(solenoidForward,LOW);
+  //   break;
+
+  //   case "M383": //Solenoid Down
+  //     if(!solenoidHomed){
+  //       homeSolenoid();
+  //     }
+  //     digitalWrite(solenoidReverse,HIGH);
+  //     digitalWrite(solenoidForward,LOW);
+  //     delay(40);
+  //     digitalWrite(solenoidReverse,LOW);
+  //   break;
+    
+
+  //   default:
+  //   break;
+  // }
+
+  return;
+}
