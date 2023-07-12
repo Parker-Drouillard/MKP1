@@ -349,9 +349,6 @@ static float saved_feedrate;
 
 const int sensitive_pins[] = SENSITIVE_PINS; // Sensitive pin list for M42
 
-//static float tt = 0;
-//static float bt = 0;
-
 //Inactivity shutdown variables
 static unsigned long previous_millis_cmd = 0;
 unsigned long max_inactive_time = 0;
@@ -424,25 +421,19 @@ void serial_echopair_P(const char *s_P, unsigned long v)
     { serialprintPGM(s_P); SERIAL_ECHO(v); }
 
 /*FORCE_INLINE*/ void serialprintPGM(const char *str) {
-#if 0
-  char ch=pgm_read_byte(str);
-  while(ch) {
-    MYSERIAL.write(ch);
-    ch=pgm_read_byte(++str);
-  }
-#else
 	// hmm, same size as the above version, the compiler did a good job optimizing the above
   // it's almost like that's the compilers job...
 	while( uint8_t ch = pgm_read_byte(str) ){
 	  MYSERIAL.write((char)ch);
 	  ++str;
 	}
-#endif
 }
 
 #ifdef SDSUPPORT
   #include "SdFatUtil.h"
-  int freeMemory() { return SdFatUtil::FreeRam(); }
+  int freeMemory() { 
+    return SdFatUtil::FreeRam(); 
+  }
 #else
   extern "C" {
     extern unsigned int __bss_end;
@@ -463,65 +454,65 @@ void serial_echopair_P(const char *s_P, unsigned long v)
 #endif //!SDSUPPORT
 
 void setup_killpin() {
-  #if defined(KILL_PIN) && KILL_PIN > -1
-    SET_INPUT(KILL_PIN);
-    WRITE(KILL_PIN,HIGH);
-  #endif
+#if defined(KILL_PIN) && KILL_PIN > -1
+  SET_INPUT(KILL_PIN);
+  WRITE(KILL_PIN,HIGH);
+#endif
 }
 
 // Set home pin
 void setup_homepin(void) {
 #if defined(HOME_PIN) && HOME_PIN > -1
-   SET_INPUT(HOME_PIN);
-   WRITE(HOME_PIN,HIGH);
+  SET_INPUT(HOME_PIN);
+  WRITE(HOME_PIN,HIGH);
 #endif
 }
 
 void setup_photpin() {
-  #if defined(PHOTOGRAPH_PIN) && PHOTOGRAPH_PIN > -1
-    SET_OUTPUT(PHOTOGRAPH_PIN);
-    WRITE(PHOTOGRAPH_PIN, LOW);
-  #endif
+#if defined(PHOTOGRAPH_PIN) && PHOTOGRAPH_PIN > -1
+  SET_OUTPUT(PHOTOGRAPH_PIN);
+  WRITE(PHOTOGRAPH_PIN, LOW);
+#endif
 }
 
 void setup_powerhold() {
 #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
-    SET_OUTPUT(SUICIDE_PIN);
-    WRITE(SUICIDE_PIN, HIGH);
+  SET_OUTPUT(SUICIDE_PIN);
+  WRITE(SUICIDE_PIN, HIGH);
 #endif
 #if defined(PS_ON_PIN) && PS_ON_PIN > -1
-    SET_OUTPUT(PS_ON_PIN);
-	#if defined(PS_DEFAULT_OFF)
-	  WRITE(PS_ON_PIN, PS_ON_ASLEEP);
-  #else
-	  WRITE(PS_ON_PIN, PS_ON_AWAKE);
-	#endif
+  SET_OUTPUT(PS_ON_PIN);
+#if defined(PS_DEFAULT_OFF)
+  WRITE(PS_ON_PIN, PS_ON_ASLEEP);
+#else
+  WRITE(PS_ON_PIN, PS_ON_AWAKE);
+#endif
 #endif
 }
 
 void suicide() {
 #if defined(SUICIDE_PIN) && SUICIDE_PIN > -1
-    SET_OUTPUT(SUICIDE_PIN);
-    WRITE(SUICIDE_PIN, LOW);
+  SET_OUTPUT(SUICIDE_PIN);
+  WRITE(SUICIDE_PIN, LOW);
 #endif
 }
 
 void servo_init() {
-  #if (NUM_SERVOS >= 1) && defined(SERVO0_PIN) && (SERVO0_PIN > -1)
-    servos[0].attach(SERVO0_PIN);
-  #endif
-  #if (NUM_SERVOS >= 2) && defined(SERVO1_PIN) && (SERVO1_PIN > -1)
-    servos[1].attach(SERVO1_PIN);
-  #endif
-  #if (NUM_SERVOS >= 3) && defined(SERVO2_PIN) && (SERVO2_PIN > -1)
-    servos[2].attach(SERVO2_PIN);
-  #endif
-  #if (NUM_SERVOS >= 4) && defined(SERVO3_PIN) && (SERVO3_PIN > -1)
-    servos[3].attach(SERVO3_PIN);
-  #endif
-  #if (NUM_SERVOS >= 5)
-    #error "TODO: enter initalisation code for more servos"
-  #endif
+#if (NUM_SERVOS >= 1) && defined(SERVO0_PIN) && (SERVO0_PIN > -1)
+  servos[0].attach(SERVO0_PIN);
+#endif
+#if (NUM_SERVOS >= 2) && defined(SERVO1_PIN) && (SERVO1_PIN > -1)
+  servos[1].attach(SERVO1_PIN);
+#endif
+#if (NUM_SERVOS >= 3) && defined(SERVO2_PIN) && (SERVO2_PIN > -1)
+  servos[2].attach(SERVO2_PIN);
+#endif
+#if (NUM_SERVOS >= 4) && defined(SERVO3_PIN) && (SERVO3_PIN > -1)
+  servos[3].attach(SERVO3_PIN);
+#endif
+#if (NUM_SERVOS >= 5)
+  #error "TODO: enter initalisation code for more servos"
+#endif
 }
 
 
@@ -632,7 +623,7 @@ void failstats_reset_print() {
 	eeprom_update_byte((uint8_t *)EEPROM_MMU_FAIL, 0);
 	eeprom_update_byte((uint8_t *)EEPROM_MMU_LOAD_FAIL, 0);
 #if defined(FILAMENT_SENSOR) && defined(PAT9125)
-    fsensor_softfail = 0;
+  fsensor_softfail = 0;
 #endif
 }
 
@@ -644,7 +635,7 @@ void softReset() {
 
 
 #ifdef MESH_BED_LEVELING
-   enum MeshLevelingState { MeshReport, MeshStart, MeshNext, MeshSet };
+enum MeshLevelingState { MeshReport, MeshStart, MeshNext, MeshSet };
 #endif
 
 
@@ -655,7 +646,7 @@ int  er_progress = 0;
 static void factory_reset(char level) {	
 	lcd_clear();
   switch (level) {      
-        // Level 0: Language reset
+    // Level 0: Language reset
     case 0:
       Sound_MakeCustom(100,0,false);
 			lang_reset();
@@ -795,22 +786,27 @@ void factory_reset()  {
 			factory_reset(level);
 
 			switch (level) {
-			case 0: _delay_ms(0); break;
-			case 1: _delay_ms(0); break;
-			case 2: _delay_ms(0); break;
-			case 3: _delay_ms(0); break;
+        case 0: _delay_ms(0); break;
+        case 1: _delay_ms(0); break;
+        case 2: _delay_ms(0); break;
+        case 3: _delay_ms(0); break;
 			}
-
 		}
 	}
 	KEEPALIVE_STATE(IN_HANDLER);
 }
 
 void show_fw_version_warnings() {
-	if (FW_DEV_VERSION == FW_VERSION_GOLD || FW_DEV_VERSION == FW_VERSION_RC) {return;}
+	if (FW_DEV_VERSION == FW_VERSION_GOLD || FW_DEV_VERSION == FW_VERSION_RC) {
+    return;
+  }
 	switch (FW_DEV_VERSION) {
-    case(FW_VERSION_ALPHA):   lcd_show_fullscreen_message_and_wait_P(_i("You are using firmware alpha version. This is development version. Using this version is not recommended and may cause printer damage."));   break;////MSG_FW_VERSION_ALPHA c=20 r=8
-    case(FW_VERSION_BETA):    lcd_show_fullscreen_message_and_wait_P(_i("You are using firmware beta version. This is development version. Using this version is not recommended and may cause printer damage."));    break;////MSG_FW_VERSION_BETA c=20 r=8
+    case(FW_VERSION_ALPHA):   
+      lcd_show_fullscreen_message_and_wait_P(_i("You are using firmware alpha version. This is development version. Using this version is not recommended and may cause printer damage."));   
+    break;////MSG_FW_VERSION_ALPHA c=20 r=8
+    case(FW_VERSION_BETA):    
+      lcd_show_fullscreen_message_and_wait_P(_i("You are using firmware beta version. This is development version. Using this version is not recommended and may cause printer damage."));    
+    break;////MSG_FW_VERSION_BETA c=20 r=8
     case(FW_VERSION_DEVEL):
     case(FW_VERSION_DEBUG):
       lcd_update_enable(false);
@@ -960,50 +956,26 @@ static void w25x20cl_err_msg() {
 	lcd_puts_P(_n("External SPI flash\nW25X20CL is not res-\nponding. Language\nswitch unavailable."));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////    SETUP   ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// "Setup" function is called by the Arduino framework on startup.
-// Before startup, the Timers-functions (PWM)/Analog RW and HardwareSerial provided by the Arduino-code 
-// are initialized by the main() routine provided by the Arduino framework.
-void setup() {
-	ultralcd_init();
-	spi_init();
-	lcd_splash();
-  Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
-
-	selectedSerialPort = eeprom_read_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE);
+//I believe this is used in prusa farm printers when the defaul serial port is not used, alloing them to control via ethernet
+static void serialPortInit(){
+  selectedSerialPort = eeprom_read_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE);
 	if (selectedSerialPort == 0xFF) {selectedSerialPort = 0;}
 	eeprom_update_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE, selectedSerialPort);
 	MYSERIAL.begin(BAUDRATE);
 	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
 	stdout = uartout;
+}
 
-#ifdef W25X20CL
-    bool w25x20cl_success = w25x20cl_init();
-	uint8_t optiboot_status = 1;
-	if (w25x20cl_success) {
-    optiboot_status = optiboot_w25x20cl_enter();
-#if (LANG_MODE != 0) //secondary language support
-    update_sec_lang_from_external_flash();
-#endif //(LANG_MODE != 0)
-	}	else {
-    w25x20cl_err_msg();
-	}
-#else
-	const bool w25x20cl_success = true;
-#endif //W25X20CL
-
-	setup_killpin();
-	setup_powerhold();
-
-	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE); 
+farmModeInit(){
+  farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE); 
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
 	if ((farm_mode == 0xFF && farm_no == 0) || ((uint16_t)farm_no == 0xFFFF)) {
 		farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
 	}
-  if ((uint16_t)farm_no == 0xFFFF) { farm_no = 0; }
+
+  if ((uint16_t)farm_no == 0xFFFF) { 
+    farm_no = 0; 
+  }
 	if (farm_mode) {
 		no_response = true; //we need confirmation by recieving PRUSA thx
 		important_status = 8;
@@ -1024,7 +996,50 @@ void setup() {
       eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
     }
 	}
+}
 
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////    SETUP   ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// "Setup" function is called by the Arduino framework on startup.
+// Before startup, the Timers-functions (PWM)/Analog RW and HardwareSerial provided by the Arduino-code 
+// are initialized by the main() routine provided by the Arduino framework.
+void setup() {
+	ultralcd_init();
+	spi_init();
+	lcd_splash();
+  Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
+  serialPortInit();
+	
+
+#ifdef W25X20CL
+  bool w25x20cl_success = w25x20cl_init();
+	uint8_t optiboot_status = 1;
+	if (w25x20cl_success) {
+    optiboot_status = optiboot_w25x20cl_enter();
+#if (LANG_MODE != 0) //secondary language support
+    update_sec_lang_from_external_flash();
+#endif //(LANG_MODE != 0)
+	}	else {
+    w25x20cl_err_msg();
+	}
+#else
+	const bool w25x20cl_success = true;
+#endif //W25X20CL
+
+	setup_killpin();
+	setup_powerhold();
+
+  farmModeInit(); //initialize farm mode settings
   
 #ifndef W25X20CL
 	SERIAL_PROTOCOLLNPGM("start");

@@ -560,11 +560,8 @@ void lcdui_print_status_line(void) {
 				lcd_puts_P(_T(MSG_CALIBRATE_Z_AUTO));
 				lcd_puts_P(PSTR(" : "));
 				lcd_print(custom_message_state-10);
-			}
-			else
-			{
-				if (custom_message_state == 3)
-				{
+			} else {
+				if (custom_message_state == 3) {
 					lcd_puts_P(_T(WELCOME_MSG));
 					lcd_setstatuspgm(_T(WELCOME_MSG));
 					custom_message_type = CustomMsg::Status;
