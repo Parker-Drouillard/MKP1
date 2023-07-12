@@ -966,6 +966,7 @@ static void serialPortInit(){
 	stdout = uartout;
 }
 
+
 farmModeInit(){
   farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE); 
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
@@ -996,12 +997,210 @@ farmModeInit(){
       eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
     }
 	}
+
+  farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
+	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
+	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) {farm_mode = false;} //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
+	if (farm_no == static_cast<int>(0xFFFF)) {farm_no = 0;}
+	if (farm_mode) {
+		prusa_statistics(8);
+	}
 }
 
 
 
+void debugSecondLang(){
+  lang_table_header_t header;
+	uint32_t src_addr = 0x00000;
+	if (lang_get_header(1, &header, &src_addr)) {
+    //this is comparsion of some printing-methods regarding to flash space usage and code size/readability
+#define LT_PRINT_TEST 2
+    //  flash usage
+    //  total   p.test
+    //0 252718  t+c  text code
+    //1 253142  424  170  254
+    //2 253040  322  164  158
+    //3 253248  530  135  395
+#if (LT_PRINT_TEST==1) //not optimized printf
+    printf_P(_n(" _src_addr = 0x%08lx\n"), src_addr);
+    printf_P(_n(" _lt_magic = 0x%08lx %S\n"), header.magic, (header.magic==LANG_MAGIC)?_n("OK"):_n("NA"));
+    printf_P(_n(" _lt_size  = 0x%04x (%d)\n"), header.size, header.size);
+    printf_P(_n(" _lt_count = 0x%04x (%d)\n"), header.count, header.count);
+    printf_P(_n(" _lt_chsum = 0x%04x\n"), header.checksum);
+    printf_P(_n(" _lt_code  = 0x%04x (%c%c)\n"), header.code, header.code >> 8, header.code & 0xff);
+    printf_P(_n(" _lt_sign = 0x%08lx\n"), header.signature);
+#elif (LT_PRINT_TEST==2) //optimized printf
+    printf_P(
+      _n(
+      " _src_addr = 0x%08lx\n"
+      " _lt_magic = 0x%08lx %S\n"
+      " _lt_size  = 0x%04x (%d)\n"
+      " _lt_count = 0x%04x (%d)\n"
+      " _lt_chsum = 0x%04x\n"
+      " _lt_code  = 0x%04x (%c%c)\n"
+      " _lt_resv1 = 0x%08lx\n"
+      ),
+      src_addr,
+      header.magic, (header.magic==LANG_MAGIC)?_n("OK"):_n("NA"),
+      header.size, header.size,
+      header.count, header.count,
+      header.checksum,
+      header.code, header.code >> 8, header.code & 0xff,
+      header.signature
+    );
+#elif (LT_PRINT_TEST==3) //arduino print/println (leading zeros not solved)
+    MYSERIAL.print(" _src_addr = 0x");
+    MYSERIAL.println(src_addr, 16);
+    MYSERIAL.print(" _lt_magic = 0x");
+    MYSERIAL.print(header.magic, 16);
+    MYSERIAL.println((header.magic==LANG_MAGIC)?" OK":" NA");
+    MYSERIAL.print(" _lt_size  = 0x");
+    MYSERIAL.print(header.size, 16);
+    MYSERIAL.print(" (");
+    MYSERIAL.print(header.size, 10);
+    MYSERIAL.println(")");
+    MYSERIAL.print(" _lt_count = 0x");
+    MYSERIAL.print(header.count, 16);
+    MYSERIAL.print(" (");
+    MYSERIAL.print(header.count, 10);
+    MYSERIAL.println(")");
+    MYSERIAL.print(" _lt_chsum = 0x");
+    MYSERIAL.println(header.checksum, 16);
+    MYSERIAL.print(" _lt_code  = 0x");
+    MYSERIAL.print(header.code, 16);
+    MYSERIAL.print(" (");
+    MYSERIAL.print((char)(header.code >> 8), 0);
+    MYSERIAL.print((char)(header.code & 0xff), 0);
+    MYSERIAL.println(")");
+    MYSERIAL.print(" _lt_resv1 = 0x");
+    MYSERIAL.println(header.signature, 16);
+#endif //(LT_PRINT_TEST==)
+#undef LT_PRINT_TEST
 
 
+    uint16_t sum = 0;
+    for (uint16_t i = 0; i < header.size; i++) {
+      sum += (uint16_t)pgm_read_byte((uint8_t*)(_SEC_LANG_TABLE + i)) << ((i & 1)?0:8);
+    }
+    printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
+    sum -= header.checksum; //subtract checksum
+    printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
+    sum = (sum >> 8) | ((sum & 0xff) << 8); //swap bytes
+    if (sum == header.checksum) {
+      printf_P(_n("Checksum OK\n"), sum);
+    } else {
+      printf_P(_n("Checksum NG\n"), sum);
+    }
+  } else {
+    printf_P(_n("lang_get_header failed!\n"));
+  }
+}
+
+	// Check startup - does nothing if bootloader sets MCUSR to 0
+void checkStartup(){
+	byte mcu = MCUSR;
+
+  if (mcu & 1) {puts_P(MSG_POWERUP);}
+	if (mcu & 2) {puts_P(MSG_EXTERNAL_RESET);}
+	if (mcu & 4) {puts_P(MSG_BROWNOUT_RESET);}
+	if (mcu & 8) {puts_P(MSG_WATCHDOG_RESET);}
+	if (mcu & 32) {puts_P(MSG_SOFTWARE_RESET);}
+	MCUSR = 0;
+}
+
+
+uint8_t tmc2130_setup_init(){
+	uint8_t silentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
+	if (silentMode == 0xff) {
+    silentMode = 0;
+  }
+	tmc2130_mode = TMC2130_MODE_NORMAL;
+
+	if (lcd_crash_detect_enabled() && !farm_mode) {
+		lcd_crash_detect_enable();
+	    puts_P(_N("CrashDetect ENABLED!"));
+	}	else {
+	    lcd_crash_detect_disable();
+	    puts_P(_N("CrashDetect DISABLED"));
+	}
+
+  #ifdef TMC2130_LINEARITY_CORRECTION
+#ifdef TMC2130_LINEARITY_CORRECTION_XYZ
+	tmc2130_wave_fac[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_X_FAC);
+	tmc2130_wave_fac[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Y_FAC);
+	tmc2130_wave_fac[Z_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Z_FAC);
+#endif //TMC2130_LINEARITY_CORRECTION_XYZ
+	tmc2130_wave_fac[E_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_E_FAC);
+	if (tmc2130_wave_fac[X_AXIS] == 0xff) tmc2130_wave_fac[X_AXIS] = 0;
+	if (tmc2130_wave_fac[Y_AXIS] == 0xff) tmc2130_wave_fac[Y_AXIS] = 0;
+	if (tmc2130_wave_fac[Z_AXIS] == 0xff) tmc2130_wave_fac[Z_AXIS] = 0;
+	if (tmc2130_wave_fac[E_AXIS] == 0xff) tmc2130_wave_fac[E_AXIS] = 0;
+#endif //TMC2130_LINEARITY_CORRECTION
+
+#ifdef TMC2130_VARIABLE_RESOLUTION
+	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[X_AXIS]);
+	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Y_AXIS]);
+	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Z_AXIS]);
+	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[E_AXIS]);
+#else //TMC2130_VARIABLE_RESOLUTION
+	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
+	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
+	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_Z);
+	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_E);
+#endif //TMC2130_VARIABLE_RESOLUTION
+
+  st_init();    // Initialize stepper, this enables interrupts!
+
+  tmc2130_mode = silentMode?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
+	update_mode_profile();
+	tmc2130_init();
+
+  return silentMode;
+}
+
+
+
+void debugSDSpeedTest(){
+  if (card.cardOK) {
+		uint8_t* buff = (uint8_t*)block_buffer;
+		uint32_t block = 0;
+		uint32_t sumr = 0;
+		uint32_t sumw = 0;
+		for (int i = 0; i < 1024; i++) {
+			uint32_t u = _micros();
+			bool res = card.card.readBlock(i, buff);
+			u = _micros() - u;
+			if (res) {
+				printf_P(PSTR("readBlock %4d 512 bytes %lu us\n"), i, u);
+				sumr += u;
+				u = _micros();
+				res = card.card.writeBlock(i, buff);
+				u = _micros() - u;
+				if (res) {
+					printf_P(PSTR("writeBlock %4d 512 bytes %lu us\n"), i, u);
+					sumw += u;
+				} else {
+					printf_P(PSTR("writeBlock %4d error\n"), i);
+					break;
+				}
+			} else {
+				printf_P(PSTR("readBlock %4d error\n"), i);
+				break;
+			}
+		}
+		uint32_t avg_rspeed = (1024 * 1000000) / (sumr / 512);
+		uint32_t avg_wspeed = (1024 * 1000000) / (sumw / 512);
+		printf_P(PSTR("avg read speed %lu bytes/s\n"), avg_rspeed);
+		printf_P(PSTR("avg write speed %lu bytes/s\n"), avg_wspeed);
+	} else {
+		printf_P(PSTR("Card NG!\n"));
+  }
+}
+
+
+void debug_w25x20cl(){
+  
+}
 
 
 
@@ -1051,105 +1250,13 @@ void setup() {
 	SERIAL_ECHO_START;
 	printf_P(PSTR(" " FW_VERSION_FULL "\n"));
 
-	//SERIAL_ECHOPAIR("Active sheet before:", static_cast<unsigned long int>(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet))));
-
 #ifdef DEBUG_SEC_LANG
-	lang_table_header_t header;
-	uint32_t src_addr = 0x00000;
-	if (lang_get_header(1, &header, &src_addr)) {
-//this is comparsion of some printing-methods regarding to flash space usage and code size/readability
-#define LT_PRINT_TEST 2
-//  flash usage
-//  total   p.test
-//0 252718  t+c  text code
-//1 253142  424  170  254
-//2 253040  322  164  158
-//3 253248  530  135  395
-#if (LT_PRINT_TEST==1) //not optimized printf
-		printf_P(_n(" _src_addr = 0x%08lx\n"), src_addr);
-		printf_P(_n(" _lt_magic = 0x%08lx %S\n"), header.magic, (header.magic==LANG_MAGIC)?_n("OK"):_n("NA"));
-		printf_P(_n(" _lt_size  = 0x%04x (%d)\n"), header.size, header.size);
-		printf_P(_n(" _lt_count = 0x%04x (%d)\n"), header.count, header.count);
-		printf_P(_n(" _lt_chsum = 0x%04x\n"), header.checksum);
-		printf_P(_n(" _lt_code  = 0x%04x (%c%c)\n"), header.code, header.code >> 8, header.code & 0xff);
-		printf_P(_n(" _lt_sign = 0x%08lx\n"), header.signature);
-#elif (LT_PRINT_TEST==2) //optimized printf
-		printf_P(
-		 _n(
-		  " _src_addr = 0x%08lx\n"
-		  " _lt_magic = 0x%08lx %S\n"
-		  " _lt_size  = 0x%04x (%d)\n"
-		  " _lt_count = 0x%04x (%d)\n"
-		  " _lt_chsum = 0x%04x\n"
-		  " _lt_code  = 0x%04x (%c%c)\n"
-		  " _lt_resv1 = 0x%08lx\n"
-		 ),
-		 src_addr,
-		 header.magic, (header.magic==LANG_MAGIC)?_n("OK"):_n("NA"),
-		 header.size, header.size,
-		 header.count, header.count,
-		 header.checksum,
-		 header.code, header.code >> 8, header.code & 0xff,
-		 header.signature
-		);
-#elif (LT_PRINT_TEST==3) //arduino print/println (leading zeros not solved)
-		MYSERIAL.print(" _src_addr = 0x");
-		MYSERIAL.println(src_addr, 16);
-		MYSERIAL.print(" _lt_magic = 0x");
-		MYSERIAL.print(header.magic, 16);
-		MYSERIAL.println((header.magic==LANG_MAGIC)?" OK":" NA");
-		MYSERIAL.print(" _lt_size  = 0x");
-		MYSERIAL.print(header.size, 16);
-		MYSERIAL.print(" (");
-		MYSERIAL.print(header.size, 10);
-		MYSERIAL.println(")");
-		MYSERIAL.print(" _lt_count = 0x");
-		MYSERIAL.print(header.count, 16);
-		MYSERIAL.print(" (");
-		MYSERIAL.print(header.count, 10);
-		MYSERIAL.println(")");
-		MYSERIAL.print(" _lt_chsum = 0x");
-		MYSERIAL.println(header.checksum, 16);
-		MYSERIAL.print(" _lt_code  = 0x");
-		MYSERIAL.print(header.code, 16);
-		MYSERIAL.print(" (");
-		MYSERIAL.print((char)(header.code >> 8), 0);
-		MYSERIAL.print((char)(header.code & 0xff), 0);
-		MYSERIAL.println(")");
-		MYSERIAL.print(" _lt_resv1 = 0x");
-		MYSERIAL.println(header.signature, 16);
-#endif //(LT_PRINT_TEST==)
-#undef LT_PRINT_TEST
-
-
-		uint16_t sum = 0;
-		for (uint16_t i = 0; i < header.size; i++) {
-			sum += (uint16_t)pgm_read_byte((uint8_t*)(_SEC_LANG_TABLE + i)) << ((i & 1)?0:8);
-    }
-		printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
-		sum -= header.checksum; //subtract checksum
-		printf_P(_n("_SEC_LANG_TABLE checksum = %04x\n"), sum);
-		sum = (sum >> 8) | ((sum & 0xff) << 8); //swap bytes
-		if (sum == header.checksum) {
-			printf_P(_n("Checksum OK\n"), sum);
-		} else {
-			printf_P(_n("Checksum NG\n"), sum);
-    }
-	}else {
-		printf_P(_n("lang_get_header failed!\n"));
-  }
-
+	debugSecondLang();
 #endif //DEBUG_SEC_LANG
 
-	// Check startup - does nothing if bootloader sets MCUSR to 0
-	byte mcu = MCUSR;
-	if (mcu & 1) {puts_P(MSG_POWERUP);}
-	if (mcu & 2) {puts_P(MSG_EXTERNAL_RESET);}
-	if (mcu & 4) {puts_P(MSG_BROWNOUT_RESET);}
-	if (mcu & 8) {puts_P(MSG_WATCHDOG_RESET);}
-	if (mcu & 32) {puts_P(MSG_SOFTWARE_RESET);}
-	MCUSR = 0;
-
+  checkStartup();
+	
+  //Author details
 #ifdef STRING_VERSION_CONFIG_H
 #ifdef STRING_CONFIG_H_AUTHOR
 	SERIAL_ECHO_START;
@@ -1167,7 +1274,6 @@ void setup() {
 	SERIAL_ECHO(freeMemory());
 	SERIAL_ECHORPGM(_n("  PlannerBufferBytes: "));////MSG_PLANNER_BUFFER_BYTES
 	SERIAL_ECHOLN((int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
-	//lcd_update_enable(false); // why do we need this?? - andre
 	// loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
 	
 	bool previous_settings_retrieved = false; 
@@ -1187,14 +1293,6 @@ void setup() {
     w25x20cl_err_msg();
     printf_P(_n("W25X20CL not responding.\n"));
 	}
-#ifdef EXTRUDER_ALTFAN_DETECT
-	SERIAL_ECHORPGM(_n("Extruder fan type: "));
-	if (extruder_altfan_detect()) {
-		SERIAL_ECHOLNRPGM(PSTR("ALTFAN"));
-	} else {
-		SERIAL_ECHOLNRPGM(PSTR("NOCTUA"));
-  }
-#endif //EXTRUDER_ALTFAN_DETECT
 
 	plan_init();  // Initialize planner;
 
@@ -1216,57 +1314,11 @@ void setup() {
     lcd_encoder_diff=0;
 
 #ifdef TMC2130
-	uint8_t silentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
-	if (silentMode == 0xff) {
-    silentMode = 0;
-  }
-	tmc2130_mode = TMC2130_MODE_NORMAL;
-
-	if (lcd_crash_detect_enabled() && !farm_mode) {
-		lcd_crash_detect_enable();
-	    puts_P(_N("CrashDetect ENABLED!"));
-	}	else {
-	    lcd_crash_detect_disable();
-	    puts_P(_N("CrashDetect DISABLED"));
-	}
-
-#ifdef TMC2130_LINEARITY_CORRECTION
-#ifdef TMC2130_LINEARITY_CORRECTION_XYZ
-	tmc2130_wave_fac[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_X_FAC);
-	tmc2130_wave_fac[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Y_FAC);
-	tmc2130_wave_fac[Z_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Z_FAC);
-#endif //TMC2130_LINEARITY_CORRECTION_XYZ
-	tmc2130_wave_fac[E_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_E_FAC);
-	if (tmc2130_wave_fac[X_AXIS] == 0xff) tmc2130_wave_fac[X_AXIS] = 0;
-	if (tmc2130_wave_fac[Y_AXIS] == 0xff) tmc2130_wave_fac[Y_AXIS] = 0;
-	if (tmc2130_wave_fac[Z_AXIS] == 0xff) tmc2130_wave_fac[Z_AXIS] = 0;
-	if (tmc2130_wave_fac[E_AXIS] == 0xff) tmc2130_wave_fac[E_AXIS] = 0;
-#endif //TMC2130_LINEARITY_CORRECTION
-
-#ifdef TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[X_AXIS]);
-	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Y_AXIS]);
-	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Z_AXIS]);
-	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[E_AXIS]);
-#else //TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_Z);
-	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_E);
-#endif //TMC2130_VARIABLE_RESOLUTION
-
+  uint8_t silentMode = tmc2130_setup_init();
+#else
+  st_init();    // Initialize stepper, this enables interrupts!
 #endif //TMC2130
 
-	st_init();    // Initialize stepper, this enables interrupts!
-  
-#ifdef TMC2130
-	tmc2130_mode = silentMode?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
-	update_mode_profile();
-	tmc2130_init();
-#endif //TMC2130
-#ifdef PSU_Delta
-     init_force_z();                              // ! important for correct Z-axis initialization
-#endif // PSU_Delta
     
 	setup_photpin();
 	servo_init();
@@ -1293,14 +1345,7 @@ void setup() {
 #if defined(Z_AXIS_ALWAYS_ON)
   enable_z();
 #endif
-
-	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
-	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
-	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) {farm_mode = false;} //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
-	if (farm_no == static_cast<int>(0xFFFF)) {farm_no = 0;}
-	if (farm_mode) {
-		prusa_statistics(8);
-	}
+	
 
 	// Enable Toshiba FlashAir SD card / WiFi enahanced card.
 	card.ToshibaFlashAir_enable(eeprom_read_byte((unsigned char*)EEPROM_TOSHIBA_FLASH_AIR_COMPATIBLITY) == 1);
@@ -1309,49 +1354,10 @@ void setup() {
 	// but this times out if a blocking dialog is shown in setup().
 	card.initsd();
 #ifdef DEBUG_SD_SPEED_TEST
-	if (card.cardOK) {
-		uint8_t* buff = (uint8_t*)block_buffer;
-		uint32_t block = 0;
-		uint32_t sumr = 0;
-		uint32_t sumw = 0;
-		for (int i = 0; i < 1024; i++) {
-			uint32_t u = _micros();
-			bool res = card.card.readBlock(i, buff);
-			u = _micros() - u;
-			if (res) {
-				printf_P(PSTR("readBlock %4d 512 bytes %lu us\n"), i, u);
-				sumr += u;
-				u = _micros();
-				res = card.card.writeBlock(i, buff);
-				u = _micros() - u;
-				if (res) {
-					printf_P(PSTR("writeBlock %4d 512 bytes %lu us\n"), i, u);
-					sumw += u;
-				} else {
-					printf_P(PSTR("writeBlock %4d error\n"), i);
-					break;
-				}
-			} else {
-				printf_P(PSTR("readBlock %4d error\n"), i);
-				break;
-			}
-		}
-		uint32_t avg_rspeed = (1024 * 1000000) / (sumr / 512);
-		uint32_t avg_wspeed = (1024 * 1000000) / (sumw / 512);
-		printf_P(PSTR("avg read speed %lu bytes/s\n"), avg_rspeed);
-		printf_P(PSTR("avg write speed %lu bytes/s\n"), avg_wspeed);
-	} else {
-		printf_P(PSTR("Card NG!\n"));
-  }
+	debugSDSpeedTest();
 #endif //DEBUG_SD_SPEED_TEST
 
   eeprom_init();
-#ifdef SNMM
-	if (eeprom_read_dword((uint32_t*)EEPROM_BOWDEN_LENGTH) == 0x0ffffffff) { //bowden length used for SNMM
-	  int _z = BOWDEN_LENGTH;
-	  for(int i = 0; i<4; i++) EEPROM_save_B(EEPROM_BOWDEN_LENGTH + i * 2, &_z);
-	}
-#endif
 
   // In the future, somewhere here would one compare the current firmware version against the firmware version stored in the EEPROM.
   // If they differ, an update procedure may need to be performed. At the end of this block, the current firmware version
