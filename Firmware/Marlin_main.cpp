@@ -1351,19 +1351,13 @@ void setup() {
     
 	setup_photpin();
 	servo_init();
-
-	// Reset the machine correction matrix.
-	// It does not make sense to load the correction matrix until the machine is homed.
-	world2machine_reset();
+	world2machine_reset(); //World 2 Machine matrix is loaded once we home the machine.
 
   // Initialize current_position accounting for software endstops to
   // avoid unexpected initial shifts on the first move
   clamp_to_software_endstops(current_position);
   plan_set_position_curposXYZE();
-
-#ifdef FILAMENT_SENSOR
-	fsensor_init();
-#endif //FILAMENT_SENSOR
+	fsensor_init(); //Does nothing if FILAMENT_SENSOR is not declared
 
 #if defined(CONTROLLERFAN_PIN) && (CONTROLLERFAN_PIN > -1)
 	SET_OUTPUT(CONTROLLERFAN_PIN); //Set pin used for driver cooling fan
@@ -1375,7 +1369,6 @@ void setup() {
   enable_z();
 #endif
 	
-
 	// Enable Toshiba FlashAir SD card / WiFi enahanced card.
 	card.ToshibaFlashAir_enable(eeprom_read_byte((unsigned char*)EEPROM_TOSHIBA_FLASH_AIR_COMPATIBLITY) == 1);
 
@@ -1405,38 +1398,14 @@ void setup() {
   }
 
 #ifdef DEBUG_SEC_LANG
-
 	uint16_t sec_lang_code = lang_get_code(1);
 	uint16_t ui = _SEC_LANG_TABLE; //table pointer
 	printf_P(_n("lang_selected=%d\nlang_table=0x%04x\nSEC_LANG_CODE=0x%04x (%c%c)\n"), lang_selected, ui, sec_lang_code, sec_lang_code >> 8, sec_lang_code & 0xff);
-
 	lang_print_sec_lang(uartout);
 #endif //DEBUG_SEC_LANG
 
-#endif //(LANG_MODE != 0)
-
-
-	if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
-	}
-	if (eeprom_read_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
-		int16_t z_shift = 0;
-		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
-		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
-	}
-	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
-	}
-	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
-	}
-	mbl_settings_init();
-	SilentModeMenu_MMU = eeprom_read_byte((uint8_t*)EEPROM_MMU_STEALTH);
-	if (SilentModeMenu_MMU == 255) {
-		SilentModeMenu_MMU = 1;
-		eeprom_write_byte((uint8_t*)EEPROM_MMU_STEALTH, SilentModeMenu_MMU);
-	}
+#endif //(LANG_MODE != 0) 
+	
 
 #if !defined(DEBUG_DISABLE_FANCHECK) && defined(FANCHECK) && defined(TACH_1) && TACH_1 >-1
 	setup_fan_interrupt();
@@ -1445,7 +1414,9 @@ void setup() {
 #ifdef PAT9125
 	fsensor_setup_interrupt();
 #endif //PAT9125
-	for (int i = 0; i<4; i++) { EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); }
+	for (int i = 0; i<4; i++) { 
+    EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); 
+  }
 	
 #ifndef DEBUG_DISABLE_STARTMSGS
   KEEPALIVE_STATE(PAUSED_FOR_USER);
@@ -8096,19 +8067,19 @@ Sigma_Exit:
         SERIAL_PROTOCOLLN((int)active_extruder);
       } 
     }
-  } // end if(code_seen('T')) (end of T codes)
+  // end if(code_seen('T')) (end of T codes)
   /*!
   #### End of T-Codes
   */
+
+
 
   /**
   *---------------------------------------------------------------------------------
   *# D codes
   */
-  else if (code_seen('D')) // D codes (debug)
-  {
-    switch((int)code_value())
-    {
+  } else if (code_seen('D')) { // D codes (debug)
+    switch((int)code_value()) {
 
     /*!
     ### D-1 - Endless Loop <a href="https://reprap.org/wiki/G-code#D-1:_Endless_Loop">D-1: Endless Loop</a>
@@ -8418,10 +8389,7 @@ Sigma_Exit:
 
 #endif //DEBUG_DCODES
 	}
-  }
-
-  else
-  {
+  } else {
     SERIAL_ECHO_START;
     SERIAL_ECHORPGM(MSG_UNKNOWN_COMMAND);
     SERIAL_ECHO(CMDBUFFER_CURRENT_STRING);

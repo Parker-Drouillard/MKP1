@@ -185,8 +185,9 @@ const char* FsensorIRVersionText()
 }
 #endif //IR_SENSOR_ANALOG
 
-void fsensor_init(void)
-{
+void fsensor_init(void) {
+#ifdef FILAMENT_SENSOR
+
 #ifdef PAT9125
 	uint8_t pat9125 = pat9125_init();
 	printf_P(PSTR("PAT9125_init:%hhu\n"), pat9125);
@@ -226,6 +227,8 @@ void fsensor_init(void)
 #else //IR_SENSOR_ANALOG
 	MYSERIAL.println();
 #endif //IR_SENSOR_ANALOG
+
+#endif //FILAMENT_SENSOR
 }
 
 bool fsensor_enable(bool bUpdateEEPROM)
