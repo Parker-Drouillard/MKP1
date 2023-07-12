@@ -960,6 +960,10 @@ static void w25x20cl_err_msg() {
 	lcd_puts_P(_n("External SPI flash\nW25X20CL is not res-\nponding. Language\nswitch unavailable."));
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////    SETUP   ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // "Setup" function is called by the Arduino framework on startup.
 // Before startup, the Timers-functions (PWM)/Analog RW and HardwareSerial provided by the Arduino-code 
 // are initialized by the main() routine provided by the Arduino framework.
@@ -1020,12 +1024,15 @@ void setup() {
       eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
     }
 	}
+
+  
 #ifndef W25X20CL
 	SERIAL_PROTOCOLLNPGM("start");
 #else
 	if ((optiboot_status != 0) || (selectedSerialPort != 0))
 		SERIAL_PROTOCOLLNPGM("start");
 #endif
+
 	SERIAL_ECHO_START;
 	printf_P(PSTR(" " FW_VERSION_FULL "\n"));
 
@@ -1536,7 +1543,11 @@ void setup() {
   wdt_enable(WDTO_4S);
 #endif //WATCHDOG
   extruderBoardTest();
-}
+} //End of setup()
+
+//  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===
+//  ===  ===  ===  ===  ===  ===  ===  ===  ===  END OF SETUP  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===
+//  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===
 
 void trace();
 
