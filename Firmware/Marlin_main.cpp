@@ -1199,7 +1199,36 @@ void debugSDSpeedTest(){
 
 
 void debug_w25x20cl(){
-  
+  W25X20CL_SPI_ENTER();
+	uint8_t uid[8]; // 64bit unique id
+	w25x20cl_rd_uid(uid);
+	puts_P(_n("W25X20CL UID="));
+	for (uint8_t i = 0; i < 8; i ++) {
+		printf_P(PSTR("%02hhx"), uid[i]);
+  }
+	putchar('\n');
+	list_sec_lang_from_external_flash();
+}
+
+void checkHW(){
+  switch (hw_changed) { 
+	  //if motherboard or printer type was changed inform user as it can indicate flashing wrong firmware version
+	  //if user confirms with knob, new hw version (printer and/or motherboard) is written to eeprom and message will be not shown next time
+  	case(0b01): 
+      lcd_show_fullscreen_message_and_wait_P(_i("Warning: motherboard type changed.")); ////MSG_CHANGED_MOTHERBOARD c=20 r=4
+      eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
+		break;
+  	case(0b10): 
+      lcd_show_fullscreen_message_and_wait_P(_i("Warning: printer type changed.")); ////MSG_CHANGED_PRINTER c=20 r=4
+      eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE); 
+		break;
+	  case(0b11): 
+      lcd_show_fullscreen_message_and_wait_P(_i("Warning: both printer type and motherboard type changed.")); ////MSG_CHANGED_BOTH c=20 r=4
+      eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE);
+      eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
+    break;
+  	default: break; //no change, show no message
+  }
 }
 
 
@@ -1367,14 +1396,7 @@ void setup() {
 #if (LANG_MODE != 0) //secondary language support
 
 #ifdef DEBUG_W25X20CL
-	W25X20CL_SPI_ENTER();
-	uint8_t uid[8]; // 64bit unique id
-	w25x20cl_rd_uid(uid);
-	puts_P(_n("W25X20CL UID="));
-	for (uint8_t i = 0; i < 8; i ++)
-		printf_P(PSTR("%02hhx"), uid[i]);
-	putchar('\n');
-	list_sec_lang_from_external_flash();
+	debug_w25x20cl();
 #endif //DEBUG_W25X20CL
 
 //	lang_reset();
@@ -1393,12 +1415,11 @@ void setup() {
 
 #endif //(LANG_MODE != 0)
 
+
 	if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
 		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
 	}
-
 	if (eeprom_read_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA) == 255) {
-		//eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 0);
 		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
 		int16_t z_shift = 0;
 		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
@@ -1410,7 +1431,6 @@ void setup() {
 	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
 		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
 	}
-	//mbl_mode_init();
 	mbl_settings_init();
 	SilentModeMenu_MMU = eeprom_read_byte((uint8_t*)EEPROM_MMU_STEALTH);
 	if (SilentModeMenu_MMU == 255) {
@@ -1435,24 +1455,7 @@ void setup() {
     show_fw_version_warnings();    
   }
 
-  switch (hw_changed) { 
-	  //if motherboard or printer type was changed inform user as it can indicate flashing wrong firmware version
-	  //if user confirms with knob, new hw version (printer and/or motherboard) is written to eeprom and message will be not shown next time
-  	case(0b01): 
-      lcd_show_fullscreen_message_and_wait_P(_i("Warning: motherboard type changed.")); ////MSG_CHANGED_MOTHERBOARD c=20 r=4
-      eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
-		break;
-  	case(0b10): 
-      lcd_show_fullscreen_message_and_wait_P(_i("Warning: printer type changed.")); ////MSG_CHANGED_PRINTER c=20 r=4
-      eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE); 
-		break;
-	  case(0b11): 
-      lcd_show_fullscreen_message_and_wait_P(_i("Warning: both printer type and motherboard type changed.")); ////MSG_CHANGED_BOTH c=20 r=4
-      eeprom_write_word((uint16_t*)EEPROM_PRINTER_TYPE, PRINTER_TYPE);
-      eeprom_write_word((uint16_t*)EEPROM_BOARD_TYPE, MOTHERBOARD); 
-    break;
-  	default: break; //no change, show no message
-  }
+  checkHW();
 
   if (!previous_settings_retrieved) {
 	  lcd_show_fullscreen_message_and_wait_P(_i("Old settings found. Default PID, Esteps etc. will be set.")); //if EEPROM version or printer type was changed, inform user that default setting were loaded////MSG_DEFAULT_SETTINGS_LOADED c=20 r=5
