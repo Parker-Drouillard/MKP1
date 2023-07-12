@@ -1264,6 +1264,58 @@ void uvlo_init(void){
 }
 
 
+void startup_msgs(void){
+#ifndef DEBUG_DISABLE_STARTMSGS
+  KEEPALIVE_STATE(PAUSED_FOR_USER);
+
+  if (!farm_mode) {
+    check_if_fw_is_on_right_printer();
+    show_fw_version_warnings();    
+  }
+
+  checkHW();
+
+  if (!previous_settings_retrieved) {
+	  lcd_show_fullscreen_message_and_wait_P(_i("Old settings found. Default PID, Esteps etc. will be set.")); //if EEPROM version or printer type was changed, inform user that default setting were loaded////MSG_DEFAULT_SETTINGS_LOADED c=20 r=5
+	  Config_StoreSettings();
+  }
+  if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 1) {
+	  lcd_wizard(WizState::Run);
+  }
+  if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 0) { //dont show calibration status messages if wizard is currently active
+	  if (calibration_status() == CALIBRATION_STATUS_ASSEMBLED ||
+		  calibration_status() == CALIBRATION_STATUS_UNKNOWN || 
+		  calibration_status() == CALIBRATION_STATUS_XYZ_CALIBRATION) {
+		  // Reset the babystepping values, so the printer will not move the Z axis up when the babystepping is enabled.
+            eeprom_update_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].z_offset)),0);
+		  // Show the message.
+		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_CALIBRATION_FLOW));
+	  } else if (calibration_status() == CALIBRATION_STATUS_LIVE_ADJUST) {
+		  // Show the message.
+		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_BABYSTEP_Z_NOT_SET));
+		  lcd_update_enable(true);
+	  } else if (calibration_status() == CALIBRATION_STATUS_CALIBRATED && eeprom_read_byte((unsigned char *)EEPROM_TEMP_CAL_ACTIVE) && calibration_status_pinda() == false) {
+		  //lcd_show_fullscreen_message_and_wait_P(_i("Temperature calibration has not been run yet"));////MSG_PINDA_NOT_CALIBRATED c=20 r=4
+		  lcd_update_enable(true);
+	  } else if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION) {
+		  // Show the message.
+		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_Z_CALIBRATION_FLOW));
+	  }
+  }
+
+#if !defined (DEBUG_DISABLE_FORCE_SELFTEST) && defined (TMC2130)
+  if (force_selftest_if_fw_version() && calibration_status() < CALIBRATION_STATUS_ASSEMBLED) {
+	  lcd_show_fullscreen_message_and_wait_P(_i("Selftest will be run to calibrate accurate sensorless rehoming."));////MSG_FORCE_SELFTEST c=20 r=8
+	  update_current_firmware_version_to_eeprom();
+	  lcd_selftest();
+  }
+#endif //TMC2130 && !DEBUG_DISABLE_FORCE_SELFTEST
+
+  KEEPALIVE_STATE(IN_PROCESS);
+#endif
+}
+
+
 
 
 
@@ -1448,58 +1500,13 @@ void setup() {
 #ifdef PAT9125
 	fsensor_setup_interrupt();
 #endif //PAT9125
+
 	for (int i = 0; i<4; i++) { 
     EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); 
   }
 	
-#ifndef DEBUG_DISABLE_STARTMSGS
-  KEEPALIVE_STATE(PAUSED_FOR_USER);
+  startup_msgs(); //Disable by defining DEBUG_DISABLE_STARTMSGS
 
-  if (!farm_mode) {
-    check_if_fw_is_on_right_printer();
-    show_fw_version_warnings();    
-  }
-
-  checkHW();
-
-  if (!previous_settings_retrieved) {
-	  lcd_show_fullscreen_message_and_wait_P(_i("Old settings found. Default PID, Esteps etc. will be set.")); //if EEPROM version or printer type was changed, inform user that default setting were loaded////MSG_DEFAULT_SETTINGS_LOADED c=20 r=5
-	  Config_StoreSettings();
-  }
-  if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 1) {
-	  lcd_wizard(WizState::Run);
-  }
-  if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 0) { //dont show calibration status messages if wizard is currently active
-	  if (calibration_status() == CALIBRATION_STATUS_ASSEMBLED ||
-		  calibration_status() == CALIBRATION_STATUS_UNKNOWN || 
-		  calibration_status() == CALIBRATION_STATUS_XYZ_CALIBRATION) {
-		  // Reset the babystepping values, so the printer will not move the Z axis up when the babystepping is enabled.
-            eeprom_update_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].z_offset)),0);
-		  // Show the message.
-		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_CALIBRATION_FLOW));
-	  } else if (calibration_status() == CALIBRATION_STATUS_LIVE_ADJUST) {
-		  // Show the message.
-		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_BABYSTEP_Z_NOT_SET));
-		  lcd_update_enable(true);
-	  } else if (calibration_status() == CALIBRATION_STATUS_CALIBRATED && eeprom_read_byte((unsigned char *)EEPROM_TEMP_CAL_ACTIVE) && calibration_status_pinda() == false) {
-		  //lcd_show_fullscreen_message_and_wait_P(_i("Temperature calibration has not been run yet"));////MSG_PINDA_NOT_CALIBRATED c=20 r=4
-		  lcd_update_enable(true);
-	  } else if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION) {
-		  // Show the message.
-		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_Z_CALIBRATION_FLOW));
-	  }
-  }
-
-#if !defined (DEBUG_DISABLE_FORCE_SELFTEST) && defined (TMC2130)
-  if (force_selftest_if_fw_version() && calibration_status() < CALIBRATION_STATUS_ASSEMBLED) {
-	  lcd_show_fullscreen_message_and_wait_P(_i("Selftest will be run to calibrate accurate sensorless rehoming."));////MSG_FORCE_SELFTEST c=20 r=8
-	  update_current_firmware_version_to_eeprom();
-	  lcd_selftest();
-  }
-#endif //TMC2130 && !DEBUG_DISABLE_FORCE_SELFTEST
-
-  KEEPALIVE_STATE(IN_PROCESS);
-#endif //DEBUG_DISABLE_STARTMSGS
   lcd_update_enable(true);
   lcd_clear();
   lcd_update(2);
