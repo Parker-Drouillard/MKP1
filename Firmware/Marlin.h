@@ -311,7 +311,6 @@ extern uint8_t host_keepalive_interval;
 
 extern unsigned long starttime;
 extern unsigned long stoptime;
-extern int bowden_length[4];
 extern bool is_usb_printing;
 extern bool homing_flag;
 extern bool loading_flag;
@@ -324,7 +323,6 @@ void save_statistics(unsigned long _total_filament_used, unsigned long _total_pr
 extern unsigned int heating_status;
 extern unsigned int status_number;
 extern unsigned int heating_status_counter;
-extern char snmm_filaments_used;
 extern unsigned long PingTime;
 extern unsigned long NcTime;
 extern bool no_response;
