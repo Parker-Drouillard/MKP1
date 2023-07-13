@@ -36,8 +36,7 @@ bool eeprom_is_sheet_initialized(uint8_t sheet_num)
   s[sheet_num].z_offset))));
 }
 
-void eeprom_init()
-{
+void eeprom_init() {
     if (eeprom_read_byte((uint8_t*)EEPROM_POWER_COUNT) == 0xff) eeprom_write_byte((uint8_t*)EEPROM_POWER_COUNT, 0);
     if (eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_X) == 0xff) eeprom_write_byte((uint8_t*)EEPROM_CRASH_COUNT_X, 0);
     if (eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_Y) == 0xff) eeprom_write_byte((uint8_t*)EEPROM_CRASH_COUNT_Y, 0);
@@ -82,6 +81,28 @@ void eeprom_init()
         eeprom_switch_to_next_sheet();
     }
     check_babystep();
+
+    if (eeprom_read_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
+	}
+	if (eeprom_read_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_CALIBRATION_STATUS_PINDA, 1);
+		int16_t z_shift = 0;
+		for (uint8_t i = 0; i < 5; i++) { EEPROM_save_B(EEPROM_PROBE_TEMP_SHIFT + i * 2, &z_shift); }
+		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
+	}
+	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
+	}
+	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
+		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
+	}
+	mbl_settings_init();
+	SilentModeMenu_MMU = eeprom_read_byte((uint8_t*)EEPROM_MMU_STEALTH);
+	if (SilentModeMenu_MMU == 255) {
+		SilentModeMenu_MMU = 1;
+		eeprom_write_byte((uint8_t*)EEPROM_MMU_STEALTH, SilentModeMenu_MMU);
+	}
 }
 
 //! @brief Get default sheet name for index
