@@ -317,9 +317,6 @@ uint8_t saved_filament_type;
 #define SAVED_TARGET_UNSET (X_MIN_POS-1)
 float saved_target[NUM_AXIS] = {SAVED_TARGET_UNSET, 0, 0, 0};
 
-// save/restore printing in case that mmu was not responding 
-bool mmu_print_saved = false;
-
 // storing estimated time to end of print counted by slicer
 uint8_t print_percent_done_normal = PRINT_PERCENT_DONE_INIT;
 uint16_t print_time_remaining_normal = PRINT_TIME_REMAINING_INIT; //estimated remaining print time in minutes
