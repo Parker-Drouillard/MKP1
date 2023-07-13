@@ -166,6 +166,13 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level) {
 }
 
 
+//  ##   ##    ##      ####     ####   
+//  ### ###    ##     ##  ##   ##  ##  
+//  #######   ###     ## ###   ## ###  
+//  ## # ##    ##     ### ##   ### ##  
+//  ##   ##    ##     ##  ##   ##  ##  
+//  ##   ##    ##     ##  ##   ##  ##  
+//  ##   ##  ######    ####     ####
 
 
 /**
@@ -195,6 +202,41 @@ void gcode_M114() {
 }
 
 
+/*!
+  ---------------------------------------------------------------------------------
+  ### M117 - Display Message <a href="https://reprap.org/wiki/G-code#M117:_Display_Message">M117: Display Message</a>
+  This causes the given message to be shown in the status line on an attached LCD.
+  It is processed early as to allow printing messages that contain G, M, N or T.
+  
+  ---------------------------------------------------------------------------------
+  ### Special internal commands
+  These are used by internal functions to process certain actions in the right order. Some of these are also usable by the user.
+  They are processed early as the commands are complex (strings).
+  These are only available on the MK3(S) as these require TMC2130 drivers:
+    - CRASH DETECTED
+    - CRASH RECOVER
+    - CRASH_CANCEL
+    - TMC_SET_WAVE
+    - TMC_SET_STEP
+    - TMC_SET_CHOP
+ */
+void M117(char *starpos){
+	starpos = (strchr(strchr_pointer + 5, '*'));
+	if (starpos != NULL) {
+		*(starpos) = '\0';
+    }
+	lcd_setstatus(strchr_pointer + 5);
+}
+
+
+
+// ##   ##   ## ###   ## ##    ## ##   
+//  ## ##   ##   ##  ##   ##  ##   ##  
+// # ### #  ##       ##   ##  ##   ##  
+// ## # ##  ## ###   ##   ##  ##   ##  
+// ##   ##  ##   ##  ##   ##  ##   ##  
+// ##   ##  ##   ##  ##   ##  ##   ##  
+// ##   ##   ## ##    ## ##    ## ## 
 
 /**
   * M600: Load filament for any config
@@ -238,6 +280,30 @@ void M600_load_filament() {
 	lcd_update_enable(false);
 }
 
+
+//! extracted code to compute z_shift for M600 in case of filament change operation 
+//! requested from fsensors.
+//! The function ensures, that the printhead lifts to at least 25mm above the heat bed
+//! unlike the previous implementation, which was adding 25mm even when the head was
+//! printing at e.g. 24mm height.
+//! A safety margin of FILAMENTCHANGE_ZADD is added in all cases to avoid touching
+//! the printout.
+//! This function is templated to enable fast change of computation data type.
+//! @return new z_shift value
+static T gcode_M600_filament_change_z_shift() {
+#ifdef FILAMENTCHANGE_ZADD
+	static_assert(Z_MAX_POS < (255 - FILAMENTCHANGE_ZADD), "Z-range too high, change the T type from uint8_t to uint16_t");
+	// avoid floating point arithmetics when not necessary - results in shorter code
+	T ztmp = T( current_position[Z_AXIS] );
+	T z_shift = 0;
+	if(ztmp < T(25)){
+		z_shift = T(25) - ztmp; // make sure to be at least 25mm above the heat bed
+	} 
+	return z_shift + T(FILAMENTCHANGE_ZADD); // always move above printout
+#else
+	return T(0);
+#endif
+}	
 
 
 static void gcode_M600(bool automatic, float x_position, float y_position, float z_shift, float e_shift, float /*e_shift_late*/) {
@@ -337,6 +403,59 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
 }
 
 
+// ##   ##  ######    ## ##    ## ##   
+//  ## ##   ##   #   ##   ##  ##   ##  
+// # ### #     ##    ##   ##  ##   ##  
+// ## # ##    ##     ##   ##  ##   ##  
+// ##   ##    ##     ##   ##  ##   ##  
+// ##   ##    ##     ##   ##  ##   ##  
+// ##   ##    ##      ## ##    ## ##  
+
+/**
+  * M701: Load filament
+  */
+void gcode_M701() {
+	printf_P(PSTR("gcode_M701 begin\n"));
+
+  enable_z();
+  custom_message_type = CustomMsg::FilamentLoading;
+
+#ifdef FSENSOR_QUALITY
+  fsensor_oq_meassure_start(40);
+#endif //FSENSOR_QUALITY
+
+  lcd_setstatuspgm(_T(MSG_LOADING_FILAMENT));
+  current_position[E_AXIS] += 40;
+  plan_buffer_line_curposXYZE(400 / 60); //fast sequence
+  st_synchronize();
+  raise_z_above(MIN_Z_FOR_LOAD, false);
+  current_position[E_AXIS] += 30;
+  plan_buffer_line_curposXYZE(400 / 60); //fast sequence
+  load_filament_final_feed(); //slow sequence
+  st_synchronize();
+
+  Sound_MakeCustom(50,500,false);
+
+  if (loading_flag) {
+    lcd_load_filament_color_check();
+  }
+  lcd_update_enable(true);
+  lcd_update(2);
+  lcd_setstatuspgm(_T(WELCOME_MSG));
+  disable_z();
+  loading_flag = false;
+  custom_message_type = CustomMsg::Status;
+}
+
+
+
+// ##   ##   ## ##    ## ##    ## ##   
+//  ## ##    #   ##  ##   ##  ##   ##  
+// # ### #  ##   ##  ##   ##  ##   ##  
+// ## # ##   ## ###  ##   ##  ##   ##  
+// ##   ##       ##  ##   ##  ##   ##  
+// ##   ##  ##   ##  ##   ##  ##   ##  
+// ##   ##   ## ##    ## ##    ## ##  
 
 /**
   * M900: Set and/or Get advance K factor

@@ -596,15 +596,6 @@ void get_command() {
         cmdbuffer[bufindw+serial_count+CMDHDRSIZE] = 0; //terminate string
         // Calculate the length before disabling the interrupts.
         uint8_t len = strlen(cmdbuffer+bufindw+CMDHDRSIZE) + (1 + CMDHDRSIZE);
-
-        //      SERIAL_ECHOPGM("SD cmd(");
-        //      MYSERIAL.print(sd_count.value, DEC);
-        //      SERIAL_ECHOPGM(") ");
-        //      SERIAL_ECHOLN(cmdbuffer+bufindw+CMDHDRSIZE);
-        //    SERIAL_ECHOPGM("cmdbuffer:");
-        //    MYSERIAL.print(cmdbuffer);
-        //    SERIAL_ECHOPGM("buflen:");
-        //    MYSERIAL.print(buflen+1);
         sd_count.value = 0;
 
         cli();
