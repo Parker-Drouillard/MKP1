@@ -570,9 +570,6 @@ static void factory_reset(char level) {
 
     // Level 2: Prepare for shipping
     case 2:
-			//lcd_puts_P(PSTR("Factory RESET"));
-      //lcd_puts_at_P(1,2,PSTR("Shipping prep"));
-
       // Force language selection at the next boot up.
 			lang_reset();
       // Force the "Follow calibration flow" message at the next boot up.
@@ -598,7 +595,7 @@ static void factory_reset(char level) {
 
 #ifdef FILAMENT_SENSOR
 			fsensor_enable();
-            fsensor_autoload_set(true);
+      fsensor_autoload_set(true);
 #endif //FILAMENT_SENSOR
       Sound_MakeCustom(100,0,false);   
 			//_delay_ms(2000);
@@ -614,7 +611,6 @@ static void factory_reset(char level) {
 			lcd_puts_at_P(3, 3, PSTR("      "));
 			lcd_set_cursor(3, 3);
 			lcd_print(er_progress);
-
 			// Erase EEPROM
 			for (int i = 0; i < 4096; i++) {
 				eeprom_update_byte((uint8_t*)i, 0xFF);
@@ -627,11 +623,10 @@ static void factory_reset(char level) {
 				}
 			}
 			softReset();
-    break;
-        
+    break;    
     default:
     break;
-    }  
+  }  
 }
 
 extern "C" {
@@ -927,7 +922,7 @@ void debugSecondLang(){
 }
 
 	// Check startup - does nothing if bootloader sets MCUSR to 0
-void checkStartup(){
+void checkStartup() {
 	byte mcu = MCUSR;
 
   if (mcu & 1) {puts_P(MSG_POWERUP);}
@@ -1192,7 +1187,6 @@ void setup() {
   // If they differ, an update procedure may need to be performed. At the end of this block, the current firmware version
   // is being written into the EEPROM, so the update procedure will be triggered only once.
 
-
 #if (LANG_MODE != 0) //secondary language support
 
 #ifdef DEBUG_W25X20CL
@@ -1234,6 +1228,7 @@ void setup() {
 #endif //WATCHDOG
 
   // extruderBoardTest();
+
 } //End of setup()
 //  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===
 //  ===  ===  ===  ===  ===  ===  ===  ===  ===  END OF SETUP  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===
@@ -1270,10 +1265,7 @@ void serial_read_stream() {
 
   // make it a uint32
   memcpy(&bytesToReceive, &bytesToReceiveBuffer, 4);
-
-  // we're ready, notify the sender
-  MYSERIAL.write('+');
-
+  MYSERIAL.write('+');  // we're ready, notify the sender
   // lock in the routine
   uint32_t receivedBytes = 0;
   while (prusa_sd_card_upload) {
@@ -1291,15 +1283,9 @@ void serial_read_stream() {
       // save it to the chunk
       chunk[i] = data;
     }
-
-      // write the chunk to SD
-    card.write_command_no_newline(&chunk[0]);
-
-    // notify the sender we're ready for more data
-    MYSERIAL.write('+');
-
-    // for safety
-    manage_heater();
+    card.write_command_no_newline(&chunk[0]);      // write the chunk to SD
+    MYSERIAL.write('+');     // notify the sender we're ready for more data
+    manage_heater();    // for safety
 
     // check if we're done
     if(receivedBytes == bytesToReceive) {
@@ -1469,6 +1455,12 @@ void loop() {
   checkHitEndstops();
   lcd_update(0);
 } //End of loop()
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 
