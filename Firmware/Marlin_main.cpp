@@ -396,7 +396,6 @@ static void get_arc_coordinates();
 static bool setTargetedHotend(int code, uint8_t &extruder);
 static void print_time_remaining_init();
 static void wait_for_heater(long codenum, uint8_t extruder);
-static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis);
 static void gcode_M105(uint8_t extruder);
 static void temp_compensation_start();
 static void temp_compensation_apply();
@@ -2174,150 +2173,47 @@ void process_commands() {
 //                   ## ##             ## ##    ## ##   ### ##   ### ###   ## ## 
 //===============================================================================================================
 
-
-
     case 0: // G0 -> G1
     case 1: // G1
       gcode_G1();
     break;
-
-    /*!
-	  ### G2, G3 - Controlled Arc Move <a href="https://reprap.org/wiki/G-code#G2_.26_G3:_Controlled_Arc_Move">G2 & G3: Controlled Arc Move</a>
-    These commands don't propperly work with MBL enabled. The compensation only happens at the end of the move, so avoid long arcs.
-  	#### Usage
-
-    G2 [ X | Y | I | E | F ] (Clockwise Arc)
-    G3 [ X | Y | I | E | F ] (Counter-Clockwise Arc)
-	
-  	#### Parameters
-	  - `X` - The position to move to on the X axis
-	  - `Y` - The position to move to on the Y axis
-	  - `I` - The point in X space from the current X position to maintain a constant distance from
-	  - `J` - The point in Y space from the current Y position to maintain a constant distance from
-	  - `E` - The amount to extrude between the starting point and ending point
-	  - `F` - The feedrate per minute of the move between the starting point and ending point (if supplied)
-	
-    */
     case 2: 
-      if(Stopped == false) {
-        get_arc_coordinates();
-        prepare_arc_move(true);
-      }
+      gcode_G2(Stopped); //Clockwise Arc move
     break;
-    // -------------------------------
     case 3: 
-      if(Stopped == false) {
-        get_arc_coordinates();
-        prepare_arc_move(false);
-      }
+      gcode_G3(Stopped); //Counter Clockwise Arc move
     break;
-    /*!
-    ### G4 - Dwell <a href="https://reprap.org/wiki/G-code#G4:_Dwell">G4: Dwell</a>
-  	Pause the machine for a period of time.
-  	#### Usage
-    G4 [ P | S ]
-  	#### Parameters
-	  - `P` - Time to wait, in milliseconds
-	  - `S` - Time to wait, in seconds
-    */
     case 4: 
-      codenum = 0;
-      if(code_seen('P')) {codenum = code_value();} // milliseconds to wait
-      if(code_seen('S')) {codenum = code_value() * 1000; }// seconds to wait
-	    if(codenum != 0) { LCD_MESSAGERPGM(_n("Sleep...")); }////MSG_DWELL
-      st_synchronize();
-      codenum += _millis();  // keep track of when we started waiting
-      previous_millis_cmd = _millis();
-      while(_millis() < codenum) {
-        manage_heater();
-        manage_inactivity();
-        lcd_update(0);
-      }
+      gcode_G4(0); //Dwell
     break;
 #ifdef FWRETRACT
-
-//  ## ##      ##     ## ##   
-// ##   ##    ###    ##   ##  
-// ##          ##    ##   ##  
-// ##  ###     ##    ##   ##  
-// ##   ##     ##    ##   ##  
-// ##   ##     ##    ##   ##  
-//  ## ##     ####    ## ## 
-
-    /*!
-  	### G10 - Retract <a href="https://reprap.org/wiki/G-code#G10:_Retract">G10: Retract</a>
-	  Retracts filament according to settings of `M207`
-    */
     case 10: 
-#if EXTRUDERS > 1
-      retracted_swap[active_extruder]=(code_seen('S') && code_value_long() == 1); // checks for swap retract argument
-      retract(true,retracted_swap[active_extruder]);
-#else
-      retract(true);
-#endif
+      gcode_G10(); //Retract
     break;
-      
-    /*!
-	  ### G11 - Retract recover <a href="https://reprap.org/wiki/G-code#G11:_Unretract">G11: Unretract</a>
-	  Unretracts/recovers filament according to settings of `M208`
-    */
     case 11: 
-#if EXTRUDERS > 1
-      retract(false,retracted_swap[active_extruder]);
-#else
-      retract(false);
-#endif 
+      gcode_G11(); //Retract Recover
     break;
 #endif //FWRETRACT
 
 
-//  ## ##   ## ##       ##    
-// ##   ##  ##  ##     ###    
-// ##           ##      ##    
-// ##  ###     ##       ##    
-// ##   ##    ##        ##    
-// ##   ##   #   ##     ##    
-//  ## ##   ######     ####  
-  /*!
-	### G21 - Sets Units to Millimters <a href="https://reprap.org/wiki/G-code#G21:_Set_Units_to_Millimeters">G21: Set Units to Millimeters</a>
-	Units are in millimeters. Prusa doesn't support inches.
-  */
+    //  ## ##   ## ##       ##    
+    // ##   ##  ##  ##     ###    
+    // ##           ##      ##    
+    // ##  ###     ##       ##    
+    // ##   ##    ##        ##    
+    // ##   ##   #   ##     ##    
+    //  ## ##   ######     ####  
+    /*!
+    ### G21 - Sets Units to Millimters <a href="https://reprap.org/wiki/G-code#G21:_Set_Units_to_Millimeters">G21: Set Units to Millimeters</a>
+    Units are in millimeters. Prusa doesn't support inches.
+    */
     case 21: 
-      break; //Doing nothing. This is just to prevent serial UNKOWN warnings.
+    break; //Doing nothing. This is just to prevent serial UNKOWN warnings.
     
-  /*!
-  ### G28 - Home all Axes one at a time <a href="https://reprap.org/wiki/G-code#G28:_Move_to_Origin_.28Home.29">G28: Move to Origin (Home)</a>
-  Using `G28` without any parameters will perfom homing of all axes AND mesh bed leveling, while `G28 W` will just home all axes (no mesh bed leveling).
-  #### Usage
-	G28 [ X | Y | Z | W | C ] 
-	#### Parameters
-  - `X` - Flag to go back to the X axis origin
-  - `Y` - Flag to go back to the Y axis origin
-  - `Z` - Flag to go back to the Z axis origin
-  - `W` - Suppress mesh bed leveling if `X`, `Y` or `Z` are not provided
-  - `C` - Calibrate X and Y origin (home) - Only on MK3/s
-	*/
-    case 28: {
-      long home_x_value = 0;
-      long home_y_value = 0;
-      long home_z_value = 0;
-      // Which axes should be homed?
-      bool home_x = code_seen(axis_codes[X_AXIS]);
-      home_x_value = code_value_long();
-      bool home_y = code_seen(axis_codes[Y_AXIS]);
-      home_y_value = code_value_long();
-      bool home_z = code_seen(axis_codes[Z_AXIS]);
-      home_z_value = code_value_long();
-      bool without_mbl = code_seen('W');
-      // calibrate?
-      gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, without_mbl);
-      if ((home_x || home_y || without_mbl || home_z) == false) {
-         // Push the commands to the front of the message queue in the reverse order!
-         // There shall be always enough space reserved for these commands.
-         gcode_G80();
-      }
-      break;
-    }
+ 
+    case 28: 
+      gcode_G28(); //Home each axis 1 at a time.
+    break;
             
 #ifdef MESH_BED_LEVELING
 
@@ -2356,133 +2252,46 @@ void process_commands() {
 	  }
 	  break;
 
-    case 76:  //PINDA probe temperature compensation calibration
+    //PINDA probe temperature compensation calibration
+    case 76:  
       gcode_G76();
     break;
 
     //Mesh based Z-Probe
-    case 80:
+    case 80:  
       gcode_G80();
     break;
 
-        /*!
-		### G81 - Mesh bed leveling status <a href="https://reprap.org/wiki/G-code#G81:_Mesh_bed_leveling_status">G81: Mesh bed leveling status</a>
-		Prints mesh bed leveling status and bed profile if activated.
-        */
-        case 81:
-            if (mbl.active) {
-                SERIAL_PROTOCOLPGM("Num X,Y: ");
-                SERIAL_PROTOCOL(MESH_NUM_X_POINTS);
-                SERIAL_PROTOCOL(',');
-                SERIAL_PROTOCOL(MESH_NUM_Y_POINTS);
-                SERIAL_PROTOCOLPGM("\nZ search height: ");
-                SERIAL_PROTOCOL(MESH_HOME_Z_SEARCH);
-                SERIAL_PROTOCOLLNPGM("\nMeasured points:");
-                for (int y = MESH_NUM_Y_POINTS-1; y >= 0; y--) {
-                    for (int x = 0; x < MESH_NUM_X_POINTS; x++) {
-                        SERIAL_PROTOCOLPGM("  ");
-                        SERIAL_PROTOCOL_F(mbl.z_values[y][x], 5);
-                    }
-                    SERIAL_PROTOCOLLN();
-                }
-            }
-            else
-                SERIAL_PROTOCOLLNPGM("Mesh bed leveling not active.");
-            break;
-            
-#if 0
-        /*!
-        ### G82: Single Z probe at current location - Not active <a href="https://reprap.org/wiki/G-code#G82:_Single_Z_probe_at_current_location">G82: Single Z probe at current location</a>
+    // Mesh Bed Levelling Status
+    case 81: 
+      gcode_G81(); 
+    break;
         
-        WARNING! USE WITH CAUTION! If you'll try to probe where is no leveling pad, nasty things can happen!
-		In Prusa Firmware this G-code is deactivated by default, must be turned on in the source code.
-		*/
-        case 82:
-            SERIAL_PROTOCOLLNPGM("Finding bed ");
-            int l_feedmultiply = setup_for_endstop_move();
-            find_bed_induction_sensor_point_z();
-            clean_up_after_endstop_move(l_feedmultiply);
-            SERIAL_PROTOCOLPGM("Bed found at: ");
-            SERIAL_PROTOCOL_F(current_position[Z_AXIS], 5);
-            SERIAL_PROTOCOLPGM("\n");
-            break;
-
-        /*!
-        ### G83: Babystep in Z and store to EEPROM - Not active <a href="https://reprap.org/wiki/G-code#G83:_Babystep_in_Z_and_store_to_EEPROM">G83: Babystep in Z and store to EEPROM</a>
-		In Prusa Firmware this G-code is deactivated by default, must be turned on in the source code.
-		*/
-        case 83:
-        {
-            int babystepz = code_seen('S') ? code_value() : 0;
-            int BabyPosition = code_seen('P') ? code_value() : 0;
-            
-            if (babystepz != 0) {
-                //FIXME Vojtech: What shall be the index of the axis Z: 3 or 4?
-                // Is the axis indexed starting with zero or one?
-                if (BabyPosition > 4) {
-                    SERIAL_PROTOCOLLNPGM("Index out of bounds");
-                }else{
-                    // Save it to the eeprom
-                    babystepLoadZ = babystepz;
-                    EEPROM_save_B(EEPROM_BABYSTEP_Z0+(BabyPosition*2),&babystepLoadZ);
-                    // adjust the Z
-                    babystepsTodoZadd(babystepLoadZ);
-                }
-            
-            }
-            
-        }
-        break;
-        /*!
-        ### G84: UNDO Babystep Z (move Z axis back) - Not active <a href="https://reprap.org/wiki/G-code#G84:_UNDO_Babystep_Z_.28move_Z_axis_back.29">G84: UNDO Babystep Z (move Z axis back)</a>
-		In Prusa Firmware this G-code is deactivated by default, must be turned on in the source code.
-		*/
-        case 84:
-            babystepsTodoZsubtract(babystepLoadZ);
-            // babystepLoadZ = 0;
-            break;
-            
-        /*!
-        ### G85: Pick best babystep - Not active <a href="https://reprap.org/wiki/G-code#G85:_Pick_best_babystep">G85: Pick best babystep</a>
-		In Prusa Firmware this G-code is deactivated by default, must be turned on in the source code.
-		*/
-        case 85:
-            lcd_pick_babystep();
-            break;
-#endif
-            
-        /*!
-        ### G86 - Disable babystep correction after home <a href="https://reprap.org/wiki/G-code#G86:_Disable_babystep_correction_after_home">G86: Disable babystep correction after home</a>
-        
-        This G-code will be performed at the start of a calibration script.
-        (Prusa3D specific)
-        */
-        case 86:
-            calibration_status_store(CALIBRATION_STATUS_LIVE_ADJUST);
-            break;
+    /*!
+    ### G86 - Disable babystep correction after home <a href="https://reprap.org/wiki/G-code#G86:_Disable_babystep_correction_after_home">G86: Disable babystep correction after home</a>
+    This G-code will be performed at the start of a calibration script.
+    (Prusa3D specific)
+    */
+    case 86:
+      calibration_status_store(CALIBRATION_STATUS_LIVE_ADJUST);
+    break;
            
-
-        /*!
-        ### G87 - Enable babystep correction after home <a href="https://reprap.org/wiki/G-code#G87:_Enable_babystep_correction_after_home">G87: Enable babystep correction after home</a>
-        
+    /*!
+    ### G87 - Enable babystep correction after home <a href="https://reprap.org/wiki/G-code#G87:_Enable_babystep_correction_after_home">G87: Enable babystep correction after home</a>
 		This G-code will be performed at the end of a calibration script.
-        (Prusa3D specific)
-        */
-        case 87:
+    (Prusa3D specific)
+    */
+    case 87:
 			calibration_status_store(CALIBRATION_STATUS_CALIBRATED);
-            break;
+    break;
 
-        /*!
-        ### G88 - Reserved <a href="https://reprap.org/wiki/G-code#G88:_Reserved">G88: Reserved</a>
-        
-        Currently has no effect. 
-        */
-
-        // Prusa3D specific: Don't know what it is for, it is in V2Calibration.gcode
-
-		    case 88:
-			      break;
-
+    /*!
+    ### G88 - Reserved <a href="https://reprap.org/wiki/G-code#G88:_Reserved">G88: Reserved</a>
+    Currently has no effect. 
+    */
+    // Prusa3D specific: Don't know what it is for, it is in V2Calibration.gcode
+    case 88:
+    break;
 
 #endif  // ENABLE_MESH_BED_LEVELING
             
@@ -2500,52 +2309,43 @@ void process_commands() {
 	### G91 - Switch on relative mode <a href="https://reprap.org/wiki/G-code#G91:_Set_to_Relative_Positioning">G91: Set to Relative Positioning</a>
     All coordinates from now on are relative to the last position. E axis is left intact.
 	*/
-    case 91: {
-		axis_relative_modes |= X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK;
-    }
+    case 91: 
+		  axis_relative_modes |= X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK;
     break;
 
-    /*!
-	### G92 - Set position <a href="https://reprap.org/wiki/G-code#G92:_Set_Position">G92: Set Position</a>
-    
-    It is used for setting the current position of each axis. The parameters are always absolute to the origin.
-    If a parameter is omitted, that axis will not be affected.
-    If `X`, `Y`, or `Z` axis are specified, the move afterwards might stutter because of Mesh Bed Leveling. `E` axis is not affected if the target position is 0 (`G92 E0`).
-	A G92 without coordinates will reset all axes to zero on some firmware. This is not the case for Prusa-Firmware!
-    
-    #### Usage
-	
-	      G92 [ X | Y | Z | E ]
-	
-	#### Parameters
-	  - `X` - new X axis position
-	  - `Y` - new Y axis position
-	  - `Z` - new Z axis position
-	  - `E` - new extruder position
-	
-    */
+    // G92 - Set current position to coordinates given
     case 92: {
         gcode_G92();
     }
     break;
+
 	default:
 		printf_P(PSTR("Unknown G code: %s \n"), cmdbuffer + bufindr + CMDHDRSIZE);
     }
-//	printf_P(_N("END G-CODE=%u\n"), gcode_in_progress);
 	gcode_in_progress = 0;
   } // end if(code_seen('G'))
   /*!
   ### End of G-Codes
   */
 
-  /*!
-  ---------------------------------------------------------------------------------
-  # M Commands
-  
-  */
+// MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+// MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 
-  else if(code_seen('M'))
-  {
+//                   ##   ##            ## ##    ## ##   ### ##   ### ###   ## ##   
+//  ####              ## ##            ##   ##  ##   ##   ##  ##   ##  ##  ##   ##  
+//  #  #             # ### #           ##       ##   ##   ##  ##   ##      ####     
+// ### #             ## # ##           ##       ##   ##   ##  ##   ## ##    #####   
+// ### #             ##   ##           ##       ##   ##   ##  ##   ##          ###  
+// ### #  #          ##   ##           ##   ##  ##   ##   ##  ##   ##  ##  ##   ##  
+// ### #  #          ##   ##            ## ##    ## ##   ### ##   ### ###   ## ##   
+// ### #  #                                                                         
+
+// MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+// MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+
+
+  else if(code_seen('M')) {
 
 	  int index;
 	  for (index = 1; *(strchr_pointer + index) == ' ' || *(strchr_pointer + index) == '\t'; index++);
