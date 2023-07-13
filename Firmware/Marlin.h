@@ -352,9 +352,6 @@ extern uint8_t saved_printing_type;
 #define PRINTING_TYPE_USB 1
 #define PRINTING_TYPE_NONE 2
 
-//save/restore printing in case that mmu is not responding
-extern bool mmu_print_saved;
-
 //estimated time to end of the print
 extern uint8_t print_percent_done_normal;
 extern uint16_t print_time_remaining_normal;
@@ -369,7 +366,7 @@ extern uint16_t gcode_in_progress;
 extern LongTimer safetyTimer;
 
 #define PRINT_PERCENT_DONE_INIT   0xff
-#define PRINTER_ACTIVE (IS_SD_PRINTING || is_usb_printing || isPrintPaused || (custom_message_type == CustomMsg::TempCal) || saved_printing || (lcd_commands_type == LcdCommands::Layer1Cal) || mmu_print_saved)
+#define PRINTER_ACTIVE (IS_SD_PRINTING || is_usb_printing || isPrintPaused || (custom_message_type == CustomMsg::TempCal) || saved_printing || (lcd_commands_type == LcdCommands::Layer1Cal))
 
 //! Beware - mcode_in_progress is set as soon as the command gets really processed,
 //! which is not the same as posting the M600 command into the command queue
