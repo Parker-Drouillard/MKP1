@@ -64,9 +64,6 @@
 #include "mesh_bed_calibration.h"
 #endif
 
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
 
 //===========================================================================
 //=============================public variables ============================
@@ -1445,22 +1442,6 @@ void reset_acceleration_rates()
         axis_steps_per_sqr_second[i] = max_acceleration_units_per_sq_second[i] * cs.axis_steps_per_unit[i];
 }
 
-#ifdef TMC2130
-void update_mode_profile()
-{
-	if (tmc2130_mode == TMC2130_MODE_NORMAL)
-	{
-		max_feedrate = cs.max_feedrate_normal;
-		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_normal;
-	}
-	else if (tmc2130_mode == TMC2130_MODE_SILENT)
-	{
-		max_feedrate = cs.max_feedrate_silent;
-		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_silent;
-	}
-	reset_acceleration_rates();
-}
-#endif //TMC2130
 
 unsigned char number_of_blocks()
 {

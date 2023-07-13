@@ -159,7 +159,6 @@ const char MSG_Z_MAX[] PROGMEM_N1 = "z_max: "; ////
 const char MSG_Z_MIN[] PROGMEM_N1 = "z_min: "; ////
 const char MSG_ZPROBE_OUT[] PROGMEM_N1 = "Z probe out. bed"; ////
 const char MSG_ZPROBE_ZOFFSET[] PROGMEM_N1 = "Z Offset"; ////
-const char MSG_TMC_OVERTEMP[] PROGMEM_N1 = "TMC DRIVER OVERTEMP"; ////
 const char MSG_Enqueing[] PROGMEM_N1 = "enqueing \""; ////
 const char MSG_ENDSTOPS_HIT[] PROGMEM_N1 = "endstops hit: "; ////
 const char MSG_SD_ERR_WRITE_TO_FILE[] PROGMEM_N1 = "error writing to file"; ////

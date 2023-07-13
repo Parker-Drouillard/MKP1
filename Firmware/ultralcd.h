@@ -61,12 +61,6 @@ void lcd_status_screen();                         // NOT static due to using ins
 void lcd_menu_extruder_info();                    // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 void lcd_menu_show_sensors_state();               // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 
-#ifdef TMC2130
-bool lcd_crash_detect_enabled();
-void lcd_crash_detect_enable();
-void lcd_crash_detect_disable();
-#endif
-
 extern const char* lcd_display_message_fullscreen_P(const char *msg, uint8_t &nlines);
 extern const char* lcd_display_message_fullscreen_P(const char *msg);
 
@@ -82,9 +76,7 @@ extern int8_t lcd_show_multiscreen_message_yes_no_and_wait_P(const char *msg, bo
 // Ask the user to move the Z axis up to the end stoppers and let
 // the user confirm that it has been done.
 
-#ifndef TMC2130
 extern bool lcd_calibrate_z_end_stop_manual(bool only_z);
-#endif
 
 // Show the result of the calibration process on the LCD screen.
   extern void lcd_bed_calibration_show_result(BedSkewOffsetDetectionResultType result, uint8_t point_too_far_mask);
@@ -125,16 +117,10 @@ enum class CustomMsg : uint_least8_t
 extern CustomMsg custom_message_type;
 extern unsigned int custom_message_state;
 
-#ifdef TMC2130
-#define SILENT_MODE_NORMAL 0
-#define SILENT_MODE_STEALTH 1
-#define SILENT_MODE_OFF SILENT_MODE_NORMAL
-#else
 #define SILENT_MODE_POWER 0
 #define SILENT_MODE_SILENT 1
 #define SILENT_MODE_AUTO 2
 #define SILENT_MODE_OFF SILENT_MODE_POWER
-#endif
 
 #ifdef IR_SENSOR_ANALOG
 extern bool bMenuFSDetect;

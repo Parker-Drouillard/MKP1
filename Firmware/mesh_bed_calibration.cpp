@@ -8,10 +8,6 @@
 #include "ultralcd.h"
 #include "temperature.h"
 
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
-
 uint8_t world2machine_correction_mode;
 float   world2machine_rotation_and_skew[2][2];
 float   world2machine_rotation_and_skew_inv[2][2];
@@ -945,9 +941,6 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
 {
 	bool high_deviation_occured = false; 
     bedPWMDisabled = 1;
-#ifdef TMC2130
-	FORCE_HIGH_POWER_START;
-#endif
 	//printf_P(PSTR("Min. Z: %f\n"), minimum_z);
 	#ifdef SUPPORT_VERBOSITY
     if(verbosity_level >= 10) SERIAL_ECHOLNPGM("find bed induction sensor point z");
@@ -962,21 +955,11 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
     go_to_current(homing_feedrate[Z_AXIS]/60);
     // we have to let the planner know where we are right now as it is not where we said to go.
     update_current_position_z();
-    if (! endstop_z_hit_on_purpose())
-	{
+    if (! endstop_z_hit_on_purpose()) {
 		//printf_P(PSTR("endstop not hit 1, current_pos[Z]: %f \n"), current_position[Z_AXIS]);
 		goto error;
 	}
-#ifdef TMC2130
-	if (READ(Z_TMC2130_DIAG) != 0)
-	{
-		//printf_P(PSTR("crash detected 1, current_pos[Z]: %f \n"), current_position[Z_AXIS]);
-		goto error; //crash Z detected
-	}
-#endif //TMC2130
-    for (uint8_t i = 0; i < n_iter; ++ i)
-	{
-		
+    for (uint8_t i = 0; i < n_iter; ++ i) {
 		current_position[Z_AXIS] += high_deviation_occured ? 0.5 : 0.2;
 		float z_bckp = current_position[Z_AXIS];
 		go_to_current(homing_feedrate[Z_AXIS]/60);
@@ -999,24 +982,11 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
 
 
 
-		if (!endstop_z_hit_on_purpose())
-		{
-			//printf_P(PSTR("i = %d, endstop not hit 2, current_pos[Z]: %f \n"), i, current_position[Z_AXIS]);
+		if (!endstop_z_hit_on_purpose()) {
 			goto error;
 		}
-#ifdef TMC2130
-		if (READ(Z_TMC2130_DIAG) != 0) {
-			//printf_P(PSTR("crash detected 2, current_pos[Z]: %f \n"), current_position[Z_AXIS]);
-			goto error; //crash Z detected
-		}
-#endif //TMC2130
-//        SERIAL_ECHOPGM("Bed find_bed_induction_sensor_point_z low, height: ");
-//        MYSERIAL.print(current_position[Z_AXIS], 5);
-//        SERIAL_ECHOLNPGM("");
 		float dz = i?abs(current_position[Z_AXIS] - (z / i)):0;
         z += current_position[Z_AXIS];
-		//printf_P(PSTR("Z[%d] = %d, dz=%d\n"), i, (int)(current_position[Z_AXIS] * 1000), (int)(dz * 1000));
-		//printf_P(PSTR("Z- measurement deviation from avg value %f um\n"), dz);
 		if (dz > 0.05) { //deviation > 50um
 			if (high_deviation_occured == false) { //first occurence may be caused in some cases by mechanic resonance probably especially if printer is placed on unstable surface 
 				//printf_P(PSTR("high dev. first occurence\n"));
@@ -1025,12 +995,10 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
 				high_deviation_occured = true;
 				i = -1; 
 				z = 0;
-			}
-			else {
+			} else {
 				goto error;
 			}
 		}
-		//printf_P(PSTR("PINDA triggered at %f\n"), current_position[Z_AXIS]);
     }
     current_position[Z_AXIS] = z;
     if (n_iter > 1)
@@ -1039,20 +1007,11 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
 
     enable_endstops(endstops_enabled);
     enable_z_endstop(endstop_z_enabled);
-//    SERIAL_ECHOLNPGM("find_bed_induction_sensor_point_z 3");
-#ifdef TMC2130
-	FORCE_HIGH_POWER_END;
-#endif
     bedPWMDisabled = 0;
 	return true;
-
 error:
-//    SERIAL_ECHOLNPGM("find_bed_induction_sensor_point_z 4");
     enable_endstops(endstops_enabled);
     enable_z_endstop(endstop_z_enabled);
-#ifdef TMC2130
-	FORCE_HIGH_POWER_END;
-#endif
     bedPWMDisabled = 0;
 	return false;
 }
@@ -2836,18 +2795,8 @@ bool sample_mesh_and_store_reference()
         memcpy(destination, current_position, sizeof(destination));
         enable_endstops(true);
         homeaxis(Z_AXIS);
-
-#ifdef TMC2130
-		if (!axis_known_position[Z_AXIS] && (READ(Z_TMC2130_DIAG) != 0)) //Z crash
-		{
-			kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-			return false;
-		}
-#endif //TMC2130
-
         enable_endstops(false);
-		if (!find_bed_induction_sensor_point_z()) //Z crash or deviation > 50um
-		{
+		if (!find_bed_induction_sensor_point_z()) {//Z crash or deviation > 50um
 			kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
 			return false;
 		}

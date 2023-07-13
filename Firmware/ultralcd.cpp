@@ -34,10 +34,6 @@
 #include "fsensor.h"
 #endif //FILAMENT_SENSOR
 
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
-
 #include "sound.h"
 
 // #include "mmu.h"
@@ -139,24 +135,15 @@ static void preheat_or_continue();
 static void mmu_cut_filament_menu();
 #endif //MMU_HAS_CUTTER
 
-#if defined(TMC2130) || defined(FILAMENT_SENSOR)
+#if  defined(FILAMENT_SENSOR)
 static void lcd_menu_fails_stats();
-#endif //TMC2130 or FILAMENT_SENSOR
+#endif  //FILAMENT_SENSOR
 
-#ifdef TMC2130
-static void lcd_belttest_v();
-#endif //TMC2130
 
 static void lcd_selftest_v();
 
-#ifdef TMC2130
-static void reset_crash_det(unsigned char axis);
-static bool lcd_selfcheck_axis_sg(unsigned char axis);
-static bool lcd_selfcheck_axis(int _axis, int _travel);
-#else
 static bool lcd_selfcheck_axis(int _axis, int _travel);
 static bool lcd_selfcheck_pulleys(int axis);
-#endif //TMC2130
 static bool lcd_selfcheck_endstops();
 
 static bool lcd_selfcheck_check_heater(bool _isbed);
@@ -1048,7 +1035,7 @@ static void lcd_menu_fails_stats()
 	MENU_ITEM_BACK_P(_T(MSG_MAIN));
 	MENU_END();
 }
-#endif //TMC2130
+#endif //FILAMENT_SENSOR
 
 
 #ifdef DEBUG_BUILD
@@ -1150,25 +1137,6 @@ static void lcd_menu_voltages()
 }
 #endif //defined (VOLT_BED_PIN) || defined (VOLT_PWR_PIN) || defined(IR_SENSOR_ANALOG)
 
-#ifdef TMC2130
-//! @brief Show Belt Status
-//!
-//! @code{.unparsed}
-//! |01234567890123456789|
-//! | Belt status        |	c=18
-//! |  X:            000 |
-//! |  Y:            000 |
-//! |                    |
-//! ----------------------
-//! @endcode
-//! @todo Positioning of the messages and values on LCD aren't fixed to their exact place. This causes issues with translations.
-static void lcd_menu_belt_status()
-{
-	lcd_home();
-    lcd_printf_P(PSTR("%S\n" " X %d\n" " Y %d"), _i("Belt status"), eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_X)), eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_Y)));
-    menu_back_if_clicked();
-}
-#endif //TMC2130
 
 #ifdef RESUME_DEBUG 
 extern void stop_and_save_print_to_ram(float z_move, float e_move);
@@ -1344,12 +1312,7 @@ static void lcd_support_menu()
   MENU_ITEM_BACK_P(STR_SEPARATOR);
   MENU_ITEM_SUBMENU_P(_i("XYZ cal. details"), lcd_menu_xyz_y_min);////MSG_XYZ_DETAILS c=18
   MENU_ITEM_SUBMENU_P(_i("Extruder info"), lcd_menu_extruder_info);////MSG_INFO_EXTRUDER c=18
-  MENU_ITEM_SUBMENU_P(_i("Sensor info"), lcd_menu_show_sensors_state);////MSG_INFO_SENSORS c=18 r=1
-
-#ifdef TMC2130
-  MENU_ITEM_SUBMENU_P(_i("Belt status"), lcd_menu_belt_status);////MSG_MENU_BELT_STATUS c=18
-#endif //TMC2130
-    
+  MENU_ITEM_SUBMENU_P(_i("Sensor info"), lcd_menu_show_sensors_state);////MSG_INFO_SENSORS c=18 r=1    
   MENU_ITEM_SUBMENU_P(_i("Temperatures"), lcd_menu_temperatures);////MSG_MENU_TEMPERATURES c=18 r=1
 
 #if defined (VOLT_BED_PIN) || defined (VOLT_PWR_PIN)
@@ -2490,9 +2453,7 @@ void lcd_wait_for_cool_down() {
 // When done, it sets the current Z to Z_MAX_POS and returns true.
 // Otherwise the Z calibration is not changed and false is returned.
 
-#ifndef TMC2130
-bool lcd_calibrate_z_end_stop_manual(bool only_z)
-{
+bool lcd_calibrate_z_end_stop_manual(bool only_z) {
     // Don't know where we are. Let's claim we are Z=0, so the soft end stops will not be triggered when moving up.
     current_position[Z_AXIS] = 0;
     plan_set_position_curposXYZE();
@@ -2537,10 +2498,11 @@ bool lcd_calibrate_z_end_stop_manual(bool only_z)
         }
         // Let the user confirm, that the Z carriage is at the top end stoppers.
         int8_t result = lcd_show_fullscreen_message_yes_no_and_wait_P(_i("Are left and right Z~carriages all up?"), false);////MSG_CONFIRM_CARRIAGE_AT_THE_TOP c=20 r=2
-        if (result == -1)
+        if (result == -1) {
             goto canceled;
-        else if (result == 1)
+        } else if (result == 1) {
             goto calibrated;
+		}
         // otherwise perform another round of the Z up dialog.
     }
 
@@ -2555,7 +2517,6 @@ canceled:
     return false;
 }
 
-#endif // TMC2130
 
 static inline bool pgm_is_whitespace(const char *c_addr)
 {
@@ -2975,12 +2936,10 @@ static void lcd_show_end_stops() {
 	lcd_puts_P((READ(Z_MIN_PIN) ^ (bool)Z_MIN_ENDSTOP_INVERTING) ? (PSTR("Z1")) : (PSTR("Z0")));
 }
 
-#ifndef TMC2130
 static void menu_show_end_stops() {
     lcd_show_end_stops();
     if (LCD_CLICKED) menu_back();
 }
-#endif // not defined TMC2130
 
 // Lets the user move the Z carriage up to the end stoppers.
 // When done, it sets the current Z to Z_MAX_POS and returns true.
@@ -3279,34 +3238,6 @@ static void lcd_sort_type_set() {
 }
 #endif //SDCARD_SORT_ALPHA
 
-#ifdef TMC2130
-static void lcd_crash_mode_info()
-{
-	lcd_update_enable(true);
-	static uint32_t tim = 0;
-	if ((tim + 1000) < _millis())
-	{
-		lcd_clear();
-		fputs_P(_i("Crash detection can\nbe turned on only in\nNormal mode"), lcdout);////MSG_CRASH_DET_ONLY_IN_NORMAL c=20 r=4
-		tim = _millis();
-	}
-    menu_back_if_clicked();
-}
-
-static void lcd_crash_mode_info2()
-{
-	lcd_update_enable(true);
-	static uint32_t tim = 0;
-	if ((tim + 1000) < _millis())
-	{
-		lcd_clear();
-		fputs_P(_i("WARNING:\nCrash detection\ndisabled in\nStealth mode"), lcdout);////MSG_CRASH_DET_STEALTH_FORCE_OFF c=20 r=4
-		tim = _millis();
-	}
-    menu_back_if_clicked();
-}
-#endif //TMC2130
-
 #ifdef FILAMENT_SENSOR
 static void lcd_filament_autoload_info()
 {
@@ -3351,60 +3282,15 @@ static void lcd_silent_mode_mmu_set() {
 
 static void lcd_silent_mode_set() {
 	switch (SilentModeMenu) {
-#ifdef TMC2130
-	case SILENT_MODE_NORMAL: SilentModeMenu = SILENT_MODE_STEALTH; break;
-	case SILENT_MODE_STEALTH: SilentModeMenu = SILENT_MODE_NORMAL; break;
-	default: SilentModeMenu = SILENT_MODE_NORMAL; break; // (probably) not needed
-#else
 	case SILENT_MODE_POWER: SilentModeMenu = SILENT_MODE_SILENT; break;
 	case SILENT_MODE_SILENT: SilentModeMenu = SILENT_MODE_AUTO; break;
 	case SILENT_MODE_AUTO: SilentModeMenu = SILENT_MODE_POWER; break;
 	default: SilentModeMenu = SILENT_MODE_POWER; break; // (probably) not needed
-#endif //TMC2130
 	}
   eeprom_update_byte((unsigned char *)EEPROM_SILENT, SilentModeMenu);
-#ifdef TMC2130
-  lcd_display_message_fullscreen_P(_i("Mode change in progress ..."));
-  // Wait until the planner queue is drained and the stepper routine achieves
-  // an idle state.
-  st_synchronize();
-  if (tmc2130_wait_standstill_xy(1000)) {}
-//	  MYSERIAL.print("standstill OK");
-//  else
-//	  MYSERIAL.print("standstill NG!");
-	cli();
-	tmc2130_mode = (SilentModeMenu != SILENT_MODE_NORMAL)?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
-	update_mode_profile();
-	tmc2130_init();
-  // We may have missed a stepper timer interrupt due to the time spent in tmc2130_init.
-  // Be safe than sorry, reset the stepper timer before re-enabling interrupts.
-  st_reset_timer();
-  sei();
-#endif //TMC2130
   st_current_init();
-#ifdef TMC2130
-  if (lcd_crash_detect_enabled() && (SilentModeMenu != SILENT_MODE_NORMAL))
-	  menu_submenu(lcd_crash_mode_info2);
-  lcd_encoder_diff=0;                             // reset 'encoder buffer'
-#endif //TMC2130
 }
 
-#ifdef TMC2130
-static void crash_mode_switch()
-{
-    if (lcd_crash_detect_enabled())
-    {
-        lcd_crash_detect_disable();
-    }
-    else
-    {
-        lcd_crash_detect_enable();
-    }
-	if (IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal)) menu_goto(lcd_tune_menu, 9, true, true);
-	else menu_goto(lcd_settings_menu, 9, true, true);
-}
-#endif //TMC2130
- 
 
 #ifdef FILAMENT_SENSOR
 static void lcd_fsensor_state_set()
@@ -3893,25 +3779,6 @@ void lcd_wizard(WizState state)
 	lcd_update(2);
 }
 
-#ifdef TMC2130
-void lcd_settings_linearity_correction_menu(void)
-{
-	MENU_BEGIN();
-    ON_MENU_LEAVE(
-        lcd_settings_linearity_correction_menu_save();
-    );
-	MENU_ITEM_BACK_P(_T(MSG_SETTINGS));
-#ifdef TMC2130_LINEARITY_CORRECTION_XYZ
-	//tmc2130_wave_fac[X_AXIS]
-
-	MENU_ITEM_EDIT_int3_P(_i("X-correct:"),  &tmc2130_wave_fac[X_AXIS],  TMC2130_WAVE_FAC1000_MIN-TMC2130_WAVE_FAC1000_STP, TMC2130_WAVE_FAC1000_MAX);////MSG_X_CORRECTION c=13
-	MENU_ITEM_EDIT_int3_P(_i("Y-correct:"),  &tmc2130_wave_fac[Y_AXIS],  TMC2130_WAVE_FAC1000_MIN-TMC2130_WAVE_FAC1000_STP, TMC2130_WAVE_FAC1000_MAX);////MSG_Y_CORRECTION c=13
-	MENU_ITEM_EDIT_int3_P(_i("Z-correct:"),  &tmc2130_wave_fac[Z_AXIS],  TMC2130_WAVE_FAC1000_MIN-TMC2130_WAVE_FAC1000_STP, TMC2130_WAVE_FAC1000_MAX);////MSG_Z_CORRECTION c=13
-#endif //TMC2130_LINEARITY_CORRECTION_XYZ
-	MENU_ITEM_EDIT_int3_P(_i("E-correct:"),  &tmc2130_wave_fac[E_AXIS],  TMC2130_WAVE_FAC1000_MIN-TMC2130_WAVE_FAC1000_STP, TMC2130_WAVE_FAC1000_MAX);////MSG_EXTRUDER_CORRECTION c=13
-	MENU_END();
-}
-#endif // TMC2130
 
 #ifdef FILAMENT_SENSOR
 #define SETTINGS_FILAMENT_SENSOR \
@@ -4008,26 +3875,6 @@ while(0)
 #define SETTINGS_CUTTER
 #endif //MMU_HAS_CUTTER
 
-#ifdef TMC2130
-#define SETTINGS_SILENT_MODE \
-do\
-{\
-
-	if (SilentModeMenu == SILENT_MODE_NORMAL)\
-	{\
-		MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_NORMAL), lcd_silent_mode_set);\
-	}\
-	else MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_STEALTH), lcd_silent_mode_set);\
-	if (SilentModeMenu == SILENT_MODE_NORMAL)\
-	{\
-		if (lcd_crash_detect_enabled()) MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_ON), crash_mode_switch);\
-		else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_OFF), crash_mode_switch);\
-	}\
-	else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), NULL, lcd_crash_mode_info);\
-}\
-while (0)
-
-#else //TMC2130
 #define SETTINGS_SILENT_MODE \
 do\
 {\
@@ -4048,7 +3895,6 @@ do\
 	}\
 }\
 while (0)
-#endif //TMC2130
 
 
 
@@ -4469,12 +4315,7 @@ static void lcd_settings_menu()
     
 
 	MENU_ITEM_SUBMENU_P(_i("Mesh bed leveling"), lcd_mesh_bed_leveling_settings);////MSG_MBL_SETTINGS c=18 r=1
-
-#if defined (TMC2130) && defined (LINEARITY_CORRECTION)
-    MENU_ITEM_SUBMENU_P(_i("Lin. correction"), lcd_settings_linearity_correction_menu);
-#endif //LINEARITY_CORRECTION && TMC2130
-    if(has_temperature_compensation())
-    {
+    if(has_temperature_compensation()) {
 	    MENU_ITEM_TOGGLE_P(_T(MSG_TEMP_CALIBRATION), eeprom_read_byte((unsigned char *)EEPROM_TEMP_CAL_ACTIVE) ? _T(MSG_ON) : _T(MSG_OFF), lcd_temp_calibration_set);
     }
 
@@ -4501,48 +4342,15 @@ static void lcd_settings_menu()
 	MENU_END();
 }
 
-#ifdef TMC2130
-static void lcd_ustep_linearity_menu_save()
-{
-    eeprom_update_byte((uint8_t*)EEPROM_TMC2130_WAVE_X_FAC, tmc2130_wave_fac[X_AXIS]);
-    eeprom_update_byte((uint8_t*)EEPROM_TMC2130_WAVE_Y_FAC, tmc2130_wave_fac[Y_AXIS]);
-    eeprom_update_byte((uint8_t*)EEPROM_TMC2130_WAVE_Z_FAC, tmc2130_wave_fac[Z_AXIS]);
-    eeprom_update_byte((uint8_t*)EEPROM_TMC2130_WAVE_E_FAC, tmc2130_wave_fac[E_AXIS]);
-}
-#endif //TMC2130
-
-#ifdef TMC2130
-static void lcd_settings_linearity_correction_menu_save()
-{
-    bool changed = false;
-    if (tmc2130_wave_fac[X_AXIS] < TMC2130_WAVE_FAC1000_MIN) tmc2130_wave_fac[X_AXIS] = 0;
-    if (tmc2130_wave_fac[Y_AXIS] < TMC2130_WAVE_FAC1000_MIN) tmc2130_wave_fac[Y_AXIS] = 0;
-    if (tmc2130_wave_fac[Z_AXIS] < TMC2130_WAVE_FAC1000_MIN) tmc2130_wave_fac[Z_AXIS] = 0;
-    if (tmc2130_wave_fac[E_AXIS] < TMC2130_WAVE_FAC1000_MIN) tmc2130_wave_fac[E_AXIS] = 0;
-    changed |= (eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_X_FAC) != tmc2130_wave_fac[X_AXIS]);
-    changed |= (eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Y_FAC) != tmc2130_wave_fac[Y_AXIS]);
-    changed |= (eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Z_FAC) != tmc2130_wave_fac[Z_AXIS]);
-    changed |= (eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_E_FAC) != tmc2130_wave_fac[E_AXIS]);
-    lcd_ustep_linearity_menu_save();
-    if (changed) tmc2130_init();
-}
-#endif //TMC2130
-
-static void lcd_calibration_menu()
-{
+static void lcd_calibration_menu() {
   MENU_BEGIN();
   MENU_ITEM_BACK_P(_T(MSG_MAIN));
-  if (!isPrintPaused)
-  {
+  if (!isPrintPaused) {
 	MENU_ITEM_FUNCTION_P(_i("Wizard"), lcd_wizard);////MSG_WIZARD c=17 r=1
-    if (lcd_commands_type == LcdCommands::Idle)
-    {
+    if (lcd_commands_type == LcdCommands::Idle) {
          MENU_ITEM_SUBMENU_P(_T(MSG_V2_CALIBRATION), lcd_first_layer_calibration_reset);////MSG_V2_CALIBRATION c=18
     }
 	MENU_ITEM_GCODE_P(_T(MSG_AUTO_HOME), PSTR("G28 W"));
-#ifdef TMC2130
-	MENU_ITEM_FUNCTION_P(_i("Belt test        "), lcd_belttest_v);////MSG_BELTTEST c=17
-#endif //TMC2130
 	MENU_ITEM_FUNCTION_P(_i("Selftest         "), lcd_selftest_v);////MSG_SELFTEST c=17
 #ifdef MK1BP
     // MK1
@@ -4560,9 +4368,7 @@ static void lcd_calibration_menu()
 
     MENU_ITEM_SUBMENU_P(_i("Bed level correct"), lcd_adjust_bed);////MSG_BED_CORRECTION_MENU
 	MENU_ITEM_SUBMENU_P(_i("PID calibration"), pid_extruder);////MSG_PID_EXTRUDER c=17 r=1
-#ifndef TMC2130
     MENU_ITEM_SUBMENU_P(_i("Show end stops"), menu_show_end_stops);////MSG_SHOW_END_STOPS c=18
-#endif
 #ifndef MK1BP
     MENU_ITEM_GCODE_P(_i("Reset XYZ calibr."), PSTR("M44"));////MSG_CALIBRATE_BED_RESET
 #endif //MK1BP
@@ -5149,11 +4955,6 @@ static void lcd_main_menu()
  else
   MENU_ITEM_FUNCTION_P(PSTR("tst - Restore"), lcd_menu_test_restore);
 #endif //RESUME_DEBUG 
-
-#ifdef TMC2130_DEBUG
- MENU_ITEM_FUNCTION_P(PSTR("recover print"), recover_print);
- MENU_ITEM_FUNCTION_P(PSTR("power panic"), uvlo_);
-#endif //TMC2130_DEBUG
  
   if ( ( IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal)) && (current_position[Z_AXIS] < Z_HEIGHT_HIDE_LIVE_ADJUST_MENU) && !homing_flag && !mesh_bed_leveling_flag)
   {
@@ -5266,7 +5067,7 @@ static void lcd_main_menu()
 	  MENU_ITEM_SUBMENU_P(_i("Statistics  "), lcd_menu_statistics);////MSG_STATISTICS
   }
     
-#if defined(TMC2130) || defined(FILAMENT_SENSOR)
+#if defined(FILAMENT_SENSOR)
   MENU_ITEM_SUBMENU_P(_i("Fail stats"), lcd_menu_fails_stats);
 #endif
   MENU_ITEM_SUBMENU_P(_i("Support"), lcd_support_menu);////MSG_SUPPORT
@@ -5435,28 +5236,14 @@ static void lcd_tune_menu()
 #endif //FILAMENT_SENSOR
 
 	SETTINGS_AUTO_DEPLETE;
-
 	SETTINGS_CUTTER;
 
-#ifdef TMC2130
-
-          if (SilentModeMenu == SILENT_MODE_NORMAL) MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_NORMAL), lcd_silent_mode_set);
-          else MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_STEALTH), lcd_silent_mode_set);
-
-          if (SilentModeMenu == SILENT_MODE_NORMAL)
-          {
-               if (lcd_crash_detect_enabled()) MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_ON), crash_mode_switch);
-               else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_OFF), crash_mode_switch);
-          }
-          else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), NULL, lcd_crash_mode_info);
-#else //TMC2130
 	switch (SilentModeMenu) {
 		case SILENT_MODE_POWER: MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_HIGH_POWER), lcd_silent_mode_set); break;
 		case SILENT_MODE_SILENT: MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_SILENT), lcd_silent_mode_set); break;
 		case SILENT_MODE_AUTO: MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_AUTO_POWER), lcd_silent_mode_set); break;
 		default: MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_HIGH_POWER), lcd_silent_mode_set); break; // (probably) not needed
 	}
-#endif //TMC2130
     SETTINGS_SOUND;
 #ifdef LCD_BL_PIN
     if (backlightSupport)
@@ -5812,46 +5599,6 @@ void lcd_sdcard_menu() {
 		default: _md->menuState = 0; //shouldn't ever happen. Anyways, initialize the menu.
 	}		
 }
-#ifdef TMC2130
-static void lcd_belttest_v()
-{
-    lcd_belttest();
-    menu_back_if_clicked();
-}
-
-void lcd_belttest()
-{
-    lcd_clear();
-	// Belttest requires high power mode. Enable it.
-	FORCE_HIGH_POWER_START;
-    
-    uint16_t   X = eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_X));
-    uint16_t   Y = eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_Y));
-	lcd_printf_P(_i("Checking X axis  ")); // share message with selftest
-	lcd_set_cursor(0,1), lcd_printf_P(PSTR("X: %u -> ..."),X);
-    KEEPALIVE_STATE(IN_HANDLER);
-    
-	// N.B: it doesn't make sense to handle !lcd_selfcheck...() because selftest_sg throws its own error screen
-	// that clobbers ours, with more info than we could provide. So on fail we just fall through to take us back to status.
-    if (lcd_selfcheck_axis_sg(X_AXIS)){
-		X = eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_X));
-		lcd_set_cursor(10,1), lcd_printf_P(PSTR("%u"),X); // Show new X value next to old one.
-        lcd_puts_at_P(0,2,_i("Checking Y axis  "));
-		lcd_set_cursor(0,3), lcd_printf_P(PSTR("Y: %u -> ..."),Y);
-		if (lcd_selfcheck_axis_sg(Y_AXIS))
-		{
-			Y = eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_Y));
-			lcd_set_cursor(10,3),lcd_printf_P(PSTR("%u"),Y);
-			lcd_set_cursor(19, 3);
-			lcd_print(LCD_STR_UPLEVEL);
-			lcd_wait_for_click_delay(10);
-		}
-    }
-	
-	FORCE_HIGH_POWER_END;
-    KEEPALIVE_STATE(NOT_BUSY);
-}
-#endif //TMC2130
 
 #ifdef IR_SENSOR_ANALOG
 // called also from marlin_main.cpp
@@ -5940,9 +5687,6 @@ bool lcd_selftest()
 	lcd_wait_for_cool_down();
 	lcd_clear();
 	lcd_set_cursor(0, 0); lcd_puts_P(_i("Self test start  "));////MSG_SELFTEST_START c=20
-	#ifdef TMC2130
-	  FORCE_HIGH_POWER_START;
-	#endif // TMC2130
 	FORCE_BL_ON_START;
 	_delay(2000);
 	KEEPALIVE_STATE(IN_HANDLER);
@@ -6006,117 +5750,62 @@ bool lcd_selftest()
 		}
 	}
 
-	if (_result)
-	{
+	if (_result) {
 		_progress = lcd_selftest_screen(TestScreen::FansOk, _progress, 3, true, 2000);
-		_result = lcd_selfcheck_endstops(); //With TMC2130, only the Z probe is tested.
+		_result = lcd_selfcheck_endstops(); 
 	}
 
-	if (_result)
-	{
+	if (_result) {
 		//current_position[Z_AXIS] += 15;									//move Z axis higher to avoid false triggering of Z end stop in case that we are very low - just above heatbed
 		_progress = lcd_selftest_screen(TestScreen::AxisX, _progress, 3, true, 2000);
-#ifdef TMC2130
-        _result = lcd_selfcheck_axis_sg(X_AXIS);
-#else
         _result = lcd_selfcheck_axis(X_AXIS, X_MAX_POS);
-#endif //TMC2130
 	}
 
 
 
 
-	if (_result)
-	{
+	if (_result) {
 		_progress = lcd_selftest_screen(TestScreen::AxisX, _progress, 3, true, 0);
-
-#ifndef TMC2130
 		_result = lcd_selfcheck_pulleys(X_AXIS);
-#endif
 	}
 
 
-	if (_result)
-	{
+	if (_result) {
 		_progress = lcd_selftest_screen(TestScreen::AxisY, _progress, 3, true, 1500);
-#ifdef TMC2130
-		_result = lcd_selfcheck_axis_sg(Y_AXIS);
-#else
 		_result = lcd_selfcheck_axis(Y_AXIS, Y_MAX_POS);
-#endif // TMC2130
 	}
 
-	if (_result)
-	{
+	if (_result) {
 		_progress = lcd_selftest_screen(TestScreen::AxisZ, _progress, 3, true, 0);
-#ifndef TMC2130
 		_result = lcd_selfcheck_pulleys(Y_AXIS);
-#endif // TMC2130
 	}
 
 
-	if (_result)
-	{
-#ifdef TMC2130
-		tmc2130_home_exit();
-		enable_endstops(false);
-#endif
-
-		//homeaxis(X_AXIS);
-		//homeaxis(Y_AXIS);
+	if (_result) {
         current_position[X_AXIS] = pgm_read_float(bed_ref_points_4);
 		current_position[Y_AXIS] = pgm_read_float(bed_ref_points_4+1);
-#ifdef TMC2130
-		//current_position[X_AXIS] += 0;
-		current_position[Y_AXIS] += 4;
-#endif //TMC2130
 		current_position[Z_AXIS] = current_position[Z_AXIS] + 10;
 		plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 		st_synchronize();
         set_destination_to_current();
 		_progress = lcd_selftest_screen(TestScreen::AxisZ, _progress, 3, true, 1500);
-#ifdef TMC2130
-		homeaxis(Z_AXIS); //In case of failure, the code gets stuck in this function.
-#else
         _result = lcd_selfcheck_axis(Z_AXIS, Z_MAX_POS);
-#endif //TMC2130
-
 		//raise Z to not damage the bed during and hotend testing
 		current_position[Z_AXIS] += 20;
 		plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 		st_synchronize();
 	}
 
-#ifdef TMC2130
-	if (_result)
-	{
-		current_position[Z_AXIS] = current_position[Z_AXIS] + 10;
-		plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-		st_synchronize();
-		_progress = lcd_selftest_screen(TestScreen::Home, 0, 2, true, 0);
-		bool bres = tmc2130_home_calibrate(X_AXIS);
-		_progress = lcd_selftest_screen(TestScreen::Home, 1, 2, true, 0);
-		bres &= tmc2130_home_calibrate(Y_AXIS);
-		_progress = lcd_selftest_screen(TestScreen::Home, 2, 2, true, 0);
-		if (bres)
-			eeprom_update_byte((uint8_t*)EEPROM_TMC2130_HOME_ENABLED, 1);
-		_result = bres;
-	}
-#endif //TMC2130
-
-	if (_result)
-	{
+	if (_result) {
 		_progress = lcd_selftest_screen(TestScreen::Bed, _progress, 3, true, 2000);
 		_result = lcd_selfcheck_check_heater(true);
 	}
 
-    if (_result)
-    {
+    if (_result) {
         _progress = lcd_selftest_screen(TestScreen::Hotend, _progress, 3, true, 1000);
         _result = lcd_selfcheck_check_heater(false);
     }
-	if (_result)
-	{
+	if (_result) {
 		_progress = lcd_selftest_screen(TestScreen::HotendOk, _progress, 3, true, 2000); //nozzle ok
 	}
 #ifdef FILAMENT_SENSOR
@@ -6158,9 +5847,6 @@ bool lcd_selftest()
 	{
 		LCD_ALERTMESSAGERPGM(_T(MSG_SELFTEST_FAILED));
 	}
-	#ifdef TMC2130
-	  FORCE_HIGH_POWER_END;
-	#endif // TMC2130
     
     FORCE_BL_ON_END;
 	
@@ -6168,136 +5854,8 @@ bool lcd_selftest()
 	return(_result);
 }
 
-#ifdef TMC2130
 
-static void reset_crash_det(unsigned char axis) {
-	current_position[axis] += 10;
-	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-	st_synchronize();
-	if (eeprom_read_byte((uint8_t*)EEPROM_CRASH_DET)) tmc2130_sg_stop_on_crash = true;
-}
-
-static bool lcd_selfcheck_axis_sg(unsigned char axis) {
-// each axis length is measured twice	
-	float axis_length, current_position_init, current_position_final;
-	float measured_axis_length[2];
-	float margin = 60;
-	float max_error_mm = 5;
-	switch (axis) {
-	case 0: axis_length = X_MAX_POS; break;
-	case 1: axis_length = Y_MAX_POS + 8; break;
-	default: axis_length = 210; break;
-	}
-
-	tmc2130_sg_stop_on_crash = false;
-	tmc2130_home_exit();
-	enable_endstops(true);
-
-
-	raise_z_above(MESH_HOME_Z_SEARCH);
-	st_synchronize();
-	tmc2130_home_enter(1 << axis);
-
-// first axis length measurement begin	
-	
-	current_position[axis] -= (axis_length + margin);
-	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-
-	
-	st_synchronize();
-
-	tmc2130_sg_meassure_start(axis);
-
-	current_position_init = st_get_position_mm(axis);
-
-	current_position[axis] += 2 * margin;
-	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-	st_synchronize();
-
-	current_position[axis] += axis_length;
-	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-
-	st_synchronize();
-
-	uint16_t sg1 = tmc2130_sg_meassure_stop();
-	printf_P(PSTR("%c AXIS SG1=%d\n"), 'X'+axis, sg1);
-	eeprom_write_word(((uint16_t*)((axis == X_AXIS)?EEPROM_BELTSTATUS_X:EEPROM_BELTSTATUS_Y)), sg1);
-
-	current_position_final = st_get_position_mm(axis);
-	measured_axis_length[0] = abs(current_position_final - current_position_init);
-
-
-// first measurement end and second measurement begin	
-
-
-	current_position[axis] -= margin;
-	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-	st_synchronize();	
-
-	current_position[axis] -= (axis_length + margin);
-	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
-		
-	st_synchronize();
-
-	current_position_init = st_get_position_mm(axis);
-
-	measured_axis_length[1] = abs(current_position_final - current_position_init);
-
-	tmc2130_home_exit();
-
-//end of second measurement, now check for possible errors:
-
-	for(uint_least8_t i = 0; i < 2; i++){ //check if measured axis length corresponds to expected length
-		printf_P(_N("Measured axis length:%.3f\n"), measured_axis_length[i]);
-		if (abs(measured_axis_length[i] - axis_length) > max_error_mm) {
-			enable_endstops(false);
-
-			const char *_error_1;
-
-			if (axis == X_AXIS) _error_1 = "X";
-			if (axis == Y_AXIS) _error_1 = "Y";
-			if (axis == Z_AXIS) _error_1 = "Z";
-
-			lcd_selftest_error(TestError::Axis, _error_1, "");
-			current_position[axis] = 0;
-			plan_set_position_curposXYZE();
-			reset_crash_det(axis);
-			enable_endstops(true);
-			endstops_hit_on_purpose();
-			return false;
-		}
-	}
-
-		printf_P(_N("Axis length difference:%.3f\n"), abs(measured_axis_length[0] - measured_axis_length[1]));
-	
-		if (abs(measured_axis_length[0] - measured_axis_length[1]) > 1) { //check if difference between first and second measurement is low
-			//loose pulleys
-			const char *_error_1;
-
-			if (axis == X_AXIS) _error_1 = "X";
-			if (axis == Y_AXIS) _error_1 = "Y";
-			if (axis == Z_AXIS) _error_1 = "Z";
-
-			lcd_selftest_error(TestError::Pulley, _error_1, "");
-			current_position[axis] = 0;
-			plan_set_position_curposXYZE();
-			reset_crash_det(axis);
-			endstops_hit_on_purpose();
-			return false;
-		}
-		current_position[axis] = 0;
-		plan_set_position_curposXYZE();
-		reset_crash_det(axis);
-		endstops_hit_on_purpose();
-		return true;
-}
-#endif //TMC2130
-
-#ifndef TMC2130
-
-static bool lcd_selfcheck_axis(int _axis, int _travel)
-{
-//	printf_P(PSTR("lcd_selfcheck_axis %d, %d\n"), _axis, _travel);
+static bool lcd_selfcheck_axis(int _axis, int _travel) {
 	bool _stepdone = false;
 	bool _stepresult = false;
 	int _progress = 0;
@@ -6310,34 +5868,24 @@ static bool lcd_selfcheck_axis(int _axis, int _travel)
 		current_position[Z_AXIS] += 17;
 		plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 	}
-
 	do {
 		current_position[_axis] = current_position[_axis] - 1;
-
 		plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 		st_synchronize();
-#ifdef TMC2130
-		if ((READ(Z_MIN_PIN) ^ (bool)Z_MIN_ENDSTOP_INVERTING))
-#else //TMC2130
 		if ((READ(X_MIN_PIN) ^ (bool)X_MIN_ENDSTOP_INVERTING) ||
 			(READ(Y_MIN_PIN) ^ (bool)Y_MIN_ENDSTOP_INVERTING) ||
-			(READ(Z_MIN_PIN) ^ (bool)Z_MIN_ENDSTOP_INVERTING))
-#endif //TMC2130
-		{
-			if (_axis == 0)
-			{
+			(READ(Z_MIN_PIN) ^ (bool)Z_MIN_ENDSTOP_INVERTING)) {
+			if (_axis == 0) {
 				_stepresult = ((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) ? true : false;
 				_err_endstop = ((READ(Y_MIN_PIN) ^ Y_MIN_ENDSTOP_INVERTING) == 1) ? 1 : 2;
 
 			}
-			if (_axis == 1)
-			{
+			if (_axis == 1) {
 				_stepresult = ((READ(Y_MIN_PIN) ^ Y_MIN_ENDSTOP_INVERTING) == 1) ? true : false;
 				_err_endstop = ((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) ? 0 : 2;
 
 			}
-			if (_axis == 2)
-			{
+			if (_axis == 2) {
 				_stepresult = ((READ(Z_MIN_PIN) ^ Z_MIN_ENDSTOP_INVERTING) == 1) ? true : false;
 				_err_endstop = ((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) ? 0 : 1;
 	printf_P(PSTR("lcd_selfcheck_axis %d, %d\n"), _stepresult, _err_endstop);
@@ -6348,59 +5896,43 @@ static bool lcd_selfcheck_axis(int _axis, int _travel)
 			_stepdone = true;
 		}
 
-		if (_lcd_refresh < 6)
-		{
+		if (_lcd_refresh < 6) {
 			_lcd_refresh++;
-		}
-		else
-		{
+		} else {
 			_progress = lcd_selftest_screen(static_cast<TestScreen>(static_cast<int>(TestScreen::AxisX) + _axis), _progress, 3, false, 0);
 			_lcd_refresh = 0;
 		}
-
 		manage_heater();
 		manage_inactivity(true);
-
-		//_delay(100);
 		(_travel_done <= _travel) ? _travel_done++ : _stepdone = true;
 
 	} while (!_stepdone);
 
-
-	//current_position[_axis] = current_position[_axis] + 15;
-	//plan_buffer_line_curposXYZE(manual_feedrate[0] / 60, active_extruder);
-
-	if (!_stepresult)
-	{
+	if (!_stepresult) {
 		const char *_error_1;
 		const char *_error_2;
 
-		if (_axis == X_AXIS) _error_1 = "X";
-		if (_axis == Y_AXIS) _error_1 = "Y";
-		if (_axis == Z_AXIS) _error_1 = "Z";
+		if (_axis == X_AXIS) {_error_1 = "X";}
+		if (_axis == Y_AXIS) {_error_1 = "Y";}
+		if (_axis == Z_AXIS) {_error_1 = "Z";}
 
-		if (_err_endstop == 0) _error_2 = "X";
-		if (_err_endstop == 1) _error_2 = "Y";
-		if (_err_endstop == 2) _error_2 = "Z";
+		if (_err_endstop == 0) {_error_2 = "X";}
+		if (_err_endstop == 1) {_error_2 = "Y";}
+		if (_err_endstop == 2) {_error_2 = "Z";}
 
 
-		if (_travel_done >= _travel)
-		{
+		if (_travel_done >= _travel) {
 			lcd_selftest_error(TestError::Endstop, _error_1, _error_2);
-		}
-		else
-		{
+		} else {
 			lcd_selftest_error(TestError::Motor, _error_1, _error_2);
 		}
 	}    
 	current_position[_axis] = 0; //simulate axis home to avoid negative numbers for axis position, especially Z.
 	plan_set_position_curposXYZE();
-
 	return _stepresult;
 }
 
-static bool lcd_selfcheck_pulleys(int axis)
-{
+static bool lcd_selfcheck_pulleys(int axis) {
 	// float tmp_motor_loud[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
 	// float tmp_motor[3] = DEFAULT_PWM_MOTOR_CURRENT;
 	float current_position_init;
@@ -6411,11 +5943,13 @@ static bool lcd_selfcheck_pulleys(int axis)
 	refresh_cmd_timeout();
 	manage_inactivity(true);
 
-	if (axis == 0) move = 50; //X_AXIS 
-	else move = 50; //Y_AXIS
+	if (axis == 0) {
+		move = 50; //X_AXIS 
+	} else {
+		move = 50; //Y_AXIS
+	}
 
 	current_position_init = current_position[axis];
-
 	current_position[axis] += 2;
 	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 	for (i = 0; i < 5; i++) {
@@ -6463,41 +5997,32 @@ static bool lcd_selfcheck_pulleys(int axis)
 	}
 	return(true);
 }
-#endif //not defined TMC2130
 
 
 static bool lcd_selfcheck_endstops() {
 	bool _result = true;
 
 	if (
-	#ifndef TMC2130
 		((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) ||
 		((READ(Y_MIN_PIN) ^ Y_MIN_ENDSTOP_INVERTING) == 1) ||
-	#endif //!TMC2130
 		((READ(Z_MIN_PIN) ^ Z_MIN_ENDSTOP_INVERTING) == 1))
 	{
-	#ifndef TMC2130
 		if ((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) current_position[0] += 10;
 		if ((READ(Y_MIN_PIN) ^ Y_MIN_ENDSTOP_INVERTING) == 1) current_position[1] += 10;
-	#endif //!TMC2130
 		if ((READ(Z_MIN_PIN) ^ Z_MIN_ENDSTOP_INVERTING) == 1) current_position[2] += 10;
 	}
 	plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 	st_synchronize();
 
 	if (
-	#ifndef TMC2130
 		((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) ||
 		((READ(Y_MIN_PIN) ^ Y_MIN_ENDSTOP_INVERTING) == 1) ||
-	#endif //!TMC2130
 		((READ(Z_MIN_PIN) ^ Z_MIN_ENDSTOP_INVERTING) == 1))
 	{
 		_result = false;
 		char _error[4] = "";
-	#ifndef TMC2130
 		if ((READ(X_MIN_PIN) ^ X_MIN_ENDSTOP_INVERTING) == 1) strcat(_error, "X");
 		if ((READ(Y_MIN_PIN) ^ Y_MIN_ENDSTOP_INVERTING) == 1) strcat(_error, "Y");
-	#endif //!TMC2130
 		if ((READ(Z_MIN_PIN) ^ Z_MIN_ENDSTOP_INVERTING) == 1) strcat(_error, "Z");
 		lcd_selftest_error(TestError::Endstops, _error, "");
 	}
@@ -6764,18 +6289,9 @@ static bool selftest_irsensor()
                 lcd_selftest_error(TestError::TriggeringFsensor, "", "");
                 return false;
             }
-#ifdef TMC2130
-            manage_heater();
-            // Vojtech: Don't disable motors inside the planner!
-            if (!tmc2130_update_sg())
-            {
-                manage_inactivity(true);
-            }
-#else //TMC2130
             manage_heater();
             // Vojtech: Don't disable motors inside the planner!
             manage_inactivity(true);
-#endif //TMC2130
         }
     }
     return true;
@@ -7431,36 +6947,11 @@ void menu_lcd_lcdupdate_func(void)
 	if (lcd_commands_type == LcdCommands::Layer1Cal) lcd_commands();
 }
 
-#ifdef TMC2130
-//! @brief Is crash detection enabled?
-//!
-//! @retval true crash detection enabled
-//! @retval false crash detection disabled
-bool lcd_crash_detect_enabled()
-{
-    return eeprom_read_byte((uint8_t*)EEPROM_CRASH_DET);
-}
-
-void lcd_crash_detect_enable()
-{
-    tmc2130_sg_stop_on_crash = true;
-    eeprom_update_byte((uint8_t*)EEPROM_CRASH_DET, 0xFF);
-}
-
-void lcd_crash_detect_disable()
-{
-    tmc2130_sg_stop_on_crash = false;
-    tmc2130_sg_crash = 0;
-    eeprom_update_byte((uint8_t*)EEPROM_CRASH_DET, 0x00);
-}
-#endif
-
-void lcd_experimental_toggle()
-{
+void lcd_experimental_toggle() {
     uint8_t oldVal = eeprom_read_byte((uint8_t *)EEPROM_EXPERIMENTAL_VISIBILITY);
-    if (oldVal == EEPROM_EMPTY_VALUE)
+    if (oldVal == EEPROM_EMPTY_VALUE){
         oldVal = 0;
-    else
+   } else
         oldVal = !oldVal;
     eeprom_update_byte((uint8_t *)EEPROM_EXPERIMENTAL_VISIBILITY, oldVal);
 }

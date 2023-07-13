@@ -12,10 +12,6 @@
 //! @retval false Failed
 bool gcode_M45(bool onlyZ, int8_t verbosity_level) {
 	bool final_result = false;
-#ifdef TMC2130
-	FORCE_HIGH_POWER_START;
-#endif // TMC2130
-    
   FORCE_BL_ON_START;
   // Only Z calibration?
 	if (!onlyZ) {
@@ -50,11 +46,7 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level) {
 	st_synchronize();
 
 	// Let the user move the Z axes up to the end stoppers.
-#ifdef TMC2130
-	if (calibrate_z_auto()) {
-#else //TMC2130
 	if (lcd_calibrate_z_end_stop_manual(onlyZ)) {
-#endif //TMC2130
 		lcd_show_fullscreen_message_and_wait_P(_T(MSG_CONFIRM_NOZZLE_CLEAN));
 		if(onlyZ){
 			lcd_display_message_fullscreen_P(_T(MSG_MEASURE_BED_REFERENCE_HEIGHT_LINE1));
@@ -96,14 +88,8 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level) {
     // Move the print head close to the bed.
     current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
 		enable_endstops(true);
-#ifdef TMC2130
-		tmc2130_home_enter(Z_AXIS_MASK);
-#endif //TMC2130
 		plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
 		st_synchronize();
-#ifdef TMC2130
-		tmc2130_home_exit();
-#endif //TMC2130
 		enable_endstops(endstops_enabled);
 
 		if ((st_get_position_mm(Z_AXIS) <= (MESH_HOME_Z_SEARCH + HOME_Z_SEARCH_THRESHOLD)) &&
@@ -169,19 +155,13 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level) {
 					final_result = true;
 				}
 			}
-#ifdef TMC2130
-			tmc2130_home_exit();
-#endif
 		} else {
 			lcd_show_fullscreen_message_and_wait_P(PSTR("Calibration failed! Check the axes and run again."));
 			final_result = false;
 		}
 	} 
 	lcd_update_enable(true);
-#ifdef TMC2130
-	FORCE_HIGH_POWER_END;
-#endif // TMC2130
-  FORCE_BL_ON_END;
+	  FORCE_BL_ON_END;
 	return final_result;
 }
 

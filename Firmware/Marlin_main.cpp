@@ -106,10 +106,6 @@
 #include "fsensor.h"
 #endif //FILAMENT_SENSOR
 
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
-
 #ifdef W25X20CL
 #include "w25x20cl.h"
 #include "optiboot_w25x20cl.h"
@@ -513,103 +509,6 @@ void servo_init() {
 
 
 bool fans_check_enabled = true;
-
-#ifdef TMC2130 //Not enabled for MKP1
-
-void crashdet_stop_and_save_print() {
-	stop_and_save_print_to_ram(10, -default_retraction); //XY - no change, Z 10mm up, E -1mm retract
-}
-
-void crashdet_restore_print_and_continue() {
-	restore_print_from_ram_and_continue(default_retraction); //XYZ = orig, E +1mm unretract
-//	babystep_apply();
-}
-
-
-void crashdet_stop_and_save_print2() {
-	cli();
-	planner_abort_hard(); //abort printing
-	cmdqueue_reset(); //empty cmdqueue
-	card.sdprinting = false;
-	card.closefile();
-  // Reset and re-enable the stepper timer just before the global interrupts are enabled.
-  st_reset_timer();
-	sei();
-}
-
-void crashdet_detected(uint8_t mask) {
-	st_synchronize();
-	static uint8_t crashDet_counter = 0;
-	bool automatic_recovery_after_crash = true;
-
-	if (crashDet_counter++ == 0) {
-		crashDetTimer.start();
-	} else if (crashDetTimer.expired(CRASHDET_TIMER * 1000ul)){
-		crashDetTimer.stop();
-		crashDet_counter = 0;
-	} else if(crashDet_counter == CRASHDET_COUNTER_MAX){
-		automatic_recovery_after_crash = false;
-		crashDetTimer.stop();
-		crashDet_counter = 0;
-	}	else {
-		crashDetTimer.start();
-	}
-
-	lcd_update_enable(true);
-	lcd_clear();
-	lcd_update(2);
-
-	if (mask & X_AXIS_MASK) {
-		eeprom_update_byte((uint8_t*)EEPROM_CRASH_COUNT_X, eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_X) + 1);
-		eeprom_update_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT, eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT) + 1);
-	}
-	if (mask & Y_AXIS_MASK) {
-		eeprom_update_byte((uint8_t*)EEPROM_CRASH_COUNT_Y, eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_Y) + 1);
-		eeprom_update_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT, eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT) + 1);
-	}
-    
-
-
-	lcd_update_enable(true);
-	lcd_update(2);
-	lcd_setstatuspgm(_T(MSG_CRASH_DETECTED));
-	gcode_G28(true, true, false); //home X and Y
-	st_synchronize();
-
-	if (automatic_recovery_after_crash) {
-		enquecommand_P(PSTR("CRASH_RECOVER"));
-	} else {
-		setTargetHotend(0, active_extruder);
-    //wtf kind of a variable name is yesno...
-		bool yesno = lcd_show_fullscreen_message_yes_no_and_wait_P(_i("Crash detected. Resume print?"), false);
-		lcd_update_enable(true);
-		if (yesno) {
-			enquecommand_P(PSTR("CRASH_RECOVER"));
-		}	else {
-			enquecommand_P(PSTR("CRASH_CANCEL"));
-		}
-	}
-}
-
-void crashdet_recover() {
-	crashdet_restore_print_and_continue();
-	if (lcd_crash_detect_enabled()) {
-    tmc2130_sg_stop_on_crash = true;
-  }
-}
-
-void crashdet_cancel() {
-	saved_printing = false;
-	tmc2130_sg_stop_on_crash = true;
-	if (saved_printing_type == PRINTING_TYPE_SD) {
-		lcd_print_stop();
-	} else if (saved_printing_type == PRINTING_TYPE_USB){
-		SERIAL_ECHOLNRPGM(MSG_OCTOPRINT_CANCEL); //for Octoprint: works the same as clicking "Abort" button in Octoprint GUI
-		SERIAL_PROTOCOLLNRPGM(MSG_OK);
-	}
-}
-
-#endif //TMC2130
 
 void failstats_reset_print() {
 	eeprom_update_byte((uint8_t *)EEPROM_CRASH_COUNT_X, 0);
@@ -1039,58 +938,6 @@ void checkStartup(){
 	MCUSR = 0;
 }
 
-
-uint8_t tmc2130_setup_init(){
-	uint8_t silentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
-	if (silentMode == 0xff) {
-    silentMode = 0;
-  }
-	tmc2130_mode = TMC2130_MODE_NORMAL;
-
-	if (lcd_crash_detect_enabled()) {
-		lcd_crash_detect_enable();
-	    puts_P(_N("CrashDetect ENABLED!"));
-	}	else {
-	    lcd_crash_detect_disable();
-	    puts_P(_N("CrashDetect DISABLED"));
-	}
-
-  #ifdef TMC2130_LINEARITY_CORRECTION
-#ifdef TMC2130_LINEARITY_CORRECTION_XYZ
-	tmc2130_wave_fac[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_X_FAC);
-	tmc2130_wave_fac[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Y_FAC);
-	tmc2130_wave_fac[Z_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_Z_FAC);
-#endif //TMC2130_LINEARITY_CORRECTION_XYZ
-	tmc2130_wave_fac[E_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_WAVE_E_FAC);
-	if (tmc2130_wave_fac[X_AXIS] == 0xff) tmc2130_wave_fac[X_AXIS] = 0;
-	if (tmc2130_wave_fac[Y_AXIS] == 0xff) tmc2130_wave_fac[Y_AXIS] = 0;
-	if (tmc2130_wave_fac[Z_AXIS] == 0xff) tmc2130_wave_fac[Z_AXIS] = 0;
-	if (tmc2130_wave_fac[E_AXIS] == 0xff) tmc2130_wave_fac[E_AXIS] = 0;
-#endif //TMC2130_LINEARITY_CORRECTION
-
-#ifdef TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[X_AXIS]);
-	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Y_AXIS]);
-	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Z_AXIS]);
-	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[E_AXIS]);
-#else //TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_Z);
-	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_E);
-#endif //TMC2130_VARIABLE_RESOLUTION
-
-  st_init();    // Initialize stepper, this enables interrupts!
-
-  tmc2130_mode = silentMode?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
-	update_mode_profile();
-	tmc2130_init();
-
-  return silentMode;
-}
-
-
-
 void debugSDSpeedTest(){
   if (card.cardOK) {
 		uint8_t* buff = (uint8_t*)block_buffer;
@@ -1229,15 +1076,6 @@ void startup_msgs(void){
 		  lcd_show_fullscreen_message_and_wait_P(_T(MSG_FOLLOW_Z_CALIBRATION_FLOW));
 	  }
   }
-
-#if !defined (DEBUG_DISABLE_FORCE_SELFTEST) && defined (TMC2130)
-  if (force_selftest_if_fw_version() && calibration_status() < CALIBRATION_STATUS_ASSEMBLED) {
-	  lcd_show_fullscreen_message_and_wait_P(_i("Selftest will be run to calibrate accurate sensorless rehoming."));////MSG_FORCE_SELFTEST c=20 r=8
-	  update_current_firmware_version_to_eeprom();
-	  lcd_selftest();
-  }
-#endif //TMC2130 && !DEBUG_DISABLE_FORCE_SELFTEST
-
   KEEPALIVE_STATE(IN_PROCESS);
 #endif
 }
@@ -1345,21 +1183,11 @@ void setup() {
     // EEPROM_LANG to number lower than 0x0ff.
     // 1) Set a high power mode.
     eeprom_update_byte((uint8_t*)EEPROM_SILENT, SILENT_MODE_OFF);
-#ifdef TMC2130
-    tmc2130_mode = TMC2130_MODE_NORMAL;
-#endif //TMC2130
     eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
   }
 
-    lcd_encoder_diff=0;
-
-#ifdef TMC2130
-  uint8_t silentMode = tmc2130_setup_init();
-#else
-  st_init();    // Initialize stepper, this enables interrupts!
-#endif //TMC2130
-
-    
+  lcd_encoder_diff=0;
+  st_init();    // Initialize stepper, this enables interrupts!   
 	setup_photpin();
 	servo_init();
 	world2machine_reset(); //World 2 Machine matrix is loaded once we home the machine.
@@ -1430,25 +1258,6 @@ void setup() {
   // Store the currently running firmware into an eeprom,
   // so the next time the firmware gets updated, it will know from which version it has been updated.
   update_current_firmware_version_to_eeprom();
-
-#ifdef TMC2130
-  tmc2130_home_origin[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_ORIGIN);
-	tmc2130_home_bsteps[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_BSTEPS);
-	tmc2130_home_fsteps[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_X_FSTEPS);
-	if (tmc2130_home_origin[X_AXIS] == 0xff) {tmc2130_home_origin[X_AXIS] = 0;}
-	if (tmc2130_home_bsteps[X_AXIS] == 0xff) {tmc2130_home_bsteps[X_AXIS] = 48;}
-	if (tmc2130_home_fsteps[X_AXIS] == 0xff) {tmc2130_home_fsteps[X_AXIS] = 48;}
-
-	tmc2130_home_origin[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_ORIGIN);
-	tmc2130_home_bsteps[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_BSTEPS);
-	tmc2130_home_fsteps[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_Y_FSTEPS);
-	if (tmc2130_home_origin[Y_AXIS] == 0xff) {tmc2130_home_origin[Y_AXIS] = 0;}
-	if (tmc2130_home_bsteps[Y_AXIS] == 0xff) {tmc2130_home_bsteps[Y_AXIS] = 48;}
-	if (tmc2130_home_fsteps[Y_AXIS] == 0xff) {tmc2130_home_fsteps[Y_AXIS] = 48;}
-
-	tmc2130_home_enabled = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_HOME_ENABLED);
-	if (tmc2130_home_enabled == 0xff) {tmc2130_home_enabled = 0;}
-#endif //TMC2130
 
 #ifdef UVLO_SUPPORT
   uvlo_init();
@@ -1695,19 +1504,6 @@ void loop() {
   isPrintPaused ? manage_inactivity(true) : manage_inactivity(false);
   checkHitEndstops();
   lcd_update(0);
-#ifdef TMC2130
-	tmc2130_check_overtemp();
-	if (tmc2130_sg_crash) {
-		uint8_t crash = tmc2130_sg_crash;
-		tmc2130_sg_crash = 0;
-		switch (crash)
-		{
-		case 1: enquecommand_P((PSTR("CRASH_DETECTEDX"))); break;
-		case 2: enquecommand_P((PSTR("CRASH_DETECTEDY"))); break;
-		case 3: enquecommand_P((PSTR("CRASH_DETECTEDXY"))); break;
-		}
-	}
-#endif //TMC2130
 } //End of loop()
 
 
@@ -1930,88 +1726,17 @@ void raise_z_above(float target, bool plan) {
 
   // rely on crashguard to limit damage
   bool z_endstop_enabled = enable_z_endstop(true);
-#ifdef TMC2130
-  tmc2130_home_enter(Z_AXIS_MASK);
-#endif //TMC2130
   plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 60);
   st_synchronize();
-#ifdef TMC2130
-  if (endstop_z_hit_on_purpose()) {
-    // not necessarily exact, but will avoid further vertical moves
-    current_position[Z_AXIS] = max_pos[Z_AXIS];
-    plan_set_position_curposXYZE();
-  }
-  tmc2130_home_exit();
-#endif //TMC2130
   enable_z_endstop(z_endstop_enabled);
 }
 
-
-#ifdef TMC2130
-bool calibrate_z_auto() {
-	//lcd_display_message_fullscreen_P(_T(MSG_CALIBRATE_Z_AUTO));
-	lcd_clear();
-	lcd_puts_at_P(0, 1, _T(MSG_CALIBRATE_Z_AUTO));
-	bool endstops_enabled = enable_endstops(true);
-	int axis_up_dir = -home_dir(Z_AXIS);
-	tmc2130_home_enter(Z_AXIS_MASK);
-	current_position[Z_AXIS] = 0;
-	plan_set_position_curposXYZE();
-	set_destination_to_current();
-	destination[Z_AXIS] += (1.1 * max_length(Z_AXIS) * axis_up_dir);
-	feedrate = homing_feedrate[Z_AXIS];
-	plan_buffer_line_destinationXYZE(feedrate / 60);
-	st_synchronize();
-	//	current_position[axis] = 0;
-	//	plan_set_position_curposXYZE();
-	tmc2130_home_exit();
-	enable_endstops(false);
-	current_position[Z_AXIS] = 0;
-	plan_set_position_curposXYZE();
-	set_destination_to_current();
-	destination[Z_AXIS] += 10 * axis_up_dir; //10mm up
-	feedrate = homing_feedrate[Z_AXIS] / 2;
-	plan_buffer_line_destinationXYZE(feedrate / 60);
-	st_synchronize();
-	enable_endstops(endstops_enabled);
-	if (PRINTER_TYPE == PRINTER_MK3) {
-		current_position[Z_AXIS] = Z_MAX_POS + 2.0;
-	}	else {
-		current_position[Z_AXIS] = Z_MAX_POS + 9.0;
-	}
-	plan_set_position_curposXYZE();
-	return true;
-}
-#endif //TMC2130
-
-#ifdef TMC2130
-static void check_Z_crash(void) {
-	if (READ(Z_TMC2130_DIAG) != 0) { //Z crash
-		FORCE_HIGH_POWER_END;
-		current_position[Z_AXIS] = 0;
-		plan_set_position_curposXYZE();
-		current_position[Z_AXIS] += MESH_HOME_Z_SEARCH;
-		plan_buffer_line_curposXYZE(max_feedrate[Z_AXIS]);
-		st_synchronize();
-		kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-	}
-}
-#endif //TMC2130
-
-#ifdef TMC2130
-void homeaxis(int axis, uint8_t cnt, uint8_t* pstep)
-#else
-void homeaxis(int axis, uint8_t cnt)
-#endif //TMC2130
-{
+void homeaxis(int axis, uint8_t cnt) {
 	bool endstops_enabled  = enable_endstops(true); //RP: endstops should be allways enabled durring homing
 #define HOMEAXIS_DO(LETTER) ((LETTER##_MIN_PIN > -1 && LETTER##_HOME_DIR==-1) || (LETTER##_MAX_PIN > -1 && LETTER##_HOME_DIR==1))
   if ((axis==X_AXIS)?HOMEAXIS_DO(X):(axis==Y_AXIS)?HOMEAXIS_DO(Y):0) {
     int axis_home_dir = home_dir(axis);
     feedrate = homing_feedrate[axis];
-#ifdef TMC2130
-    tmc2130_home_enter(X_AXIS_MASK << axis);
-#endif //TMC2130
     // Move away a bit, so that the print head does not touch the end position,
     // and the following movement to endstop has a chance to achieve the required velocity
     // for the stall guard to work.
@@ -2047,43 +1772,16 @@ void homeaxis(int axis, uint8_t cnt)
 			// Now move left up to the collision, this time with a repeatable velocity.
 			enable_endstops(true);
 			destination[axis] = 11.f * axis_home_dir;
-#ifdef TMC2130
-			feedrate = homing_feedrate[axis];
-#else //TMC2130
 			feedrate = homing_feedrate[axis] / 2;
-#endif //TMC2130
 			plan_buffer_line_destinationXYZE(feedrate/60);
 			st_synchronize();
-#ifdef TMC2130
-			uint16_t mscnt = tmc2130_rd_MSCNT(axis);
-			if (pstep) pstep[i] = mscnt >> 4;
-			printf_P(PSTR("%3d step=%2d mscnt=%4d\n"), i, mscnt >> 4, mscnt);
-#endif //TMC2130
 		}
 		endstops_hit_on_purpose();
 		enable_endstops(false);
-
-#ifdef TMC2130
-    uint8_t orig = tmc2130_home_origin[axis];
-    uint8_t back = tmc2130_home_bsteps[axis];
-    if (tmc2130_home_enabled && (orig <= 63)) {
-      tmc2130_goto_step(axis, orig, 2, 1000, tmc2130_get_res(axis));
-      if (back > 0) {
-        tmc2130_do_steps(axis, back, -axis_home_dir, 1000);
-      }
-    } else {
-      tmc2130_do_steps(axis, 8, -axis_home_dir, 1000);
-    }
-    tmc2130_home_exit();
-#endif //TMC2130
     axis_is_at_home(axis);
     axis_known_position[axis] = true;
     // Move from minimum
-#ifdef TMC2130
-    float dist = - axis_home_dir * 0.01f * tmc2130_home_fsteps[axis];
-#else //TMC2130
     float dist = - axis_home_dir * 0.01f * 64;
-#endif //TMC2130
     current_position[axis] -= dist;
     plan_set_position_curposXYZE();
     current_position[axis] += dist;
@@ -2093,9 +1791,6 @@ void homeaxis(int axis, uint8_t cnt)
 
     feedrate = 0.0;
   } else if ((axis==Z_AXIS)?HOMEAXIS_DO(Z):0) {
-#ifdef TMC2130
-		FORCE_HIGH_POWER_START;
-#endif	
     int axis_home_dir = home_dir(axis);
     current_position[axis] = 0;
     plan_set_position_curposXYZE();
@@ -2103,9 +1798,6 @@ void homeaxis(int axis, uint8_t cnt)
     feedrate = homing_feedrate[axis];
     plan_buffer_line_destinationXYZE(feedrate/60);
     st_synchronize();
-#ifdef TMC2130
-    check_Z_crash();
-#endif //TMC2130
     current_position[axis] = 0;
     plan_set_position_curposXYZE();
     destination[axis] = -home_retract_mm(axis) * axis_home_dir;
@@ -2115,17 +1807,11 @@ void homeaxis(int axis, uint8_t cnt)
     feedrate = homing_feedrate[axis]/2 ;
     plan_buffer_line_destinationXYZE(feedrate/60);
     st_synchronize();
-#ifdef TMC2130
-    check_Z_crash();
-#endif //TMC2130
     axis_is_at_home(axis);
     destination[axis] = current_position[axis];
     feedrate = 0.0;
     endstops_hit_on_purpose();
     axis_known_position[axis] = true;
-#ifdef TMC2130
-		FORCE_HIGH_POWER_END;
-#endif	
   }
   enable_endstops(endstops_enabled);
 }
@@ -2182,30 +1868,6 @@ void trace() {
   Sound_MakeCustom(25,440,true);
 }
 
-#ifdef TMC2130
-void force_high_power_mode(bool start_high_power_section) {
-#ifdef PSU_Delta
-	if (start_high_power_section == true) {enable_force_z();}
-#endif //PSU_Delta
-	uint8_t silent;
-	silent = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
-	if (silent == 1) {
-		//we are in silent mode, set to normal mode to enable crash detection
-
-    // Wait for the planner queue to drain and for the stepper timer routine to reach an idle state.
-		st_synchronize();
-		cli();
-		tmc2130_mode = (start_high_power_section == true) ? TMC2130_MODE_NORMAL : TMC2130_MODE_SILENT;
-		update_mode_profile();
-		tmc2130_init();
-    // We may have missed a stepper timer interrupt due to the time spent in the tmc2130_init() routine.
-    // Be safe than sorry, reset the stepper timer before re-enabling interrupts.
-    st_reset_timer();
-		sei();
-	}
-}
-#endif //TMC2130
-
 //GCODE M105 : Get Extruder Temperature
 //Modified 14 Nov 2020 - Parker Drouillard Parker@pepcorp.ca
 void gcode_M105(uint8_t extruder) {
@@ -2232,11 +1894,7 @@ void gcode_M105(uint8_t extruder) {
   KEEPALIVE_STATE(NOT_BUSY);
 }
 
-#ifdef TMC2130
-static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_y_value, bool home_z_axis, long home_z_value, bool calib, bool without_mbl)
-#else
 static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_y_value, bool home_z_axis, long home_z_value, bool without_mbl)
-#endif //TMC2130
 {
 	st_synchronize();
 	// Flag for the display update routine and to disable the print cancelation during homing.
@@ -2332,25 +1990,8 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
   }
 #endif /* QUICK_HOME */
 
-#ifdef TMC2130	 
-  if(home_x) {
-		if (!calib) {
-			homeaxis(X_AXIS);
-		} else {
-			tmc2130_home_calibrate(X_AXIS);
-    }
-  }
-  if(home_y) {
-    if (!calib) {
-      homeaxis(Y_AXIS);
-    } else {
-      tmc2130_home_calibrate(Y_AXIS);
-    }
-  }
-#else //TMC2130
   if(home_x) { homeaxis(X_AXIS); }
   if(home_y) { homeaxis(Y_AXIS); }
-#endif //TMC2130
 
   if(home_x_axis && home_x_value != 0) {
     current_position[X_AXIS]=home_x_value+cs.add_homing[X_AXIS];
@@ -2501,11 +2142,7 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
 }
 
 static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis) {
-#ifdef TMC2130
-  gcode_G28(home_x_axis, 0, home_y_axis, 0, home_z_axis, 0, false, true);
-#else
   gcode_G28(home_x_axis, 0, home_y_axis, 0, home_z_axis, 0, true);
-#endif //TMC2130
 }
 
 void adjust_bed_reset() {
@@ -2895,88 +2532,6 @@ void process_commands() {
 		  *(starpos) = '\0';
     }
 	  lcd_setstatus(strchr_pointer + 5);
-  
-#ifdef TMC2130
-	} else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("CRASH_"), 6) == 0) {
-    // ### CRASH_DETECTED - TMC2130
-    // ---------------------------------
-	  if(code_seen("CRASH_DETECTED")) {
-		  uint8_t mask = 0;
-		  if (code_seen('X')){ mask |= X_AXIS_MASK;}
-		  if (code_seen('Y')){ mask |= Y_AXIS_MASK;}
-		  crashdet_detected(mask);
-    // ### CRASH_RECOVER - TMC2130
-    // ----------------------------------
-	  } else if(code_seen("CRASH_RECOVER")){
-		  crashdet_recover();
-    // ### CRASH_CANCEL - TMC2130
-    // ----------------------------------
-    } else if(code_seen("CRASH_CANCEL")){
-		  crashdet_cancel();
-    }
-	}	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("TMC_"), 4) == 0) {
-    // ### TMC_SET_WAVE_ 
-    // --------------------
-		if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_WAVE_"), 9) == 0) {
-			uint8_t axis = *(CMDBUFFER_CURRENT_STRING + 13);
-			axis = (axis == 'E')?3:(axis - 'X');
-			if (axis < 4) {
-				uint8_t fac = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, NULL, 10);
-				tmc2130_set_wave(axis, 247, fac);
-			}
-		} else if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_STEP_"), 9) == 0) { //TMC_SET_STEP_
-			uint8_t axis = *(CMDBUFFER_CURRENT_STRING + 13);
-			axis = (axis == 'E')?3:(axis - 'X');
-			if (axis < 4) {
-				uint8_t step = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, NULL, 10);
-				uint16_t res = tmc2130_get_res(axis);
-				tmc2130_goto_step(axis, step & (4*res - 1), 2, 1000, res);
-			}
-		} else if (strncmp_P(CMDBUFFER_CURRENT_STRING + 4, PSTR("SET_CHOP_"), 9) == 0) {    // ### TMC_SET_CHOP_
-			uint8_t axis = *(CMDBUFFER_CURRENT_STRING + 13);
-			axis = (axis == 'E')?3:(axis - 'X');
-			if (axis < 4) {
-				uint8_t chop0 = tmc2130_chopper_config[axis].toff;
-				uint8_t chop1 = tmc2130_chopper_config[axis].hstr;
-				uint8_t chop2 = tmc2130_chopper_config[axis].hend;
-				uint8_t chop3 = tmc2130_chopper_config[axis].tbl;
-				char* str_end = 0;
-				if (CMDBUFFER_CURRENT_STRING[14]) {
-					chop0 = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, &str_end, 10) & 15;
-					if (str_end && *str_end) {
-						chop1 = (uint8_t)strtol(str_end, &str_end, 10) & 7;
-						if (str_end && *str_end) {
-							chop2 = (uint8_t)strtol(str_end, &str_end, 10) & 15;
-							if (str_end && *str_end) {
-								chop3 = (uint8_t)strtol(str_end, &str_end, 10) & 3;
-              }
-						}
-					}
-				}
-				tmc2130_chopper_config[axis].toff = chop0;
-				tmc2130_chopper_config[axis].hstr = chop1 & 7;
-				tmc2130_chopper_config[axis].hend = chop2 & 15;
-				tmc2130_chopper_config[axis].tbl = chop3 & 3;
-				tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-				//printf_P(_N("TMC_SET_CHOP_%c %hhd %hhd %hhd %hhd\n"), "xyze"[axis], chop0, chop1, chop2, chop3);
-			}
-		}
-	}
-#ifdef BACKLASH_X
-	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("BACKLASH_X"), 10) == 0) {
-		uint8_t bl = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 10, NULL, 10);
-		st_backlash_x = bl;
-		printf_P(_N("st_backlash_x = %hhd\n"), st_backlash_x);
-	}
-#endif //BACKLASH_X
-#ifdef BACKLASH_Y
-	else if (strncmp_P(CMDBUFFER_CURRENT_STRING, PSTR("BACKLASH_Y"), 10) == 0) {
-		uint8_t bl = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 10, NULL, 10);
-		st_backlash_y = bl;
-		printf_P(_N("st_backlash_y = %hhd\n"), st_backlash_y);
-
-#endif //BACKLASH_Y
-#endif //TMC2130
   } else if(code_seen("PRUSA")){ 
     /*!
     ---------------------------------------------------------------------------------
@@ -3370,12 +2925,7 @@ void process_commands() {
       home_z_value = code_value_long();
       bool without_mbl = code_seen('W');
       // calibrate?
-#ifdef TMC2130
-      bool calib = code_seen('C');
-      gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, calib, without_mbl);
-#else
       gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, without_mbl);
-#endif //TMC2130
       if ((home_x || home_y || without_mbl || home_z) == false) {
          // Push the commands to the front of the message queue in the reverse order!
          // There shall be always enough space reserved for these commands.
@@ -4121,28 +3671,17 @@ void process_commands() {
       bool bState;
       do {                             // repeat until Z-leveling o.k.
         lcd_display_message_fullscreen_P(_i("Some problem encountered, Z-leveling enforced ..."));
-#ifdef TMC2130
-        lcd_wait_for_click_delay(MSG_BED_LEVELING_FAILED_TIMEOUT);
-        calibrate_z_auto();           // Z-leveling (X-assembly stay up!!!)
-#else // TMC2130
         lcd_wait_for_click_delay(0);  // ~ no timeout
         lcd_calibrate_z_end_stop_manual(true); // Z-leveling (X-assembly stay up!!!)
-#endif // TMC2130
         // ~ Z-homing (can not be used "G28", because X & Y-homing would have been done before (Z-homing))
         bState=enable_z_endstop(false);
         current_position[Z_AXIS] -= 1;
         plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
         st_synchronize();
         enable_z_endstop(true);
-#ifdef TMC2130
-        tmc2130_home_enter(Z_AXIS_MASK);
-#endif // TMC2130
         current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
         plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
         st_synchronize();
-#ifdef TMC2130
-        tmc2130_home_exit();
-#endif // TMC2130
         enable_z_endstop(bState);
       } while (st_get_position_mm(Z_AXIS) > MESH_HOME_Z_SEARCH); // i.e. Z-leveling not o.k.
         //plan_set_z_position(MESH_HOME_Z_SEARCH); // is not necessary ('do-while' loop always ends at the expected Z-position)
@@ -5908,20 +5447,7 @@ Sigma_Exit:
 			if (code_seen(axis_codes[i]))
 			{
 				unsigned long val = code_value();
-#ifdef TMC2130
-				unsigned long val_silent = val;
-				if ((i == X_AXIS) || (i == Y_AXIS))
-				{
-					if (val > NORMAL_MAX_ACCEL_XY)
-						val = NORMAL_MAX_ACCEL_XY;
-					if (val_silent > SILENT_MAX_ACCEL_XY)
-						val_silent = SILENT_MAX_ACCEL_XY;
-				}
-				cs.max_acceleration_units_per_sq_second_normal[i] = val;
-				cs.max_acceleration_units_per_sq_second_silent[i] = val_silent;
-#else //TMC2130
 				max_acceleration_units_per_sq_second[i] = val;
-#endif //TMC2130
 			}
 		}
 		// steps per sq second need to be updated to agree with the units per sq second (as they are what is used in the planner)
@@ -5945,20 +5471,7 @@ Sigma_Exit:
 			if (code_seen(axis_codes[i]))
 			{
 				float val = code_value();
-#ifdef TMC2130
-				float val_silent = val;
-				if ((i == X_AXIS) || (i == Y_AXIS))
-				{
-					if (val > NORMAL_MAX_FEEDRATE_XY)
-						val = NORMAL_MAX_FEEDRATE_XY;
-					if (val_silent > SILENT_MAX_FEEDRATE_XY)
-						val_silent = SILENT_MAX_FEEDRATE_XY;
-				}
-				cs.max_feedrate_normal[i] = val;
-				cs.max_feedrate_silent[i] = val_silent;
-#else //TMC2130
 				max_feedrate[i] = val;
-#endif //TMC2130
 			}
 		}
 		break;
@@ -7084,55 +6597,6 @@ Sigma_Exit:
 #endif
 
     /*!
-	### M907 - Set digital trimpot motor current in mA using axis codes <a href="https://reprap.org/wiki/G-code#M907:_Set_digital_trimpot_motor">M907: Set digital trimpot motor</a>
-	Set digital trimpot motor current using axis codes (X, Y, Z, E, B, S).
-	#### Usage
-    
-        M907 [ X | Y | Z | E | B | S ]
-	
-    #### Parameters
-    - `X` - X motor driver
-    - `Y` - Y motor driver
-    - `Z` - Z motor driver
-    - `E` - Extruder motor driver
-    - `B` - Second Extruder motor driver
-    - `S` - All motors
-    */
-    case 907:
-    {
-#ifdef TMC2130
-        // See tmc2130_cur2val() for translation to 0 .. 63 range
-        for (int i = 0; i < NUM_AXIS; i++)
-			if(code_seen(axis_codes[i])) {
-				long cur_mA = code_value_long();
-				uint8_t val = tmc2130_cur2val(cur_mA);
-				tmc2130_set_current_h(i, val);
-				tmc2130_set_current_r(i, val);
-				//if (i == E_AXIS) printf_P(PSTR("E-axis current=%ldmA\n"), cur_mA);
-			}
-
-#else //TMC2130
-      // #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-      //   for(int i=0;i<NUM_AXIS;i++) {
-      //     if(code_seen(axis_codes[i])) st_current_set(i,code_value());
-      //   }
-      //   if(code_seen('B')) st_current_set(4,code_value());
-      //   if(code_seen('S')) for(int i=0;i<=4;i++) st_current_set(i,code_value());
-      // #endif
-      // #ifdef MOTOR_CURRENT_PWM_XY_PIN
-      //   if(code_seen('X')) st_current_set(0, code_value());
-      // #endif
-      // #ifdef MOTOR_CURRENT_PWM_Z_PIN
-      //   if(code_seen('Z')) st_current_set(1, code_value());
-      // #endif
-      // #ifdef MOTOR_CURRENT_PWM_E_PIN
-      //   if(code_seen('E')) st_current_set(2, code_value());
-      // #endif
-#endif //TMC2130
-    }
-    break;
-
-    /*!
 	### M908 - Control digital trimpot directly <a href="https://reprap.org/wiki/G-code#M908:_Control_digital_trimpot_directly">M908: Control digital trimpot directly</a>
 	In Prusa Firmware this G-code is deactivated by default, must be turned on in the source code. Not usable on Prusa printers.
     #### Usage
@@ -7154,168 +6618,6 @@ Sigma_Exit:
     }
     break;
 
-#ifdef TMC2130_SERVICE_CODES_M910_M918
-
-    /*!
-	### M910 - TMC2130 init <a href="https://reprap.org/wiki/G-code#M910:_TMC2130_init">M910: TMC2130 init</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-	
-    */
-	case 910:
-    {
-		tmc2130_init();
-    }
-    break;
-
-    /*!
-    ### M911 - Set TMC2130 holding currents <a href="https://reprap.org/wiki/G-code#M911:_Set_TMC2130_holding_currents">M911: Set TMC2130 holding currents</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    #### Usage
-    
-        M911 [ X | Y | Z | E ]
-    
-    #### Parameters
-    - `X` - X stepper driver holding current value
-    - `Y` - Y stepper driver holding current value
-    - `Z` - Z stepper driver holding current value
-    - `E` - Extruder stepper driver holding current value
-    */
-	case 911: 
-    {
-		if (code_seen('X')) tmc2130_set_current_h(0, code_value());
-		if (code_seen('Y')) tmc2130_set_current_h(1, code_value());
-        if (code_seen('Z')) tmc2130_set_current_h(2, code_value());
-        if (code_seen('E')) tmc2130_set_current_h(3, code_value());
-    }
-    break;
-
-    /*!
-	### M912 - Set TMC2130 running currents <a href="https://reprap.org/wiki/G-code#M912:_Set_TMC2130_running_currents">M912: Set TMC2130 running currents</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    #### Usage
-    
-        M912 [ X | Y | Z | E ]
-    
-    #### Parameters
-    - `X` - X stepper driver running current value
-    - `Y` - Y stepper driver running current value
-    - `Z` - Z stepper driver running current value
-    - `E` - Extruder stepper driver running current value
-    */
-	case 912: 
-    {
-		if (code_seen('X')) tmc2130_set_current_r(0, code_value());
-		if (code_seen('Y')) tmc2130_set_current_r(1, code_value());
-        if (code_seen('Z')) tmc2130_set_current_r(2, code_value());
-        if (code_seen('E')) tmc2130_set_current_r(3, code_value());
-    }
-    break;
-
-    /*!
-	### M913 - Print TMC2130 currents <a href="https://reprap.org/wiki/G-code#M913:_Print_TMC2130_currents">M913: Print TMC2130 currents</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-	Shows TMC2130 currents.
-    */
-	case 913:
-    {
-		tmc2130_print_currents();
-    }
-    break;
-
-    /*!
-	### M914 - Set TMC2130 normal mode <a href="https://reprap.org/wiki/G-code#M914:_Set_TMC2130_normal_mode">M914: Set TMC2130 normal mode</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    */
-    case 914:
-    {
-		tmc2130_mode = TMC2130_MODE_NORMAL;
-		update_mode_profile();
-		tmc2130_init();
-    }
-    break;
-
-    /*!
-	### M915 - Set TMC2130 silent mode <a href="https://reprap.org/wiki/G-code#M915:_Set_TMC2130_silent_mode">M915: Set TMC2130 silent mode</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    */
-    case 915:
-    {
-		tmc2130_mode = TMC2130_MODE_SILENT;
-		update_mode_profile();
-		tmc2130_init();
-    }
-    break;
-
-    /*!
-	### M916 - Set TMC2130 Stallguard sensitivity threshold <a href="https://reprap.org/wiki/G-code#M916:_Set_TMC2130_Stallguard_sensitivity_threshold">M916: Set TMC2130 Stallguard sensitivity threshold</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    #### Usage
-    
-        M916 [ X | Y | Z | E ]
-    
-    #### Parameters
-    - `X` - X stepper driver stallguard sensitivity threshold value
-    - `Y` - Y stepper driver stallguard sensitivity threshold value
-    - `Z` - Z stepper driver stallguard sensitivity threshold value
-    - `E` - Extruder stepper driver stallguard sensitivity threshold value
-    */
-	case 916:
-    {
-		if (code_seen('X')) tmc2130_sg_thr[X_AXIS] = code_value();
-		if (code_seen('Y')) tmc2130_sg_thr[Y_AXIS] = code_value();
-		if (code_seen('Z')) tmc2130_sg_thr[Z_AXIS] = code_value();
-		if (code_seen('E')) tmc2130_sg_thr[E_AXIS] = code_value();
-		for (uint8_t a = X_AXIS; a <= E_AXIS; a++)
-			printf_P(_N("tmc2130_sg_thr[%c]=%d\n"), "XYZE"[a], tmc2130_sg_thr[a]);
-    }
-    break;
-
-    /*!
-	### M917 - Set TMC2130 PWM amplitude offset (pwm_ampl) <a href="https://reprap.org/wiki/G-code#M917:_Set_TMC2130_PWM_amplitude_offset_.28pwm_ampl.29">M917: Set TMC2130 PWM amplitude offset (pwm_ampl)</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    #### Usage
-    
-        M917 [ X | Y | Z | E ]
-    
-    #### Parameters
-    - `X` - X stepper driver PWM amplitude offset value
-    - `Y` - Y stepper driver PWM amplitude offset value
-    - `Z` - Z stepper driver PWM amplitude offset value
-    - `E` - Extruder stepper driver PWM amplitude offset value
-    */
-	case 917:
-    {
-		if (code_seen('X')) tmc2130_set_pwm_ampl(0, code_value());
-		if (code_seen('Y')) tmc2130_set_pwm_ampl(1, code_value());
-        if (code_seen('Z')) tmc2130_set_pwm_ampl(2, code_value());
-        if (code_seen('E')) tmc2130_set_pwm_ampl(3, code_value());
-    }
-    break;
-
-    /*!
-	### M918 - Set TMC2130 PWM amplitude gradient (pwm_grad) <a href="https://reprap.org/wiki/G-code#M918:_Set_TMC2130_PWM_amplitude_gradient_.28pwm_grad.29">M918: Set TMC2130 PWM amplitude gradient (pwm_grad)</a>
-	Not active in default, only if `TMC2130_SERVICE_CODES_M910_M918` is defined in source code.
-    #### Usage
-    
-        M918 [ X | Y | Z | E ]
-    
-    #### Parameters
-    - `X` - X stepper driver PWM amplitude gradient value
-    - `Y` - Y stepper driver PWM amplitude gradient value
-    - `Z` - Z stepper driver PWM amplitude gradient value
-    - `E` - Extruder stepper driver PWM amplitude gradient value
-    */
-	case 918:
-    {
-		if (code_seen('X')) tmc2130_set_pwm_grad(0, code_value());
-		if (code_seen('Y')) tmc2130_set_pwm_grad(1, code_value());
-        if (code_seen('Z')) tmc2130_set_pwm_grad(2, code_value());
-        if (code_seen('E')) tmc2130_set_pwm_grad(3, code_value());
-    }
-    break;
-
-#endif //TMC2130_SERVICE_CODES_M910_M918
-
     /*!
 	### M350 - Set microstepping mode <a href="https://reprap.org/wiki/G-code#M350:_Set_microstepping_mode">M350: Set microstepping mode</a>
     Printers with TMC2130 drivers have `X`, `Y`, `Z` and `E` as options. The steps-per-unit value is updated accordingly. Not all resolutions are valid!
@@ -7336,45 +6638,12 @@ Sigma_Exit:
     */
     case 350: 
     {
-	#ifdef TMC2130
-		for (int i=0; i<NUM_AXIS; i++) 
-		{
-			if(code_seen(axis_codes[i]))
-			{
-				uint16_t res_new = code_value();
-				bool res_valid = (res_new == 8) || (res_new == 16) || (res_new == 32); // resolutions valid for all axis
-				res_valid |= (i != E_AXIS) && ((res_new == 1) || (res_new == 2) || (res_new == 4)); // resolutions valid for X Y Z only
-				res_valid |= (i == E_AXIS) && ((res_new == 64) || (res_new == 128)); // resolutions valid for E only
-				if (res_valid)
-				{
-					st_synchronize();
-					uint16_t res = tmc2130_get_res(i);
-					tmc2130_set_res(i, res_new);
-					cs.axis_ustep_resolution[i] = res_new;
-					if (res_new > res)
-					{
-						uint16_t fac = (res_new / res);
-						cs.axis_steps_per_unit[i] *= fac;
-						position[i] *= fac;
-					}
-					else
-					{
-						uint16_t fac = (res / res_new);
-						cs.axis_steps_per_unit[i] /= fac;
-						position[i] /= fac;
-					}
-
-				}
-			}
-		}
-	#else //TMC2130
       #if defined(X_MS1_PIN) && X_MS1_PIN > -1
         if(code_seen('S')) for(int i=0;i<=4;i++) microstep_mode(i,code_value());
         for(int i=0;i<NUM_AXIS;i++) if(code_seen(axis_codes[i])) microstep_mode(i,(uint8_t)code_value());
         if(code_seen('B')) microstep_mode(4,code_value());
         microstep_readings();
       #endif
-	#endif //TMC2130
     }
     break;
 
@@ -7769,66 +7038,6 @@ Sigma_Exit:
 	case 106:
 		dcode_106(); break;
 
-#ifdef TMC2130
-    /*!
-    ### D2130 - Trinamic stepper controller <a href="https://reprap.org/wiki/G-code#D2130:_Trinamic_stepper_controller">D2130: Trinamic stepper controller</a>
-    @todo Please review by owner of the code. RepRap Wiki Gcode needs to be updated after review of owner as well.
-    
-    #### Usage
-    
-        D2130 [ Axis | Command | Subcommand | Value ]
-    
-    #### Parameters
-    - Axis
-      - `X` - X stepper driver
-      - `Y` - Y stepper driver
-      - `Z` - Z stepper driver
-      - `E` - Extruder stepper driver
-    - Commands
-      - `0`   - Current off
-      - `1`   - Current on
-      - `+`   - Single step
-      - `-`   - Single step oposite direction
-      - `NNN` - Value sereval steps
-      - `?`   - Read register
-      - Subcommands for read register
-        - `mres`     - Micro step resolution. More information in datasheet '5.5.2 CHOPCONF – Chopper Configuration'
-        - `step`     - Step
-        - `mscnt`    - Microstep counter. More information in datasheet '5.5 Motor Driver Registers'
-        - `mscuract` - Actual microstep current for motor. More information in datasheet '5.5 Motor Driver Registers'
-        - `wave`     - Microstep linearity compensation curve
-      - `!`   - Set register
-      - Subcommands for set register
-        - `mres`     - Micro step resolution
-        - `step`     - Step
-        - `wave`     - Microstep linearity compensation curve
-        - Values for set register
-          - `0, 180 --> 250` - Off
-          - `0.9 --> 1.25`   - Valid values (recommended is 1.1)
-      - `@`   - Home calibrate axis
-    
-    Examples:
-      
-          D2130E?wave
-      
-      Print extruder microstep linearity compensation curve
-      
-          D2130E!wave0
-      
-      Disable extruder linearity compensation curve, (sine curve is used)
-      
-          D2130E!wave220
-      
-      (sin(x))^1.1 extruder microstep compensation curve used
-    
-    Notes:
-      For more information see https://www.trinamic.com/fileadmin/assets/Products/ICs_Documents/TMC2130_datasheet.pdf
-    *
-	*/
-	case 2130:
-		dcode_2130(); break;
-#endif //TMC2130
-
 #endif //DEBUG_DCODES
 	}
   } else {
@@ -7935,8 +7144,6 @@ void get_coordinates()
   if(code_seen('F')) {
     next_feedrate = code_value();
 #ifdef MAX_SILENT_FEEDRATE
-	if (tmc2130_mode == TMC2130_MODE_SILENT)
-		if (next_feedrate > MAX_SILENT_FEEDRATE) next_feedrate = MAX_SILENT_FEEDRATE;
 #endif //MAX_SILENT_FEEDRATE
     if(next_feedrate > 0.0) feedrate = next_feedrate;
 	if (!seen[0] && !seen[1] && !seen[2] && seen[3])
@@ -9310,13 +8517,6 @@ void uvlo_()
     disable_x();
     disable_y();
     
-#ifdef TMC2130
-	tmc2130_set_current_h(Z_AXIS, 20);
-	tmc2130_set_current_r(Z_AXIS, 20);
-	tmc2130_set_current_h(E_AXIS, 20);
-	tmc2130_set_current_r(E_AXIS, 20);
-#endif //TMC2130
-
     // Stop all heaters
     uint8_t saved_target_temperature_bed = target_temperature_bed;
     uint16_t saved_target_temperature_ext = target_temperature[active_extruder];
@@ -9462,19 +8662,13 @@ void uvlo_()
 }
 
 
-void uvlo_tiny()
-{
+void uvlo_tiny() {
     unsigned long time_start = _millis();
 
     // Conserve power as soon as possible.
     disable_x();
     disable_y();
     disable_e0();
-
-#ifdef TMC2130
-    tmc2130_set_current_h(Z_AXIS, 20);
-    tmc2130_set_current_r(Z_AXIS, 20);
-#endif //TMC2130
 
     // Stop all heaters
     setAllTargetHotends(0);
@@ -10315,33 +9509,19 @@ if(!(bEnableForce_z||eeprom_read_byte((uint8_t*)EEPROM_SILENT)))
      init_force_z();                              // causes enforced switching into disable-state
 }
 
-void disable_force_z()
-{
-    if(!bEnableForce_z) return;   // motor already disabled (may be ;-p )
+void disable_force_z() {
+  if(!bEnableForce_z) {
+    return;
+  }   // motor already disabled (may be ;-p )
 
     bEnableForce_z=false;
-
-    // switching to silent mode
-#ifdef TMC2130
-    tmc2130_mode=TMC2130_MODE_SILENT;
-    update_mode_profile();
-    tmc2130_init(true);
-#endif // TMC2130
 }
 
-void enable_force_z()
-{
-if(bEnableForce_z)
-     return;                                      // motor already enabled (may be ;-p )
-bEnableForce_z=true;
-
-// mode recovering
-#ifdef TMC2130
-tmc2130_mode=eeprom_read_byte((uint8_t*)EEPROM_SILENT)?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
-update_mode_profile();
-tmc2130_init(true);
-#endif // TMC2130
-
+void enable_force_z() {
+  if(bEnableForce_z) { // motor already enabled (may be ;-p )
+    return;   
+  }                                  
+  bEnableForce_z=true;
 WRITE(Z_ENABLE_PIN,Z_ENABLE_ON);                  // slightly redundant ;-p
 }
 #endif // PSU_Delta

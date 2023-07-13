@@ -285,12 +285,7 @@ extern int fanSpeed;
 extern int8_t lcd_change_fil_state;
 extern float default_retraction;
 
-#ifdef TMC2130
-void homeaxis(int axis, uint8_t cnt = 1, uint8_t* pstep = 0);
-#else
 void homeaxis(int axis, uint8_t cnt = 1);
-#endif //TMC2130
-
 
 #ifdef FAN_SOFT_PWM
 extern unsigned char fanSpeedSoftPwm;
@@ -453,16 +448,6 @@ extern uint8_t calc_percent_done();
 extern void host_keepalive();
 //extern MarlinBusyState busy_state;
 extern int8_t busy_state;
-
-
-#ifdef TMC2130
-
-#define FORCE_HIGH_POWER_START	force_high_power_mode(true)
-#define FORCE_HIGH_POWER_END	force_high_power_mode(false)
-
-void force_high_power_mode(bool start_high_power_section);
-
-#endif //TMC2130
 
 // G-codes
 void gcode_M701();

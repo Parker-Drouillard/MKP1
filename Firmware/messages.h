@@ -157,7 +157,6 @@ extern const char MSG_Z_MAX[];
 extern const char MSG_Z_MIN[];
 extern const char MSG_ZPROBE_OUT[];
 extern const char MSG_ZPROBE_ZOFFSET[];
-extern const char MSG_TMC_OVERTEMP[];
 extern const char MSG_Enqueing[];
 extern const char MSG_ENDSTOPS_HIT[];
 extern const char MSG_SD_ERR_WRITE_TO_FILE[];

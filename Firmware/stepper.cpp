@@ -32,9 +32,6 @@
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
 #include <SPI.h>
 #endif
-#ifdef TMC2130
-#include "tmc2130.h"
-#endif //TMC2130
 
 // #include "mmu.h"
 #include "ConfigurationStore.h"
@@ -86,10 +83,10 @@ bool abort_on_endstop_hit = false;
   int motor_current_setting_loud[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
 #endif
 
-#if ( (defined(X_MAX_PIN) && (X_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMAXLIMIT)
+#if ( defined(X_MAX_PIN) && (X_MAX_PIN > -1)  ) && !defined(DEBUG_DISABLE_XMAXLIMIT)
 static bool old_x_max_endstop=false;
 #endif
-#if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)
+#if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)
 static bool old_y_max_endstop=false;
 #endif
 
@@ -426,14 +423,9 @@ FORCE_INLINE void stepper_check_endstops() {
     if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) != 0)) //-X occurs for -A and -B
 #endif
     {
-#if ( (defined(X_MIN_PIN) && (X_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMINLIMIT)
-#ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-        x_min_endstop = (READ(X_TMC2130_DIAG) != 0);
-#else
+#if ( (defined(X_MIN_PIN) && (X_MIN_PIN > -1))) && !defined(DEBUG_DISABLE_XMINLIMIT)
         // Normal homing
         x_min_endstop = (READ(X_MIN_PIN) != X_MIN_ENDSTOP_INVERTING);
-#endif
         if(x_min_endstop && old_x_min_endstop && (current_block->steps_x.wide > 0)) {
           endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
           endstop_x_hit=true;
@@ -442,14 +434,9 @@ FORCE_INLINE void stepper_check_endstops() {
         old_x_min_endstop = x_min_endstop;
 #endif
     } else { // +direction
-#if ( (defined(X_MAX_PIN) && (X_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_XMAXLIMIT)          
-  #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-            x_max_endstop = (READ(X_TMC2130_DIAG) != 0);
-  #else
+#if ( (defined(X_MAX_PIN) && (X_MAX_PIN > -1)) ) && !defined(DEBUG_DISABLE_XMAXLIMIT)          
         // Normal homing
         x_max_endstop = (READ(X_MAX_PIN) != X_MAX_ENDSTOP_INVERTING);
-  #endif
         if(x_max_endstop && old_x_max_endstop && (current_block->steps_x.wide > 0)){
           endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
           endstop_x_hit=true;
@@ -465,14 +452,9 @@ FORCE_INLINE void stepper_check_endstops() {
     if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) == 0)) // -Y occurs for -A and +B
 #endif
     {        
-#if ( (defined(Y_MIN_PIN) && (Y_MIN_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMINLIMIT)          
-  #ifdef TMC2130_SG_HOMING
-      // Stall guard homing turned on
-          y_min_endstop = (READ(Y_TMC2130_DIAG) != 0);
-  #else
+#if ( (defined(Y_MIN_PIN) && (Y_MIN_PIN > -1)) ) && !defined(DEBUG_DISABLE_YMINLIMIT)          
       // Normal homing
       y_min_endstop = (READ(Y_MIN_PIN) != Y_MIN_ENDSTOP_INVERTING);
-  #endif
         if(y_min_endstop && old_y_min_endstop && (current_block->steps_y.wide > 0)) {
           endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
           endstop_y_hit=true;
@@ -481,14 +463,9 @@ FORCE_INLINE void stepper_check_endstops() {
         old_y_min_endstop = y_min_endstop;
 #endif
     } else { // +direction
-#if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) || defined(TMC2130_SG_HOMING) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)                
-  #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-            y_max_endstop = (READ(Y_TMC2130_DIAG) != 0);
-  #else
+#if ( (defined(Y_MAX_PIN) && (Y_MAX_PIN > -1)) ) && !defined(DEBUG_DISABLE_YMAXLIMIT)                
         // Normal homing
         y_max_endstop = (READ(Y_MAX_PIN) != Y_MAX_ENDSTOP_INVERTING);
-  #endif
         if(y_max_endstop && old_y_max_endstop && (current_block->steps_y.wide > 0)){
           endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
           endstop_y_hit=true;
@@ -502,17 +479,7 @@ FORCE_INLINE void stepper_check_endstops() {
     {
 #if defined(Z_MIN_PIN) && (Z_MIN_PIN > -1) && !defined(DEBUG_DISABLE_ZMINLIMIT)
       if (! check_z_endstop) {
-  #ifdef TMC2130_SG_HOMING
-          // Stall guard homing turned on
-    #ifdef TMC2130_STEALTH_Z
-		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
-	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-		  else
-    #endif //TMC2130_STEALTH_Z
-	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
-  #else
           z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-  #endif //TMC2130_SG_HOMING
         if(z_min_endstop && old_z_min_endstop && (current_block->steps_z.wide > 0)) {
           endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
           endstop_z_hit=true;
@@ -523,17 +490,7 @@ FORCE_INLINE void stepper_check_endstops() {
 #endif
     } else { // +direction
 #if defined(Z_MAX_PIN) && (Z_MAX_PIN > -1) && !defined(DEBUG_DISABLE_ZMAXLIMIT)
-  #ifdef TMC2130_SG_HOMING
-        // Stall guard homing turned on
-    #ifdef TMC2130_STEALTH_Z
-		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
-	          z_max_endstop = false;
-		  else
-    #endif //TMC2130_STEALTH_Z
-        z_max_endstop = (READ(Z_TMC2130_DIAG) != 0);
-  #else
         z_max_endstop = (READ(Z_MAX_PIN) != Z_MAX_ENDSTOP_INVERTING);
-  #endif //TMC2130_SG_HOMING
         if(z_max_endstop && old_z_max_endstop && (current_block->steps_z.wide > 0)) {
           endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
           endstop_z_hit=true;
@@ -549,17 +506,7 @@ FORCE_INLINE void stepper_check_endstops() {
   if (check_z_endstop) {
       // Check the Z min end-stop no matter what.
       // Good for searching for the center of an induction target.
-      #ifdef TMC2130_SG_HOMING
-      // Stall guard homing turned on
-#ifdef TMC2130_STEALTH_Z
-		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
-	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-		  else
-#endif //TMC2130_STEALTH_Z
-       z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
-      #else
         z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
-      #endif //TMC2130_SG_HOMING
       if(z_min_endstop && old_z_min_endstop) {
         endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
         endstop_z_hit=true;
@@ -899,10 +846,6 @@ FORCE_INLINE void isr() {
 #endif //FILAMENT_SENSOR
   }
 
-#ifdef TMC2130
-	tmc2130_st_isr();
-#endif //TMC2130
-
   //WRITE_NC(LOGIC_ANALYZER_CH0, false);
 }
 
@@ -1004,9 +947,6 @@ FORCE_INLINE void advance_isr_scheduler() {
 #endif // LIN_ADVANCE
 
 void st_init() {
-#ifdef TMC2130
-	tmc2130_init();
-#endif //TMC2130
 
   st_current_init(); //Initialize Digipot Motor Current
   microstep_init(); //Initialize Microstepping Pins
@@ -1084,21 +1024,6 @@ void st_init() {
   #endif
 
   //endstops and pullups
-
-  #ifdef TMC2130_SG_HOMING
-    SET_INPUT(X_TMC2130_DIAG);
-    WRITE(X_TMC2130_DIAG,HIGH);
-    
-    SET_INPUT(Y_TMC2130_DIAG);
-    WRITE(Y_TMC2130_DIAG,HIGH);
-    
-    SET_INPUT(Z_TMC2130_DIAG);
-    WRITE(Z_TMC2130_DIAG,HIGH);
-
-	SET_INPUT(E0_TMC2130_DIAG);
-    WRITE(E0_TMC2130_DIAG,HIGH);
-    
-  #endif
     
   #if defined(X_MIN_PIN) && X_MIN_PIN > -1
     SET_INPUT(X_MIN_PIN);
@@ -1267,24 +1192,12 @@ void st_reset_timer()
 
 
 // Block until all buffered steps are executed
-void st_synchronize()
-{
-	while(blocks_queued())
-	{
-#ifdef TMC2130
-		manage_heater();
-		// Vojtech: Don't disable motors inside the planner!
-		if (!tmc2130_update_sg())
-		{
-			manage_inactivity(true);
-			lcd_update(0);
-		}
-#else //TMC2130
+void st_synchronize() {
+	while(blocks_queued()) {
 		manage_heater();
 		// Vojtech: Don't disable motors inside the planner!
 		manage_inactivity(true);
 		lcd_update(0);
-#endif //TMC2130
 	}
 }
 
@@ -1504,8 +1417,6 @@ void microstep_init() {
 }
 
 
-#ifndef TMC2130
-
 void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2) {
   if(ms1 > -1) switch(driver) {
     case 0: digitalWrite( X_MS1_PIN,ms1); break;
@@ -1557,4 +1468,3 @@ void microstep_readings() {
       SERIAL_PROTOCOLLN( digitalRead(E1_MS2_PIN));
       #endif
 }
-#endif //TMC2130
