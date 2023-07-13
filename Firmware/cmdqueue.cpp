@@ -541,23 +541,6 @@ void get_command() {
         }
     } // end of serial line processing loop
 
-    if(farm_mode){
-        TimeNow = _millis();
-        if ( ((TimeNow - TimeSent) > 800) && (serial_count > 0) ) {
-            cmdbuffer[bufindw+serial_count+CMDHDRSIZE] = 0;
-            
-            bufindw += strlen(cmdbuffer+bufindw+CMDHDRSIZE) + (1 + CMDHDRSIZE);
-            if (bufindw == sizeof(cmdbuffer)) {
-                bufindw = 0;
-            }
-            ++ buflen;
-            serial_count = 0;
-            SERIAL_ECHOPGM("TIMEOUT:");
-            //memset(cmdbuffer, 0 , sizeof(cmdbuffer));
-            return;
-        }
-    }
-
 #ifdef SDSUPPORT
     if(!card.sdprinting || serial_count!=0){
         // If there is a half filled buffer from serial line, wait until return before
@@ -672,11 +655,6 @@ void get_command() {
         lcd_setstatus(time);
         card.printingHasFinished();
         card.checkautostart(true);
-
-        if (farm_mode) {
-            prusa_statistics(6);
-            lcd_commands_type = LcdCommands::FarmModeConfirm;
-        }
     }
   }
 #endif //SDSUPPORT

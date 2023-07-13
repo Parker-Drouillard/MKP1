@@ -660,7 +660,6 @@ void CardReader::getfilename_sorted(const uint16_t nr) {
 *  - Most RAM: Buffer the directory and return filenames from RAM
 */
 void CardReader::presort() {
-	if (farm_mode || IS_SD_INSERTED == false) return; //sorting is not used in farm mode
 	uint8_t sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
 
 	if (sdSort == SD_SORT_NONE) return; //sd sort is turned off

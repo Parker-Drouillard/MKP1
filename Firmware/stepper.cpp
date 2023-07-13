@@ -1456,42 +1456,12 @@ void EEPROM_read_st(int pos, uint8_t* value, uint8_t size) {
 
 
 void st_current_init(){ //Initialize Digipot Motor Current
-#ifdef MOTOR_CURRENT_PWM_XY_PIN
-  uint8_t SilentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
-  SilentModeMenu = SilentMode;
-    pinMode(MOTOR_CURRENT_PWM_XY_PIN, OUTPUT);
-    pinMode(MOTOR_CURRENT_PWM_Z_PIN, OUTPUT);
-    pinMode(MOTOR_CURRENT_PWM_E_PIN, OUTPUT);
-    if((SilentMode == SILENT_MODE_OFF) || (farm_mode) ){
-
-     motor_current_setting[0] = motor_current_setting_loud[0];
-     motor_current_setting[1] = motor_current_setting_loud[1];
-     motor_current_setting[2] = motor_current_setting_loud[2];
-
-    }else{
-
-     motor_current_setting[0] = motor_current_setting_silent[0];
-     motor_current_setting[1] = motor_current_setting_silent[1];
-     motor_current_setting[2] = motor_current_setting_silent[2];
-
-    }
-    st_current_set(0, motor_current_setting[0]);
-    st_current_set(1, motor_current_setting[1]);
-    st_current_set(2, motor_current_setting[2]);
-    //Set timer5 to 31khz so the PWM of the motor power is as constant as possible. (removes a buzzing noise)
-    TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
-#elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
   pinMode(DIGIPOTSS_PIN,OUTPUT);
-  // for(int i = 0; i < 5; i++){
-  //   digitalPotWrite(DIGIPOT_CHANNELS[i],DIGIPOT_MOTOR_CURRENT[i]);
-  // }
   digitalPotWrite(4, 135);
   digitalPotWrite(5, 135);
   digitalPotWrite(3, 135);
   digitalPotWrite(0, 135);
   digitalPotWrite(1, 135);
-
-#endif
 }
 
 
