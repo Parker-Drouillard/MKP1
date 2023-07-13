@@ -690,6 +690,30 @@ static void gcode_G29(void){
 }
 
 
+  /*!
+  ### G30 - Single Z Probe <a href="https://reprap.org/wiki/G-code#G30:_Single_Z-Probe">G30: Single Z-Probe</a>
+  Sensor must be over the bed.
+  The maximum travel distance before an error is triggered is 10mm.
+  */
+static void gcode_G30(){
+  st_synchronize();
+  // TODO: make sure the bed_level_rotation_matrix is identity or the planner will get set incorectly
+  int l_feedmultiply = setup_for_endstop_move();
+  feedrate = homing_feedrate[Z_AXIS];
+  find_bed_induction_sensor_point_z(-10.f, 3);
+  printf_P(_N("%S X: %.5f Y: %.5f Z: %.5f\n"), _T(MSG_BED), _x, _y, _z);
+  clean_up_after_endstop_move(l_feedmultiply);
+}
+
+/*!
+### G75 - Print temperature interpolation <a href="https://reprap.org/wiki/G-code#G75:_Print_temperature_interpolation">G75: Print temperature interpolation</a>
+Show/print PINDA temperature interpolating.
+*/
+static void gcode_G75(){
+  for (int i = 40; i <= 110; i++) {
+    printf_P(_N("%d  %.2f"), i, temp_comp_interpolation(i));
+  }
+}
 
 
 //  ## ##   ######    ## ###  
