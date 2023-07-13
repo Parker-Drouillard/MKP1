@@ -624,9 +624,6 @@ void failstats_reset_print() {
 	eeprom_update_byte((uint8_t *)EEPROM_POWER_COUNT, 0);
 	eeprom_update_byte((uint8_t *)EEPROM_MMU_FAIL, 0);
 	eeprom_update_byte((uint8_t *)EEPROM_MMU_LOAD_FAIL, 0);
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-  fsensor_softfail = 0;
-#endif
 }
 
 void softReset() {
@@ -833,17 +830,7 @@ static void check_if_fw_is_on_right_printer(){
   if((PRINTER_TYPE == PRINTER_MK3) || (PRINTER_TYPE == PRINTER_MK3S)){
     #ifdef IR_SENSOR
     swi2c_init();
-    const uint8_t pat9125_detected = swi2c_readByte_A8(PAT9125_I2C_ADDR,0x00,NULL);
-      if (pat9125_detected){
-        lcd_show_fullscreen_message_and_wait_P(_i("MK3S firmware detected on MK3 printer"));}////c=20 r=3
     #endif //IR_SENSOR
-
-    #ifdef PAT9125
-      //will return 1 only if IR can detect filament in bondtech extruder so this may fail even when we have IR sensor
-      const uint8_t ir_detected = !READ(IR_SENSOR_PIN);
-      if (ir_detected){
-        lcd_show_fullscreen_message_and_wait_P(_i("MK3 firmware detected on MK3S printer"));}////c=20 r=3
-    #endif //PAT9125
   }
 #endif //FILAMENT_SENSOR
 }
@@ -1498,10 +1485,6 @@ void setup() {
 #if !defined(DEBUG_DISABLE_FANCHECK) && defined(FANCHECK) && defined(TACH_1) && TACH_1 >-1
 	setup_fan_interrupt();
 #endif //DEBUG_DISABLE_FANCHECK
-
-#ifdef PAT9125
-	fsensor_setup_interrupt();
-#endif //PAT9125
 
 	for (int i = 0; i<4; i++) { 
     EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); 
@@ -5824,11 +5807,7 @@ Sigma_Exit:
               axis_steps_per_sqr_second[i] *= factor;
             }
             cs.axis_steps_per_unit[i] = value;
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-            fsensor_set_axis_steps_per_unit(value);
-#endif
-          }
-          else {
+          } else {
             cs.axis_steps_per_unit[i] = code_value();
           }
         }
@@ -7575,10 +7554,7 @@ Sigma_Exit:
 						cs.axis_steps_per_unit[i] /= fac;
 						position[i] /= fac;
 					}
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-                    if (i == E_AXIS)
-                        fsensor_set_axis_steps_per_unit(cs.axis_steps_per_unit[i]);
-#endif
+
 				}
 			}
 		}
@@ -8058,26 +8034,6 @@ Sigma_Exit:
 		dcode_2130(); break;
 #endif //TMC2130
 
-#if (defined (FILAMENT_SENSOR) && defined(PAT9125))
-
-    /*!
-    ### D9125 - PAT9125 filament sensor <a href="https://reprap.org/wiki/G-code#D9:_Read.2FWrite_ADC">D9125: PAT9125 filament sensor</a>
-    #### Usage
-    
-        D9125 [ ? | ! | R | X | Y | L ]
-    
-    #### Parameters
-    - `?` - Print values
-    - `!` - Print values
-    - `R` - Resolution. Not active in code
-    - `X` - X values
-    - `Y` - Y values
-    - `L` - Activate filament sensor log
-    */
-	case 9125:
-		dcode_9125(); break;
-#endif //FILAMENT_SENSOR
-
 #endif //DEBUG_DCODES
 	}
   } else {
@@ -8467,12 +8423,8 @@ void manage_inactivity(bool ignore_stepper_queue) { //default argument set in Ma
 static uint16_t nFSCheckCount=0;
 #endif // IR_SENSOR_ANALOG
 
-	if (mmu_enabled == false)
-	{
+	if (mmu_enabled == false) {
 //-//		if (mcode_in_progress != 600) //M600 not in progress
-#ifdef PAT9125
-		bInhibitFlag=(menu_menu==lcd_menu_extruder_info); // Support::ExtruderInfo menu active
-#endif // PAT9125
 #ifdef IR_SENSOR
 		bInhibitFlag=(menu_menu==lcd_menu_show_sensors_state); // Support::SensorInfo menu active
 #ifdef IR_SENSOR_ANALOG
@@ -8523,11 +8475,8 @@ static uint16_t nFSCheckCount=0;
 					manage_inactivity_IR_ANALOG_Check(nFSCheckCount, ClFsensorPCB::_Rev04, oFsensorPCB=ClFsensorPCB::_Old, _i("FS v0.3 or older")); ////c=18
 				}
 #endif // IR_SENSOR_ANALOG
-				if (fsensor_check_autoload())
-				{
-#ifdef PAT9125
-					fsensor_autoload_check_stop();
-#endif //PAT9125
+				if (fsensor_check_autoload()) {
+
 
 						eFilamentAction=FilamentAction::AutoLoad;
 						bFilamentFirstRun=false;
@@ -8541,13 +8490,6 @@ static uint16_t nFSCheckCount=0;
 						}
 					
 				}
-			} else {
-#ifdef PAT9125
-				fsensor_autoload_check_stop();
-                if (fsensor_enabled && !saved_printing)
-                    fsensor_update();
-#endif //PAT9125
-
 			}
 		}
 	}

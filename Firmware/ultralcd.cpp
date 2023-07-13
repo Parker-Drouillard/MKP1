@@ -31,9 +31,6 @@
 #include "SdFatUtil.h"
 
 #ifdef FILAMENT_SENSOR
-#ifdef PAT9125
-#include "pat9125.h"
-#endif
 #include "fsensor.h"
 #endif //FILAMENT_SENSOR
 
@@ -230,9 +227,6 @@ enum class FanCheck : uint_least8_t {
 static FanCheck lcd_selftest_fan_auto(int _fan);
 #endif //FANCHECK
 
-#ifdef PAT9125
-static bool lcd_selftest_fsensor();
-#endif //PAT9125
 static bool selftest_irsensor();
 #ifdef IR_SENSOR_ANALOG
 static bool lcd_selftest_IRsensor(bool bStandalone=false);
@@ -1359,8 +1353,8 @@ static void pgmtext_with_colon(const char *ipgmLabel, char *dst, uint8_t dstSize
 //! ----------------------
 //! @endcode
 //! @todo Positioning of the messages and values on LCD aren't fixed to their exact place. This causes issues with translations.
-void lcd_menu_extruder_info()                     // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
-{
+void lcd_menu_extruder_info() {                    // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
+
 
     // Display Nozzle fan RPM
     lcd_timeoutToStatus.stop(); //infinite timeout
@@ -1370,35 +1364,6 @@ void lcd_menu_extruder_info()                     // NOT static due to using ins
     pgmtext_with_colon(_i("Nozzle FAN"), nozzle, maxChars);  ////c=10 r=1
     pgmtext_with_colon(_i("Print FAN"), print, maxChars);  ////c=10 r=1
     lcd_printf_P(_N("%s %4d RPM\n" "%s %4d RPM\n"), nozzle, 60*fan_speed[0], print, 60*fan_speed[1] ); 
-
-#ifdef PAT9125
-	// Display X and Y difference from Filament sensor    
-    // Display Light intensity from Filament sensor
-    //  Frame_Avg register represents the average brightness of all pixels within a frame (324 pixels). This
-    //  value ranges from 0(darkest) to 255(brightest).
-    // Display LASER shutter time from Filament sensor
-    //  Shutter register is an index of LASER shutter time. It is automatically controlled by the chip's internal
-    //  auto-exposure algorithm. When the chip is tracking on a good reflection surface, the Shutter is small.
-    //  When the chip is tracking on a poor reflection surface, the Shutter is large. Value ranges from 0 to 46.
-	if (mmu_enabled == false)
-	{
-		if (!fsensor_enabled)
-			lcd_puts_P(_N("Filament sensor\n" "is disabled."));
-		else
-		{
-			if (!moves_planned() && !IS_SD_PRINTING && !is_usb_printing && (lcd_commands_type != LcdCommands::Layer1Cal))
-				pat9125_update();
-			lcd_printf_P(_N(
-				"Fil. Xd:%3d Yd:%3d\n" ////c=4 r=1
-				"Int: %3d  " ////c=4 r=1
-				"Shut: %3d"  ////c=4 r=1
-			),
-				pat9125_x, pat9125_y,
-				pat9125_b, pat9125_s
-			);
-		}
-	}
-#endif //PAT9125
     
     menu_back_if_clicked();
 }
@@ -1406,100 +1371,7 @@ void lcd_menu_extruder_info()                     // NOT static due to using ins
 
 
 
-#if defined(TMC2130) && defined(FILAMENT_SENSOR)
-static const char failStatsFmt[] PROGMEM = "%S\n" " %-16.16S%-3d\n" " %-16.16S%-3d\n" " %-7.7SX %-3d  Y %-3d";
-
-//! @brief Show Total Failures Statistics MMU
-//!
-//! @code{.unparsed}
-//! |01234567890123456789|
-//! |Total failures      |	c=20 r=1
-//! | Power failures: 000|	c=14 r=1
-//! | Filam. runouts: 000|	c=14 r=1
-//! | Crash   X:000 Y:000|	c=7 r=1
-//! ----------------------
-//! @endcode
-//! @todo Positioning of the messages and values on LCD aren't fixed to their exact place. This causes issues with translations.
-static void lcd_menu_fails_stats_total()
-{
-	lcd_timeoutToStatus.stop(); //infinite timeout
-    uint16_t power = eeprom_read_word((uint16_t*)EEPROM_POWER_COUNT_TOT);
-    uint16_t filam = eeprom_read_word((uint16_t*)EEPROM_FERROR_COUNT_TOT);
-    uint16_t crashX = eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT);
-    uint16_t crashY = eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT);
-    lcd_home();
-    lcd_printf_P(failStatsFmt, 
-        _i("Total failures"),   ////c=20 r=1
-        _i("Power failures"), power,   ////c=14 r=1
-        _i("Filam. runouts"), filam,   ////c=14 r=1
-        _i("Crash"), crashX, crashY);  ////c=7 r=1
-    menu_back_if_clicked_fb();
-}
-
-//! @brief Show Last Print Failures Statistics
-//!
-//! @code{.unparsed}
-//! |01234567890123456789|
-//! |Last print failures |	c=20 r=1
-//! | Power failures  000|	c=14 r=1
-//! | Filam. runouts  000|	c=14 r=1
-//! | Crash   X:000 Y:000|	c=7 r=1
-//! ----------------------
-//! @endcode
-//! @todo Positioning of the messages and values on LCD aren't fixed to their exact place. This causes issues with translations.
-static void lcd_menu_fails_stats_print()
-{
-	lcd_timeoutToStatus.stop(); //infinite timeout
-    uint8_t power = eeprom_read_byte((uint8_t*)EEPROM_POWER_COUNT);
-    uint8_t filam = eeprom_read_byte((uint8_t*)EEPROM_FERROR_COUNT);
-    uint8_t crashX = eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_X);
-    uint8_t crashY = eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_Y);
-    lcd_home();
-#ifndef PAT9125
-    lcd_printf_P(failStatsFmt,
-        _i("Last print failures"),  ////c=20 r=1
-        _i("Power failures"), power,  ////c=14 r=1
-        _i("Filam. runouts"), filam,  ////c=14 r=1
-        _i("Crash"), crashX, crashY);  ////c=7 r=1
-#else
-    // On the MK3 include detailed PAT9125 statistics about soft failures
-    lcd_printf_P(PSTR("%S\n"
-                      " %-16.16S%-3d\n"
-                      " %-7.7S H %-3d S %-3d\n"
-                      " %-7.7S X %-3d Y %-3d"),
-                 _i("Last print failures"), ////c=20 r=1
-                 _i("Power failures"), power, ////c=14 r=1
-                 _i("Runouts"), filam, fsensor_softfail, //c=7
-                 _i("Crash"), crashX, crashY);  ////c=7 r=1
-#endif
-    menu_back_if_clicked_fb();
-}
-
-//! @brief Open fail statistics menu
-//! 
-//! This version of function is used, when there is filament sensor,
-//! power failure and crash detection.
-//! There are Last print and Total menu items.
-//! 
-//! @code{.unparsed}
-//! |01234567890123456789|
-//! | Main               |	c=18 r=1
-//! | Last print         |	c=18 r=1
-//! | Total              |	c=18 r=1
-//! |                    |
-//! ----------------------
-//! @endcode
-
-static void lcd_menu_fails_stats()
-{
-	MENU_BEGIN();
-	MENU_ITEM_BACK_P(_T(MSG_MAIN));
-	MENU_ITEM_SUBMENU_P(_i("Last print"), lcd_menu_fails_stats_print);  ////c=18 r=1
-	MENU_ITEM_SUBMENU_P(_i("Total"), lcd_menu_fails_stats_total);  ////c=18 r=1
-	MENU_END();
-}
-
-#elif defined(FILAMENT_SENSOR)
+#ifdef FILAMENT_SENSOR
 static const char failStatsFmt[] PROGMEM = "%S\n" " %-16.16S%-3d\n" "%S\n" " %-16.16S%-3d\n";
 //! 
 //! @brief Print last print and total filament run outs
@@ -1891,13 +1763,6 @@ void lcd_cutter_enabled()
 void lcd_set_filament_autoload() {
      fsensor_autoload_set(!fsensor_autoload_enabled);
 }
-
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-void lcd_set_filament_oq_meass()
-{
-     fsensor_oq_meassure_set(!fsensor_oq_meassure_enabled);
-}
-#endif
 
 
 FilamentAction eFilamentAction=FilamentAction::None; // must be initialized as 'non-autoLoad'
@@ -7083,25 +6948,8 @@ bool lcd_selftest()
 			}
         } else
         {
-#ifdef PAT9125
-			_progress = lcd_selftest_screen(TestScreen::Fsensor, _progress, 3, true, 2000); //check filaments sensor
-               _result = lcd_selftest_fsensor();
-			if (_result)
-			{
-				_progress = lcd_selftest_screen(TestScreen::FsensorOk, _progress, 3, true, 2000); //fil sensor OK
-			}
-#endif //PAT9125
-#if 0
-	// Intentionally disabled - that's why we moved the detection to runtime by just checking the two voltages.
-	// The idea is not to force the user to remove and insert the filament on an assembled printer.
-//def IR_SENSOR_ANALOG
-			_progress = lcd_selftest_screen(TestScreen::Fsensor, _progress, 3, true, 2000); //check filament sensor
-			_result = lcd_selftest_IRsensor();
-			if (_result)
-			{
-				_progress = lcd_selftest_screen(TestScreen::FsensorOk, _progress, 3, true, 2000); //filament sensor OK
-			}
-#endif //IR_SENSOR_ANALOG
+
+
         }
     }
 #endif //FILAMENT_SENSOR
@@ -7678,17 +7526,7 @@ static void lcd_selftest_error(TestError testError, const char *_error_1, const 
 }
 
 #ifdef FILAMENT_SENSOR
-#ifdef PAT9125
-static bool lcd_selftest_fsensor(void)
-{
-	fsensor_init();
-	if (fsensor_not_responding)
-	{
-		lcd_selftest_error(TestError::WiringFsensor, "", "");
-	}
-	return (!fsensor_not_responding);
-}
-#endif //PAT9125
+
 
 //! @brief Self-test of infrared barrier filament sensor mounted on MK3S with MMUv2 printer
 //!

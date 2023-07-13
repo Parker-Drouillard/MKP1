@@ -36,11 +36,6 @@
 #include "tmc2130.h"
 #endif //TMC2130
 
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-#include "fsensor.h"
-int fsensor_counter; //counter for e-steps
-#endif //FILAMENT_SENSOR
-
 // #include "mmu.h"
 #include "ConfigurationStore.h"
 
@@ -412,11 +407,7 @@ FORCE_INLINE void stepper_next_block() {
 #endif /* LIN_ADVANCE */
       count_direction[E_AXIS] = 1;
     }
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-    fsensor_st_block_begin(count_direction[E_AXIS] < 0);
-#endif //FILAMENT_SENSOR
-  }
-  else {
+  } else {
       _NEXT_ISR(2000); // 1kHz.
 
 #ifdef LIN_ADVANCE
@@ -1003,24 +994,11 @@ FORCE_INLINE void advance_isr_scheduler() {
         uint8_t max_ticks = (eisr? e_step_loops: step_loops);
         max_ticks = min(abs(e_steps), max_ticks);
         bool rev = (e_steps < 0);
-        do
-        {
-            WRITE_NC(E0_STEP_PIN, !INVERT_E_STEP_PIN);
-            e_steps += (rev? 1: -1);
-            WRITE_NC(E0_STEP_PIN, INVERT_E_STEP_PIN);
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-            fsensor_counter += (rev? -1: 1);
-#endif
-        }
-        while(--max_ticks);
-
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-        if (abs(fsensor_counter) >= fsensor_chunk_len)
-        {
-            fsensor_st_block_chunk(fsensor_counter);
-            fsensor_counter = 0;
-        }
-#endif
+        do {
+          WRITE_NC(E0_STEP_PIN, !INVERT_E_STEP_PIN);
+          e_steps += (rev? 1: -1);
+          WRITE_NC(E0_STEP_PIN, INVERT_E_STEP_PIN);
+        } while(--max_ticks);
     }
 
     // Schedule the next closest tick, ignoring advance if scheduled too
@@ -1617,13 +1595,3 @@ void microstep_readings() {
       #endif
 }
 #endif //TMC2130
-
-
-#if defined(FILAMENT_SENSOR) && defined(PAT9125)
-void st_reset_fsensor()
-{
-    CRITICAL_SECTION_START;
-    fsensor_counter = 0;
-    CRITICAL_SECTION_END;
-}
-#endif //FILAMENT_SENSOR

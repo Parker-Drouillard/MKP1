@@ -224,10 +224,6 @@ void M600_load_filament() {
 	//load filament for single material and SNMM 
 	lcd_wait_interact();
 	KEEPALIVE_STATE(PAUSED_FOR_USER);
-
-#ifdef PAT9125
-	fsensor_autoload_check_start();
-#endif //PAT9125
 	while(!lcd_clicked()) {
 		manage_heater();
 		manage_inactivity(true);
@@ -238,9 +234,6 @@ void M600_load_filament() {
 		}
 #endif //FILAMENT_SENSOR
 	}
-#ifdef PAT9125
-	fsensor_autoload_check_stop();
-#endif //PAT9125
 	KEEPALIVE_STATE(IN_HANDLER);
 
 #ifdef FSENSOR_QUALITY
