@@ -682,11 +682,6 @@ static void factory_reset(char level) {
       // Force the "Follow calibration flow" message at the next boot up.
       calibration_status_store(CALIBRATION_STATUS_Z_CALIBRATION);
 			eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
-      farm_no = 0;
-			farm_mode = false;
-			eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode);
-      EEPROM_save_B(EEPROM_FARM_NUMBER, &farm_no);
-
       eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, 0);
       eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, 0);
 
@@ -948,49 +943,6 @@ static void serialPortInit(){
 	stdout = uartout;
 }
 
-
-farmModeInit(){
-  farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE); 
-	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
-	if ((farm_mode == 0xFF && farm_no == 0) || ((uint16_t)farm_no == 0xFFFF)) {
-		farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
-	}
-
-  if ((uint16_t)farm_no == 0xFFFF) { 
-    farm_no = 0; 
-  }
-	if (farm_mode) {
-		no_response = true; //we need confirmation by recieving PRUSA thx
-		important_status = 8;
-		prusa_statistics(8);
-		selectedSerialPort = 1;
-		MYSERIAL.begin(BAUDRATE);
-#ifdef TMC2130
-		//increased extruder current (PFW363)
-		tmc2130_current_h[E_AXIS] = 36;
-		tmc2130_current_r[E_AXIS] = 36;
-#endif //TMC2130
-#ifdef FILAMENT_SENSOR
-		//disabled filament autoload (PFW360)
-		fsensor_autoload_set(false);
-#endif //FILAMENT_SENSOR
-  // ~ FanCheck -> on
-    if(!(eeprom_read_byte((uint8_t*)EEPROM_FAN_CHECK_ENABLED))) {
-      eeprom_update_byte((unsigned char *)EEPROM_FAN_CHECK_ENABLED,true);
-    }
-	}
-
-  farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
-	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
-	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) {farm_mode = false;} //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
-	if (farm_no == static_cast<int>(0xFFFF)) {farm_no = 0;}
-	if (farm_mode) {
-		prusa_statistics(8);
-	}
-}
-
-
-
 void debugSecondLang(){
   lang_table_header_t header;
 	uint32_t src_addr = 0x00000;
@@ -1098,7 +1050,7 @@ uint8_t tmc2130_setup_init(){
   }
 	tmc2130_mode = TMC2130_MODE_NORMAL;
 
-	if (lcd_crash_detect_enabled() && !farm_mode) {
+	if (lcd_crash_detect_enabled()) {
 		lcd_crash_detect_enable();
 	    puts_P(_N("CrashDetect ENABLED!"));
 	}	else {
@@ -1249,12 +1201,8 @@ void uvlo_init(void){
 void startup_msgs(void){
 #ifndef DEBUG_DISABLE_STARTMSGS
   KEEPALIVE_STATE(PAUSED_FOR_USER);
-
-  if (!farm_mode) {
-    check_if_fw_is_on_right_printer();
-    show_fw_version_warnings();    
-  }
-
+  check_if_fw_is_on_right_printer();
+  show_fw_version_warnings();    
   checkHW();
 
   if (!previous_settings_retrieved) {
@@ -1335,8 +1283,6 @@ void setup() {
 	setup_killpin();
 	setup_powerhold();
 
-  farmModeInit(); //initialize farm mode settings
-  
 #ifndef W25X20CL
 	SERIAL_PROTOCOLLNPGM("start");
 #else
@@ -1603,7 +1549,6 @@ void host_keepalive() {
 #ifndef HOST_KEEPALIVE_FEATURE
   return;
 #endif //HOST_KEEPALIVE_FEATURE
-  if (farm_mode) { return; }
   long ms = _millis();
 
 #ifdef AUTO_REPORT_TEMPERATURES
@@ -2555,7 +2500,6 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
     homing_flag = false;
   }
 #endif
-  if (farm_mode) { prusa_statistics(20); };
   homing_flag = false;
 }
 
@@ -2607,9 +2551,6 @@ static T gcode_M600_filament_change_z_shift() {
 void gcode_M701() {
 	printf_P(PSTR("gcode_M701 begin\n"));
 
-	if (farm_mode) {
-		prusa_statistics(22);
-	}
   enable_z();
   custom_message_type = CustomMsg::FilamentLoading;
 
@@ -2629,7 +2570,7 @@ void gcode_M701() {
 
   Sound_MakeCustom(50,500,false);
 
-  if (!farm_mode && loading_flag) {
+  if (loading_flag) {
     lcd_load_filament_color_check();
   }
   lcd_update_enable(true);
@@ -2639,41 +2580,7 @@ void gcode_M701() {
   loading_flag = false;
   custom_message_type = CustomMsg::Status;
 }
-/**
- * @brief Get serial number from 32U2 processor
- *
- * Typical format of S/N is:CZPX0917X003XC13518
- *
- * Command operates only in farm mode, if not in farm mode, "Not in farm mode." is written to MYSERIAL.
- *
- * Send command ;S to serial port 0 to retrieve serial number stored in 32U2 processor,
- * reply is transmitted to serial port 1 character by character.
- * Operation takes typically 23 ms. If the retransmit is not finished until 100 ms,
- * it is interrupted, so less, or no characters are retransmitted, only newline character is send
- * in any case.
- */
-static void gcode_PRUSA_SN(){
-  uint8_t selectedSerialPort_bak = selectedSerialPort;
-  char SN[20];
-  selectedSerialPort = 0;
-  SERIAL_ECHOLNRPGM(PSTR(";S"));
-  uint8_t numbersRead = 0;
-  ShortTimer timeout;
-  timeout.start();
 
-  while (numbersRead < (sizeof(SN) - 1)) {
-    if (MSerial.available() > 0) {
-      SN[numbersRead] = MSerial.read();
-      numbersRead++;
-    }
-    if (timeout.expired(100u)) {
-      break;
-    }
-  }
-  SN[numbersRead] = 0;
-  selectedSerialPort = selectedSerialPort_bak;
-  SERIAL_ECHOLN(SN);
-}
 //! Detection of faulty RAMBo 1.1b boards equipped with bigger capacitors
 //! at the TACH_1 pin, which causes bad detection of print fan speed.
 //! Warning: This function is not to be used by ordinary users, it is here only for automated testing purposes,
@@ -3080,13 +2987,12 @@ void process_commands() {
     
     Set of internal PRUSA commands
     #### Usage
-         PRUSA [ Ping | PRN | FAN | fn | thx | uvlo | MMURES | RESET | fv | M28 | SN | Fir | Rev | Lang | Lz | Beat | FR ]
+         PRUSA [ Ping | PRN | FAN | thx | uvlo | MMURES | RESET | fv | M28 | SN | Fir | Rev | Lang | Lz | Beat | FR ]
     
     #### Parameters
       - `Ping` 
       - `PRN` - Prints revision of the printer
       - `FAN` - Prints fan details
-      - `fn` - Prints farm no.
       - `thx` 
       - `uvlo` 
       - `MMURES` - Reset MMU
@@ -3106,41 +3012,19 @@ void process_commands() {
     */
 
 
-		if (code_seen("Ping")) {  // PRUSA Ping
-			if (farm_mode) {
-				PingTime = _millis();
-				//MYSERIAL.print(farm_no); MYSERIAL.println(": OK");
-			}	  
+		if (code_seen("Ping")) {  // PRUSA Ping  
 		}	else if (code_seen("PRN")) { // PRUSA PRN
 		  printf_P(_N("%d"), status_number);
     } else if( code_seen("FANPINTST") ){
       gcode_PRUSA_BadRAMBoFanTest();
     } else if (code_seen("FAN")) { // PRUSA FAN
 			printf_P(_N("E0:%d RPM\nPRN0:%d RPM\n"), 60*fan_speed[0], 60*fan_speed[1]);
-		} else if (code_seen("fn")) { // PRUSA fn
-		  if (farm_mode) {
-			  printf_P(_N("%d"), farm_no);
-		  } else {
-			  puts_P(_N("Not in farm mode."));
-		  }
-		}	else if (code_seen("thx")) {// PRUSA thx
+		} else if (code_seen("thx")) {// PRUSA thx
 			no_response = false;
 		} else if (code_seen("uvlo")) { // PRUSA uvlo
       eeprom_update_byte((uint8_t*)EEPROM_UVLO,0); 
       enquecommand_P(PSTR("M24")); 
 		}	else if (code_seen("RESET")) { // PRUSA RESET
-      // careful!
-      if (farm_mode) {
-#if (defined(WATCHDOG) && (MOTHERBOARD == BOARD_EINSY_1_0a))
-        boot_app_magic = BOOT_APP_MAGIC;
-        boot_app_flags = BOOT_APP_FLG_RUN;
-        softReset();
-#else //WATCHDOG
-        asm volatile("jmp 0x3E000");
-#endif //WATCHDOG
-      } else {
-        MYSERIAL.println("Not in farm mode.");
-      }
 		} else if (code_seen("fv")) { // PRUSA fv
       // get file version
 #ifdef SDSUPPORT
@@ -3190,12 +3074,6 @@ void process_commands() {
       if(code_seen('D')) {
         nDiameter=(uint16_t)(code_value()*1000.0+0.5); // [,um]
         nozzle_diameter_check(nDiameter);
-      } else if(code_seen("set") && farm_mode) {
-        strchr_pointer++;                  // skip 1st char (~ 's')
-        strchr_pointer++;                  // skip 2nd char (~ 'e')
-        nDiameter=(uint16_t)(code_value()*1000.0+0.5); // [,um]
-        eeprom_update_byte((uint8_t*)EEPROM_NOZZLE_DIAMETER,(uint8_t)ClNozzleDiameter::_Diameter_Undef); // for correct synchronization after farm-mode exiting
-        eeprom_update_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM,nDiameter);
       } else {SERIAL_PROTOCOLLN((float)eeprom_read_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM)/1000.0);}
   	}	
   } else if(code_seen('G')) {
@@ -3775,8 +3653,8 @@ void process_commands() {
         st_synchronize();
         gcode_G28(false, false, true);
       }
-      if ((current_temperature_pinda > 35) && (farm_mode == false)) {
-        //waiting for PIDNA probe to cool down in case that we are not in farm mode
+      if ((current_temperature_pinda > 35)) {
+        //waiting for PIDNA probe to cool down
         current_position[Z_AXIS] = 100;
         plan_buffer_line_curposXYZE(3000 / 60);
         if (lcd_wait_for_pinda(35) == false) { //waiting for PINDA probe to cool, if this takes more then time expected, temp. cal. fails
@@ -4570,32 +4448,6 @@ void process_commands() {
         gcode_G92();
     }
     break;
-
-    /*!
-    ### G98 - Activate farm mode <a href="https://reprap.org/wiki/G-code#G98:_Activate_farm_mode">G98: Activate farm mode</a>
-	Enable Prusa-specific Farm functions and g-code.
-    See Internal Prusa commands.
-    */
-	case 98:
-		farm_mode = 1;
-		PingTime = _millis();
-		eeprom_update_byte((unsigned char *)EEPROM_FARM_MODE, farm_mode);
-		EEPROM_save_B(EEPROM_FARM_NUMBER, &farm_no);
-          SilentModeMenu = SILENT_MODE_OFF;
-          eeprom_update_byte((unsigned char *)EEPROM_SILENT, SilentModeMenu);
-          fCheckModeInit();                       // alternatively invoke printer reset
-		break;
-
-    /*! ### G99 - Deactivate farm mode <a href="https://reprap.org/wiki/G-code#G99:_Deactivate_farm_mode">G99: Deactivate farm mode</a>
- 	Disables Prusa-specific Farm functions and g-code.
-   */
-	case 99:
-		farm_mode = 0;
-		lcd_printer_connected();
-		eeprom_update_byte((unsigned char *)EEPROM_FARM_MODE, farm_mode);
-		lcd_update(2);
-          fCheckModeInit();                       // alternatively invoke printer reset
-		break;
 	default:
 		printf_P(PSTR("Unknown G code: %s \n"), cmdbuffer + bufindr + CMDHDRSIZE);
     }
@@ -5477,7 +5329,6 @@ Sigma_Exit:
       }
       LCD_MESSAGERPGM(_T(MSG_HEATING));
 	  heating_status = 1;
-	  if (farm_mode) { prusa_statistics(1); };
 
 #ifdef AUTOTEMP
         autotemp_enabled=false;
@@ -5511,11 +5362,7 @@ Sigma_Exit:
         LCD_MESSAGERPGM(_T(MSG_HEATING_COMPLETE));
 		KEEPALIVE_STATE(IN_HANDLER);
 		heating_status = 2;
-		if (farm_mode) { prusa_statistics(2); };
-        
-        //starttime=_millis();
-        previous_millis_cmd = _millis();
-      }
+
       break;
 
     /*!
@@ -5537,27 +5384,20 @@ Sigma_Exit:
         bool CooldownNoWait = false;
         LCD_MESSAGERPGM(_T(MSG_BED_HEATING));
 		heating_status = 3;
-		if (farm_mode) { prusa_statistics(1); };
-        if (code_seen('S')) 
-		{
-          setTargetBed(code_value());
-          CooldownNoWait = true;
-        } 
-		else if (code_seen('R')) 
-		{
-          setTargetBed(code_value());
-        }
-        codenum = _millis();
-        
-        cancel_heatup = false;
-        target_direction = isHeatingBed(); // true if heating, false if cooling
+    if (code_seen('S')) {
+      setTargetBed(code_value());
+      CooldownNoWait = true;
+    } else if (code_seen('R')) {
+      setTargetBed(code_value());
+    }
+    codenum = _millis();
+    
+    cancel_heatup = false;
+    target_direction = isHeatingBed(); // true if heating, false if cooling
 
 		KEEPALIVE_STATE(NOT_BUSY);
-        while ( (target_direction)&&(!cancel_heatup) ? (isHeatingBed()) : (isCoolingBed()&&(CooldownNoWait==false)) )
-        {
-          if(( _millis() - codenum) > 1000 ) //Print Temp Reading every 1 second while heating up.
-          {
-			  if (!farm_mode) {
+        while ( (target_direction)&&(!cancel_heatup) ? (isHeatingBed()) : (isCoolingBed()&&(CooldownNoWait==false)) ) {
+          if(( _millis() - codenum) > 1000 ) { //Print Temp Reading every 1 second while heating up.
 				  float tt = degHotend(active_extruder);
 				  SERIAL_PROTOCOLPGM("T:");
 				  SERIAL_PROTOCOL(tt);
@@ -5566,7 +5406,6 @@ Sigma_Exit:
 				  SERIAL_PROTOCOLPGM(" B:");
 				  SERIAL_PROTOCOL_F(degBed(), 1);
 				  SERIAL_PROTOCOLLN("");
-			  }
 				  codenum = _millis();
 			  
           }
@@ -7179,62 +7018,52 @@ Sigma_Exit:
 	
     */
     case 862: // M862: print checking
-          float nDummy;
-          uint8_t nCommand;
-          nCommand=(uint8_t)(modff(code_value_float(),&nDummy)*10.0+0.5);
-          switch((ClPrintChecking)nCommand)
-               {
-               case ClPrintChecking::_Nozzle:     // ~ .1
-                    uint16_t nDiameter;
-                    if(code_seen('P'))
-                         {
-                         nDiameter=(uint16_t)(code_value()*1000.0+0.5); // [,um]
-                         nozzle_diameter_check(nDiameter);
-                         }
-/*
-                    else if(code_seen('S')&&farm_mode)
-                         {
-                         nDiameter=(uint16_t)(code_value()*1000.0+0.5); // [,um]
-                         eeprom_update_byte((uint8_t*)EEPROM_NOZZLE_DIAMETER,(uint8_t)ClNozzleDiameter::_Diameter_Undef); // for correct synchronization after farm-mode exiting
-                         eeprom_update_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM,nDiameter);
-                         }
-*/
-                    else if(code_seen('Q'))
-                         SERIAL_PROTOCOLLN((float)eeprom_read_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM)/1000.0);
-                    break;
-               case ClPrintChecking::_Model:      // ~ .2
-                    if(code_seen('P'))
-                         {
-                         uint16_t nPrinterModel;
-                         nPrinterModel=(uint16_t)code_value_long();
-                         printer_model_check(nPrinterModel);
-                         }
-                    else if(code_seen('Q'))
-                         SERIAL_PROTOCOLLN(nPrinterType);
-                    break;
-               case ClPrintChecking::_Smodel:     // ~ .3
-                    if(code_seen('P'))
-                         printer_smodel_check(strchr_pointer);
-                    else if(code_seen('Q'))
-                         SERIAL_PROTOCOLLNRPGM(sPrinterName);
-                    break;
-               case ClPrintChecking::_Version:    // ~ .4
-                    if(code_seen('P'))
-                         fw_version_check(++strchr_pointer);
-                    else if(code_seen('Q'))
-                         SERIAL_PROTOCOLLN(FW_VERSION);
-                    break;
-               case ClPrintChecking::_Gcode:      // ~ .5
-                    if(code_seen('P'))
-                         {
-                         uint16_t nGcodeLevel;
-                         nGcodeLevel=(uint16_t)code_value_long();
-                         gcode_level_check(nGcodeLevel);
-                         }
-                    else if(code_seen('Q'))
-                         SERIAL_PROTOCOLLN(GCODE_LEVEL);
-                    break;
-               }
+      float nDummy;
+      uint8_t nCommand;
+      nCommand=(uint8_t)(modff(code_value_float(),&nDummy)*10.0+0.5);
+      switch((ClPrintChecking)nCommand) {
+        case ClPrintChecking::_Nozzle:     // ~ .1
+          uint16_t nDiameter;
+          if(code_seen('P')) {
+            nDiameter=(uint16_t)(code_value()*1000.0+0.5); // [,um]
+            nozzle_diameter_check(nDiameter);
+          } else if(code_seen('Q')) {
+            SERIAL_PROTOCOLLN((float)eeprom_read_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM)/1000.0);
+          }
+        break;
+        case ClPrintChecking::_Model:      // ~ .2
+          if(code_seen('P')) {
+            uint16_t nPrinterModel;
+            nPrinterModel=(uint16_t)code_value_long();
+            printer_model_check(nPrinterModel);
+          } else if(code_seen('Q')) {
+            SERIAL_PROTOCOLLN(nPrinterType);
+          }
+        break;
+        case ClPrintChecking::_Smodel:     // ~ .3
+          if(code_seen('P')) {
+            printer_smodel_check(strchr_pointer);
+          } else if(code_seen('Q')) {
+            SERIAL_PROTOCOLLNRPGM(sPrinterName);
+          }
+        break;
+        case ClPrintChecking::_Version:    // ~ .4
+          if(code_seen('P')) {
+            fw_version_check(++strchr_pointer);
+          } else if(code_seen('Q')) {
+            SERIAL_PROTOCOLLN(FW_VERSION);
+          }
+        break;
+        case ClPrintChecking::_Gcode:      // ~ .5
+          if(code_seen('P')) {
+            uint16_t nGcodeLevel;
+            nGcodeLevel=(uint16_t)code_value_long();
+            gcode_level_check(nGcodeLevel);
+          } else if(code_seen('Q')) {
+            SERIAL_PROTOCOLLN(GCODE_LEVEL);
+          }
+        break;
+      }
     break;
 
 #ifdef LIN_ADVANCE
@@ -8351,7 +8180,7 @@ static void handleSafetyTimer()
      #endif
      ) && (!safetyTimer.running())) {
         safetyTimer.start();
-    } else if (safetyTimer.expired(farm_mode?FARM_DEFAULT_SAFETYTIMER_TIME_ms:safetytimer_inactive_time)) {
+    } else if (safetyTimer.expired(safetytimer_inactive_time)) {
         setTargetBed(0);
         setAllTargetHotends(0);
         lcd_show_fullscreen_message_and_wait_P(_i("Heating disabled by safety timer."));////MSG_BED_HEATING_SAFETY_DISABLED
@@ -8818,26 +8647,20 @@ static void wait_for_heater(long codenum, uint8_t extruder) {
 #else
 	while (target_direction ? (isHeatingHotend(tmp_extruder)) : (isCoolingHotend(tmp_extruder) && (CooldownNoWait == false))) {
 #endif //TEMP_RESIDENCY_TIME
-		if ((_millis() - codenum) > 1000UL)
-		{ //Print Temp Reading and remaining time every 1 second while heating up/cooling down
-			if (!farm_mode) {
-				SERIAL_PROTOCOLPGM("T:");
-				SERIAL_PROTOCOL_F(degHotend(extruder), 1);
-				SERIAL_PROTOCOLPGM(" E:");
-				SERIAL_PROTOCOL((int)extruder);
+		if ((_millis() - codenum) > 1000UL) { //Print Temp Reading and remaining time every 1 second while heating up/cooling down
+      SERIAL_PROTOCOLPGM("T:");
+      SERIAL_PROTOCOL_F(degHotend(extruder), 1);
+      SERIAL_PROTOCOLPGM(" E:");
+      SERIAL_PROTOCOL((int)extruder);
 
 #ifdef TEMP_RESIDENCY_TIME
-				SERIAL_PROTOCOLPGM(" W:");
-				if (residencyStart > -1)
-				{
-					codenum = ((TEMP_RESIDENCY_TIME * 1000UL) - (_millis() - residencyStart)) / 1000UL;
-					SERIAL_PROTOCOLLN(codenum);
-				}
-				else
-				{
-					SERIAL_PROTOCOLLN('?');
-				}
-			}
+      SERIAL_PROTOCOLPGM(" W:");
+      if (residencyStart > -1){
+        codenum = ((TEMP_RESIDENCY_TIME * 1000UL) - (_millis() - residencyStart)) / 1000UL;
+        SERIAL_PROTOCOLLN(codenum);
+      } else {
+        SERIAL_PROTOCOLLN('?');
+      }
 #else
 				SERIAL_PROTOCOLLN("");
 #endif

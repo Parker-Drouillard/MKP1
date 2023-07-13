@@ -104,7 +104,6 @@ enum class LcdCommands : uint_least8_t
 	Idle,
 	LoadFilament,
 	StopPrint,
-	FarmModeConfirm,
 	LongPause,
 	PidExtruder,
 	Layer1Cal,
@@ -125,11 +124,6 @@ enum class CustomMsg : uint_least8_t
 
 extern CustomMsg custom_message_type;
 extern unsigned int custom_message_state;
-
-extern uint8_t farm_mode;
-extern int farm_no;
-extern int farm_timer;
-extern uint8_t farm_status;
 
 #ifdef TMC2130
 #define SILENT_MODE_NORMAL 0
@@ -191,16 +185,8 @@ void unload_filament();
 
 void stack_error();
 void lcd_printer_connected();
-void lcd_ping();
 
 void lcd_calibrate_extruder();
-void lcd_farm_sdcard_menu();
-
-//void getFileDescription(char *name, char *description);
-
-void lcd_farm_sdcard_menu_w();
-//void get_description();
-
 void lcd_wait_for_heater();
 void lcd_wait_for_cool_down();
 void lcd_extr_cal_reset();

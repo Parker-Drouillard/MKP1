@@ -264,10 +264,6 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
   st_synchronize();
   float lastpos[4];
 
-  if (farm_mode) {
-      prusa_statistics(22);
-  }
-
   //First backup current position and settings
   int feedmultiplyBckp = feedmultiply;
   float HotendTempBckp = degTargetHotend(active_extruder);
