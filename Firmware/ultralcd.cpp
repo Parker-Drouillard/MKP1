@@ -234,19 +234,9 @@ static void lcd_detect_IRsensor();
 #endif //IR_SENSOR_ANALOG
 static void lcd_selftest_error(TestError error, const char *_error_1, const char *_error_2);
 static void lcd_colorprint_change();
-#ifdef SNMM
-static int get_ext_nr();
-#endif //SNMM
-#if defined (SNMM) || defined(SNMM_V2)
-static void fil_load_menu();
-static void fil_unload_menu();
-#endif // SNMM || SNMM_V2
 static void lcd_disable_farm_mode();
 static void lcd_set_fan_check();
 static void lcd_cutter_enabled();
-#ifdef SNMM
-static char snmm_stop_print_menu();
-#endif //SNMM
 #ifdef SDCARD_SORT_ALPHA
  static void lcd_sort_type_set();
 #endif
@@ -820,12 +810,9 @@ void lcd_status_screen() {                         // NOT static due to using in
 	}
 }
 
-void lcd_commands()
-{
-	if (lcd_commands_type == LcdCommands::LongPause)
-	{
-		if (!blocks_queued() && !homing_flag)
-		{
+void lcd_commands() {
+	if (lcd_commands_type == LcdCommands::LongPause) {
+		if (!blocks_queued() && !homing_flag) {
 			lcd_setstatuspgm(_i("Print paused"));////MSG_PRINT_PAUSED c=20 r=1
             lcd_commands_type = LcdCommands::Idle;
             lcd_commands_step = 0;
@@ -833,283 +820,13 @@ void lcd_commands()
 		}
 	}
 
-
-#ifdef SNMM
-	if (lcd_commands_type == LcdCommands::Layer1Cal)
-	{
-		char cmd1[30];
-		float width = 0.4;
-		float length = 20 - width;
-		float extr = count_e(0.2, width, length);
-		float extr_short_segment = count_e(0.2, width, width);
-
-		if (lcd_commands_step>1) lcd_timeoutToStatus.start(); //if user dont confirm live adjust Z value by pressing the knob, we are saving last value by timeout to status screen
-		if (lcd_commands_step == 0)
-		{
-			lcd_commands_step = 10;
-		}
-		if (lcd_commands_step == 10 && !blocks_queued() && cmd_buffer_empty())
-		{
-			enquecommand_P(PSTR("M107"));
-			enquecommand_P(PSTR("M104 S" STRINGIFY(PLA_PREHEAT_HOTEND_TEMP)));
-			enquecommand_P(PSTR("M140 S" STRINGIFY(PLA_PREHEAT_HPB_TEMP)));
-			enquecommand_P(PSTR("M190 S" STRINGIFY(PLA_PREHEAT_HPB_TEMP)));
-			enquecommand_P(PSTR("M109 S" STRINGIFY(PLA_PREHEAT_HOTEND_TEMP)));
-			enquecommand_P(PSTR("T0"));
-			enquecommand_P(_T(MSG_M117_V2_CALIBRATION));
-			enquecommand_P(PSTR("G87")); //sets calibration status
-			enquecommand_P(PSTR("G28"));
-			enquecommand_P(PSTR("G21")); //set units to millimeters
-			enquecommand_P(PSTR("G90")); //use absolute coordinates
-			enquecommand_P(PSTR("M83")); //use relative distances for extrusion
-			enquecommand_P(PSTR("G92 E0"));
-			enquecommand_P(PSTR("M203 E100"));
-			enquecommand_P(PSTR("M92 E140"));
-			lcd_commands_step = 9;
-		}
-		if (lcd_commands_step == 9 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-			enquecommand_P(PSTR("G1 Z0.250 F7200.000"));
-			enquecommand_P(PSTR("G1 X50.0 E80.0 F1000.0"));
-			enquecommand_P(PSTR("G1 X160.0 E20.0 F1000.0"));
-			enquecommand_P(PSTR("G1 Z0.200 F7200.000"));
-			enquecommand_P(PSTR("G1 X220.0 E13 F1000.0"));
-			enquecommand_P(PSTR("G1 X240.0 E0 F1000.0"));
-			enquecommand_P(PSTR("G92 E0.0"));
-			enquecommand_P(PSTR("G21"));
-			enquecommand_P(PSTR("G90"));
-			enquecommand_P(PSTR("M83"));
-			enquecommand_P(PSTR("G1 E-4 F2100.00000"));
-			enquecommand_P(PSTR("G1 Z0.150 F7200.000"));
-			enquecommand_P(PSTR("M204 S1000"));
-			enquecommand_P(PSTR("G1 F4000"));
-
-			lcd_clear();
-			menu_goto(lcd_babystep_z, 0, false, true);
-
-
-			lcd_commands_step = 8;
-		}
-		if (lcd_commands_step == 8 && !blocks_queued() && cmd_buffer_empty()) //draw meander
-		{
-			lcd_timeoutToStatus.start();
-
-
-			enquecommand_P(PSTR("G1 X50 Y155"));
-			enquecommand_P(PSTR("G1 X60 Y155 E4"));
-			enquecommand_P(PSTR("G1 F1080"));
-			enquecommand_P(PSTR("G1 X75 Y155 E2.5"));
-			enquecommand_P(PSTR("G1 X100 Y155 E2"));
-			enquecommand_P(PSTR("G1 X200 Y155 E2.62773"));
-			enquecommand_P(PSTR("G1 X200 Y135 E0.66174"));
-			enquecommand_P(PSTR("G1 X50 Y135 E3.62773"));
-			enquecommand_P(PSTR("G1 X50 Y115 E0.49386"));
-			enquecommand_P(PSTR("G1 X200 Y115 E3.62773"));
-			enquecommand_P(PSTR("G1 X200 Y95 E0.49386"));
-			enquecommand_P(PSTR("G1 X50 Y95 E3.62773"));
-			enquecommand_P(PSTR("G1 X50 Y75 E0.49386"));
-			enquecommand_P(PSTR("G1 X200 Y75 E3.62773"));
-			enquecommand_P(PSTR("G1 X200 Y55 E0.49386"));
-			enquecommand_P(PSTR("G1 X50 Y55 E3.62773"));
-
-			lcd_commands_step = 7;
-		}
-
-		if (lcd_commands_step == 7 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-			strcpy(cmd1, "G1 X50 Y35 E");
-			strcat(cmd1, ftostr43(extr));
-			enquecommand(cmd1);
-
-			for (int i = 0; i < 4; i++) {
-				strcpy(cmd1, "G1 X70 Y");
-				strcat(cmd1, ftostr32(35 - i*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 X50 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (i + 1)*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-			}
-
-			lcd_commands_step = 6;
-		}
-
-		if (lcd_commands_step == 6 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-			for (int i = 4; i < 8; i++) {
-				strcpy(cmd1, "G1 X70 Y");
-				strcat(cmd1, ftostr32(35 - i*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 X50 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (i + 1)*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-			}
-
-			lcd_commands_step = 5;
-		}
-
-		if (lcd_commands_step == 5 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-			for (int i = 8; i < 12; i++) {
-				strcpy(cmd1, "G1 X70 Y");
-				strcat(cmd1, ftostr32(35 - i*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 X50 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (i + 1)*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-			}
-
-			lcd_commands_step = 4;
-		}
-
-		if (lcd_commands_step == 4 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-			for (int i = 12; i < 16; i++) {
-				strcpy(cmd1, "G1 X70 Y");
-				strcat(cmd1, ftostr32(35 - i*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 X50 Y");
-				strcat(cmd1, ftostr32(35 - (2 * i + 1)*width));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr));
-				enquecommand(cmd1);
-				strcpy(cmd1, "G1 Y");
-				strcat(cmd1, ftostr32(35 - (i + 1)*width * 2));
-				strcat(cmd1, " E");
-				strcat(cmd1, ftostr43(extr_short_segment));
-				enquecommand(cmd1);
-			}
-
-			lcd_commands_step = 3;
-		}
-
-		if (lcd_commands_step == 3 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-			enquecommand_P(PSTR("G1 E-0.07500 F2100.00000"));
-			enquecommand_P(PSTR("G4 S0"));
-			enquecommand_P(PSTR("G1 E-4 F2100.00000"));
-			enquecommand_P(PSTR("G1 Z0.5 F7200.000"));
-			enquecommand_P(PSTR("G1 X245 Y1"));
-			enquecommand_P(PSTR("G1 X240 E4"));
-			enquecommand_P(PSTR("G1 F4000"));
-			enquecommand_P(PSTR("G1 X190 E2.7"));
-			enquecommand_P(PSTR("G1 F4600"));
-			enquecommand_P(PSTR("G1 X110 E2.8"));
-			enquecommand_P(PSTR("G1 F5200"));
-			enquecommand_P(PSTR("G1 X40 E3"));
-			enquecommand_P(PSTR("G1 E-15.0000 F5000"));
-			enquecommand_P(PSTR("G1 E-50.0000 F5400"));
-			enquecommand_P(PSTR("G1 E-15.0000 F3000"));
-			enquecommand_P(PSTR("G1 E-12.0000 F2000"));
-			enquecommand_P(PSTR("G1 F1600"));
-
-			lcd_commands_step = 2;
-		}
-		if (lcd_commands_step == 2 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_timeoutToStatus.start();
-
-			enquecommand_P(PSTR("G1 X0 Y1 E3.0000"));
-			enquecommand_P(PSTR("G1 X50 Y1 E-5.0000"));
-			enquecommand_P(PSTR("G1 F2000"));
-			enquecommand_P(PSTR("G1 X0 Y1 E5.0000"));
-			enquecommand_P(PSTR("G1 X50 Y1 E-5.0000"));
-			enquecommand_P(PSTR("G1 F2400"));
-			enquecommand_P(PSTR("G1 X0 Y1 E5.0000"));
-			enquecommand_P(PSTR("G1 X50 Y1 E-5.0000"));
-			enquecommand_P(PSTR("G1 F2400"));
-			enquecommand_P(PSTR("G1 X0 Y1 E5.0000"));
-			enquecommand_P(PSTR("G1 X50 Y1 E-3.0000"));
-			enquecommand_P(PSTR("G4 S0"));
-			enquecommand_P(PSTR("M107"));
-			enquecommand_P(PSTR("M104 S0"));
-			enquecommand_P(PSTR("M140 S0"));
-			enquecommand_P(PSTR("G1 X10 Y180 F4000"));
-			enquecommand_P(PSTR("G1 Z10 F1300.000"));
-			enquecommand_P(PSTR("M84"));
-
-			lcd_commands_step = 1;
-
-		}
-
-		if (lcd_commands_step == 1 && !blocks_queued() && cmd_buffer_empty())
-		{
-			lcd_setstatuspgm(_T(WELCOME_MSG));
-			lcd_commands_step = 0;
-			lcd_commands_type = 0;
-			if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 1) {
-				lcd_wizard(WizState::RepeatLay1Cal);
-			}
-		}
-
-	}
-
-#else //if not SNMM
-
-	if (lcd_commands_type == LcdCommands::Layer1Cal)
-	{
+	if (lcd_commands_type == LcdCommands::Layer1Cal) {
 		char cmd1[30];
 
 		if(lcd_commands_step>1) lcd_timeoutToStatus.start(); //if user dont confirm live adjust Z value by pressing the knob, we are saving last value by timeout to status screen
 
-        if (!blocks_queued() && cmd_buffer_empty() && !saved_printing)
-        {
-            switch(lcd_commands_step)
-            {
+        if (!blocks_queued() && cmd_buffer_empty() && !saved_printing) {
+            switch(lcd_commands_step) {
             case 0:
                 lcd_commands_step = 11;
                 break;
@@ -1188,7 +905,6 @@ void lcd_commands()
 			}
 		}
 
-#endif // not SNMM
 
 	if (lcd_commands_type == LcdCommands::FarmModeConfirm)   /// farm mode confirm
 	{
@@ -1224,11 +940,7 @@ void lcd_commands()
 			enquecommand_P(PSTR("G91"));
 			enquecommand_P(PSTR("G1 Z15 F1500"));
 			st_synchronize();
-			#ifdef SNMM
-			lcd_commands_step = 7;
-			#else
 			lcd_commands_step = 5;
-			#endif
 		}
 
 	}
@@ -2055,11 +1767,7 @@ void lcd_wait_interact() {
   lcd_clear();
 
   lcd_set_cursor(0, 1);
-#ifdef SNMM 
-  lcd_puts_P(_i("Prepare new filament"));////MSG_PREPARE_FILAMENT c=20 r=1
-#else
   lcd_puts_P(_i("Insert filament"));////MSG_INSERT_FILAMENT c=20
-#endif
   if (!fsensor_autoload_enabled) {
 	  lcd_set_cursor(0, 2);
 	  lcd_puts_P(_i("and press the knob"));////MSG_PRESS c=20 r=2
@@ -2105,25 +1813,9 @@ void lcd_loading_filament() {
   lcd_puts_P(_T(MSG_LOADING_FILAMENT));
   lcd_set_cursor(0, 2);
   lcd_puts_P(_T(MSG_PLEASE_WAIT));
-#ifdef SNMM
-  for (int i = 0; i < 20; i++) {
-
-    lcd_set_cursor(i, 3);
-    lcd_print(".");
-    for (int j = 0; j < 10 ; j++) {
-      manage_heater();
-      manage_inactivity(true);
-
-      _delay(153);
-    }
-
-
-  }
-#else //SNMM
   uint16_t slow_seq_time = (FILAMENTCHANGE_FINALFEED * 1000ul) / FILAMENTCHANGE_EFEED_FINAL;
   uint16_t fast_seq_time = (FILAMENTCHANGE_FIRSTFEED * 1000ul) / FILAMENTCHANGE_EFEED_FIRST;
   lcd_loading_progress_bar(slow_seq_time + fast_seq_time); //show progress bar for total time of filament loading fast + slow sequence
-#endif //SNMM
 }
 
 
@@ -2946,12 +2638,7 @@ bool lcd_calibrate_z_end_stop_manual(bool only_z)
 calibrated:
     // Let the machine think the Z axis is a bit higher than it is, so it will not home into the bed
     // during the search for the induction points.
-	if ((PRINTER_TYPE == PRINTER_MK25) || (PRINTER_TYPE == PRINTER_MK2) || (PRINTER_TYPE == PRINTER_MK2_SNMM)) {
-		current_position[Z_AXIS] = Z_MAX_POS-3.f;
-	}
-	else {
-		current_position[Z_AXIS] = Z_MAX_POS+4.f;
-	}
+	current_position[Z_AXIS] = Z_MAX_POS+4.f;
     plan_set_position_curposXYZE();
     return true;
 
@@ -3966,10 +3653,6 @@ void lcd_calibrate_pinda() {
 	lcd_return_to_status();
 }
 
-#ifndef SNMM
-
-#endif
-
 void lcd_toshiba_flash_air_compatibility_toggle()
 {
    card.ToshibaFlashAir_enable(! card.ToshibaFlashAir_isEnabled());
@@ -4105,9 +3788,6 @@ static void lcd_wizard_load() {
 	lcd_update_enable(false);
 	lcd_clear();
 	lcd_puts_at_P(0, 2, _T(MSG_LOADING_FILAMENT));
-#ifdef SNMM
-	change_extr(0);
-#endif
 	loading_flag = true;
 	gcode_M701();
 }
@@ -5021,9 +4701,6 @@ static void lcd_calibration_menu()
     MENU_ITEM_FUNCTION_P(_i("Calibrate XYZ"), lcd_mesh_calibration);////MSG_CALIBRATE_BED
     // "Calibrate Z" with storing the reference values to EEPROM.
     MENU_ITEM_SUBMENU_P(_T(MSG_HOMEYZ), lcd_mesh_calibration_z);
-#ifndef SNMM
-	//MENU_ITEM_FUNCTION_P(_i("Calibrate E"), lcd_calibrate_extruder);////MSG_CALIBRATE_E c=20 r=1
-#endif
     // "Mesh Bed Leveling"
     MENU_ITEM_SUBMENU_P(_i("Mesh Bed Leveling"), lcd_mesh_bedleveling);////MSG_MESH_BED_LEVELING
 	
@@ -5037,9 +4714,6 @@ static void lcd_calibration_menu()
 #ifndef MK1BP
     MENU_ITEM_GCODE_P(_i("Reset XYZ calibr."), PSTR("M44"));////MSG_CALIBRATE_BED_RESET
 #endif //MK1BP
-#ifndef SNMM
-	//MENU_ITEM_FUNCTION_P(MSG_RESET_CALIBRATE_E, lcd_extr_cal_reset);
-#endif
 #ifndef MK1BP
     if(has_temperature_compensation())
     {
@@ -5051,173 +4725,6 @@ static void lcd_calibration_menu()
   MENU_END();
 }
 
-void bowden_menu() {
-	int enc_dif = lcd_encoder_diff;
-	int cursor_pos = 0;
-	lcd_clear();
-	lcd_set_cursor(0, 0);
-	lcd_print(">");
-	for (uint_least8_t i = 0; i < 4; i++) {
-		lcd_set_cursor(1, i);
-		lcd_print("Extruder ");
-		lcd_print(i);
-		lcd_print(": ");
-		EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]);
-		lcd_print(bowden_length[i] - 48);
-
-	}
-	enc_dif = lcd_encoder_diff;
-	lcd_consume_click();
-	while (1) {
-
-		manage_heater();
-		manage_inactivity(true);
-
-		if (abs((enc_dif - lcd_encoder_diff)) > 2) {
-
-			if (enc_dif > lcd_encoder_diff) {
-					cursor_pos--;
-				}
-
-				if (enc_dif < lcd_encoder_diff) {
-					cursor_pos++;
-				}
-
-				if (cursor_pos > 3) {
-					cursor_pos = 3;
-					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
-				}
-
-				if (cursor_pos < 0) {
-					cursor_pos = 0;
-					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
-				}
-
-				lcd_set_cursor(0, 0);
-				lcd_print(" ");
-				lcd_set_cursor(0, 1);
-				lcd_print(" ");
-				lcd_set_cursor(0, 2);
-				lcd_print(" ");
-				lcd_set_cursor(0, 3);
-				lcd_print(" ");
-				lcd_set_cursor(0, cursor_pos);
-				lcd_print(">");
-				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
-				enc_dif = lcd_encoder_diff;
-				_delay(100);
-		}
-
-		if (lcd_clicked()) {
-			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
-			lcd_clear();
-			while (1) {
-
-				manage_heater();
-				manage_inactivity(true);
-
-				lcd_set_cursor(1, 1);
-				lcd_print("Extruder ");
-				lcd_print(cursor_pos);
-				lcd_print(": ");
-				lcd_set_cursor(13, 1);
-				lcd_print(bowden_length[cursor_pos] - 48);
-
-				if (abs((enc_dif - lcd_encoder_diff)) > 2) {
-						if (enc_dif > lcd_encoder_diff) {
-							bowden_length[cursor_pos]--;
-							lcd_set_cursor(13, 1);
-							lcd_print(bowden_length[cursor_pos] - 48);
-							enc_dif = lcd_encoder_diff;
-						}
-
-						if (enc_dif < lcd_encoder_diff) {
-							bowden_length[cursor_pos]++;
-							lcd_set_cursor(13, 1);
-							lcd_print(bowden_length[cursor_pos] - 48);
-							enc_dif = lcd_encoder_diff;
-						}
-				}
-				_delay(100);
-				if (lcd_clicked()) {
-					Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
-					EEPROM_save_B(EEPROM_BOWDEN_LENGTH + cursor_pos * 2, &bowden_length[cursor_pos]);
-					if (lcd_show_fullscreen_message_yes_no_and_wait_P(PSTR("Continue with another bowden?"))) {
-						lcd_update_enable(true);
-						lcd_clear();
-						enc_dif = lcd_encoder_diff;
-						lcd_set_cursor(0, cursor_pos);
-						lcd_print(">");
-						for (uint_least8_t i = 0; i < 4; i++) {
-							lcd_set_cursor(1, i);
-							lcd_print("Extruder ");
-							lcd_print(i);
-							lcd_print(": ");
-							EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]);
-							lcd_print(bowden_length[i] - 48);
-
-						}
-						break;
-					}
-					else return;
-				}
-			}
-		}
-	}
-}
-
-#ifdef SNMM
-
-static char snmm_stop_print_menu() { //menu for choosing which filaments will be unloaded in stop print
-	lcd_clear();
-	lcd_puts_at_P(0,0,_T(MSG_UNLOAD_FILAMENT)); lcd_print(":");
-	lcd_set_cursor(0, 1); lcd_print(">");
-	lcd_puts_at_P(1,2,_i("Used during print"));////MSG_USED c=19 r=1
-	lcd_puts_at_P(1,3,_i("Current"));////MSG_CURRENT c=19 r=1
-	char cursor_pos = 1;
-	int enc_dif = 0;
-	KEEPALIVE_STATE(PAUSED_FOR_USER);
-	lcd_consume_click();
-	while (1) {
-		manage_heater();
-		manage_inactivity(true);
-		if (abs((enc_dif - lcd_encoder_diff)) > 4) {
-
-			if ((abs(enc_dif - lcd_encoder_diff)) > 1) {
-				if (enc_dif > lcd_encoder_diff) cursor_pos--;
-				if (enc_dif < lcd_encoder_diff) cursor_pos++;
-				if (cursor_pos > 3) {
-					cursor_pos = 3;
-					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
-				}
-				if (cursor_pos < 1){
-					cursor_pos = 1;
-					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
-				}	
-
-				lcd_set_cursor(0, 1);
-				lcd_print(" ");
-				lcd_set_cursor(0, 2);
-				lcd_print(" ");
-				lcd_set_cursor(0, 3);
-				lcd_print(" ");
-				lcd_set_cursor(0, cursor_pos);
-				lcd_print(">");
-				enc_dif = lcd_encoder_diff;
-				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
-				_delay(100);
-			}
-		}
-		if (lcd_clicked()) {
-			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
-			KEEPALIVE_STATE(IN_HANDLER);
-			return(cursor_pos - 1);
-		}
-	}
-	
-}
-
-#endif //SNMM
 
 //! @brief Select one of numbered items
 //!
@@ -5320,11 +4827,7 @@ uint8_t choose_menu_P(const char *header, const char *item, const char *last_ite
 }
 
 char reset_menu() {
-#ifdef SNMM
-	int items_no = 5;
-#else
 	int items_no = 4;
-#endif
 	static int first = 0;
 	int enc_dif = 0;
 	char cursor_pos = 0;
@@ -5334,9 +4837,6 @@ char reset_menu() {
 	item[1] = "Statistics";
 	item[2] = "Shipping prep";
 	item[3] = "All Data";
-#ifdef SNMM
-	item[4] = "Bowden length";
-#endif // SNMM
 
 	enc_dif = lcd_encoder_diff;
 	lcd_clear();
@@ -5451,36 +4951,6 @@ static void mmu_cut_filament_menu()
     }
 }
 #endif //MMU_HAS_CUTTER
-
-#ifdef SNMM
-static void fil_unload_menu()
-{
-	MENU_BEGIN();
-	MENU_ITEM_BACK_P(_T(MSG_MAIN));
-	MENU_ITEM_FUNCTION_P(_i("Unload all"), extr_unload_all);////MSG_UNLOAD_ALL c=17
-	MENU_ITEM_FUNCTION_P(_i("Unload filament 1"), extr_unload_0);////MSG_UNLOAD_FILAMENT_1 c=17
-	MENU_ITEM_FUNCTION_P(_i("Unload filament 2"), extr_unload_1);////MSG_UNLOAD_FILAMENT_2 c=17
-	MENU_ITEM_FUNCTION_P(_i("Unload filament 3"), extr_unload_2);////MSG_UNLOAD_FILAMENT_3 c=17
-	MENU_ITEM_FUNCTION_P(_i("Unload filament 4"), extr_unload_3);////MSG_UNLOAD_FILAMENT_4 c=17
-
-	if (mmu_enabled)
-		MENU_ITEM_FUNCTION_P(_i("Unload filament 5"), extr_unload_4);////MSG_UNLOAD_FILAMENT_5 c=17
-
-	MENU_END();
-}
-
-
-static void change_extr_menu(){
-	MENU_BEGIN();
-	MENU_ITEM_BACK_P(_T(MSG_MAIN));
-	MENU_ITEM_FUNCTION_P(_i("Extruder 1"), extr_change_0);////MSG_EXTRUDER_1 c=17 r=1
-	MENU_ITEM_FUNCTION_P(_i("Extruder 2"), extr_change_1);////MSG_EXTRUDER_2 c=17 r=1
-	MENU_ITEM_FUNCTION_P(_i("Extruder 3"), extr_change_2);////MSG_EXTRUDER_3 c=17 r=1
-	MENU_ITEM_FUNCTION_P(_i("Extruder 4"), extr_change_3);////MSG_EXTRUDER_4 c=17 r=1
-
-	MENU_END();
-}
-#endif //SNMM
 
 //unload filament for single material printer (used in M702 gcode)
 void unload_filament()
@@ -6036,20 +5506,12 @@ static void lcd_main_menu()
   }
 
 
-  if (IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal))
-  {
-	  if (farm_mode)
-	  {
-		  MENU_ITEM_SUBMENU_P(PSTR("Farm number"), lcd_farm_no);
-	  }
-  } 
-  else 
-  {
+  if (IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal)) {
+	if (farm_mode) {
+		MENU_ITEM_SUBMENU_P(PSTR("Farm number"), lcd_farm_no);
+	}
+  } else {
 
-#ifdef SNMM
-		MENU_ITEM_SUBMENU_P(_T(MSG_UNLOAD_FILAMENT), fil_unload_menu);
-		MENU_ITEM_SUBMENU_P(_i("Change extruder"), change_extr_menu);////MSG_CHANGE_EXTR c=20 r=1
-#endif
 #ifdef FILAMENT_SENSOR
 		if ((fsensor_autoload_enabled == true) && (fsensor_enabled == true) && (mmu_enabled == false))
 			MENU_ITEM_SUBMENU_P(_i("AutoLoad filament"), lcd_menu_AutoLoadFilament);////MSG_AUTOLOAD_FILAMENT c=18

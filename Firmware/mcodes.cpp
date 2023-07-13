@@ -221,7 +221,7 @@ void gcode_M114() {
   *
   */
 void M600_load_filament() {
-	//load filament for single material and SNMM 
+	//load filament for single material
 	lcd_wait_interact();
 	KEEPALIVE_STATE(PAUSED_FOR_USER);
 	while(!lcd_clicked()) {

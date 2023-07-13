@@ -196,8 +196,6 @@ int extruder_multiply[EXTRUDERS] = {100
   #endif
 };
 
-int bowden_length[4] = {385, 385, 385, 385}; //Used for Single Nozzle Multi Material? (SNMM)
-
 bool is_usb_printing = false;
 bool homing_flag = false;
 
@@ -229,7 +227,6 @@ bool loading_flag = false;
 
 
 
-char snmm_filaments_used = 0;
 
 
 bool fan_state[2];
@@ -739,10 +736,6 @@ static void factory_reset(char level) {
 				}
 			}
 			softReset();
-    break;
-
-		case 4:
-			bowden_menu();
     break;
         
     default:
@@ -1485,10 +1478,6 @@ void setup() {
 #if !defined(DEBUG_DISABLE_FANCHECK) && defined(FANCHECK) && defined(TACH_1) && TACH_1 >-1
 	setup_fan_interrupt();
 #endif //DEBUG_DISABLE_FANCHECK
-
-	for (int i = 0; i<4; i++) { 
-    EEPROM_read_B(EEPROM_BOWDEN_LENGTH + i * 2, &bowden_length[i]); 
-  }
 	
   startup_msgs(); //Disable by defining DEBUG_DISABLE_STARTMSGS
 
@@ -2977,11 +2966,6 @@ void process_commands() {
   // PRUSA GCODES
   KEEPALIVE_STATE(IN_HANDLER);
 
-#ifdef SNMM
-  float tmp_motor[3] = DEFAULT_PWM_MOTOR_CURRENT;
-  float tmp_motor_loud[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
-  int8_t SilentMode;
-#endif
   /*!
   
   ---------------------------------------------------------------------------------
@@ -5743,7 +5727,6 @@ Sigma_Exit:
       }
 	  //in the end of print set estimated time to end of print and extruders used during print to default values for next print
 	  print_time_remaining_init();
-	  snmm_filaments_used = 0;
       break;
 
     /*!
@@ -7626,20 +7609,7 @@ Sigma_Exit:
     */
 	case 702:
 	{
-#ifdef SNMM
-		if (code_seen('U'))
-			extr_unload_used(); //! if "U" unload all filaments which were used in current print
-		else if (code_seen('C'))
-			extr_unload(); //! if "C" unload just current filament
-		else
-			extr_unload_all(); //! otherwise unload all filaments
-#else
-		if (code_seen('C')) {
-		} else {
-			unload_filament();
-		}
 
-#endif //SNMM
 	}
 	break;
 
@@ -7687,7 +7657,6 @@ Sigma_Exit:
         tmp_extruder = code_value();
       }
       st_synchronize();
-      snmm_filaments_used |= (1 << tmp_extruder); //for stop print
 
       if (tmp_extruder >= EXTRUDERS) {
         SERIAL_ECHO_START;

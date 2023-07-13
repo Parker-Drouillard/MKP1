@@ -164,11 +164,6 @@ void lcd_hw_setup_menu(void);                     // NOT static due to using ins
 
 
 void change_extr(int extr);
-
-#ifdef SNMM
-void extr_unload_all(); 
-void extr_unload_used();
-#endif //SNMM
 void extr_unload();
 
 enum class FilamentAction : uint_least8_t
@@ -216,7 +211,6 @@ bool lcd_wait_for_pinda(float temp);
 #endif //PINDA_THERMISTOR
 
 
-void bowden_menu();
 char reset_menu();
 uint8_t choose_menu_P(const char *header, const char *item, const char *last_item = nullptr);
 
