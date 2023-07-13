@@ -195,11 +195,6 @@ msgstr "Piano"
 msgid "Belt status"
 msgstr "Stato cinghie"
 
-# MSG_RECOVER_PRINT c=20 r=2
-#: messages.c:67
-msgid "Blackout occurred. Recover print?"
-msgstr "Blackout rilevato. Recuperare la stampa?"
-
 # 
 #: ultralcd.cpp:8706
 msgid "Calibrating home"

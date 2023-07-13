@@ -683,15 +683,12 @@ FORCE_INLINE void advance_spread(uint16_t timer)
 
 
 FORCE_INLINE void isr() {
-  //WRITE_NC(LOGIC_ANALYZER_CH0, true);
-
-	//if (UVLO) uvlo();
   // If there is no current block, attempt to pop one from the buffer
-  if (current_block == NULL)
+  if (current_block == NULL) {
     stepper_next_block();
+  }
 
-  if (current_block != NULL) 
-  {
+  if (current_block != NULL)  {
     stepper_check_endstops();
     if (current_block->flag & BLOCK_FLAG_DDA_LOWRES)
       stepper_tick_lowres();

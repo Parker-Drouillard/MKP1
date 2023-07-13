@@ -109,9 +109,6 @@
 #MSG_MENU_BELT_STATUS c=18
 "Belt status"
 
-#MSG_RECOVER_PRINT c=20 r=2
-"Blackout occurred. Recover print?"
-
 #
 "Calibrating home"
 

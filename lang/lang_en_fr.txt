@@ -142,10 +142,6 @@
 "Belt status"
 "Statut courroie"
 
-#MSG_RECOVER_PRINT c=20 r=2
-"Blackout occurred. Recover print?"
-"Coupure detectee. Reprendre impression?"
-
 #
 "Calibrating home"
 "Calib. mise a 0"

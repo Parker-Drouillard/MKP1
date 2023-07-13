@@ -195,11 +195,6 @@ msgstr "Podlozka"
 msgid "Belt status"
 msgstr "Stav remenu"
 
-# MSG_RECOVER_PRINT c=20 r=2
-#: messages.c:67
-msgid "Blackout occurred. Recover print?"
-msgstr "Detekovan vypadek proudu.Obnovit tisk?"
-
 # 
 #: ultralcd.cpp:8706
 msgid "Calibrating home"

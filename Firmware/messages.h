@@ -63,7 +63,6 @@ extern const char MSG_PREHEAT_NOZZLE[];
 extern const char MSG_PRESS_TO_UNLOAD[];
 extern const char MSG_PRINT_ABORTED[];
 extern const char MSG_PULL_OUT_FILAMENT[];
-extern const char MSG_RECOVER_PRINT[];
 extern const char MSG_REFRESH[];
 extern const char MSG_REMOVE_STEEL_SHEET[];
 extern const char MSG_RESUMING_PRINT[];

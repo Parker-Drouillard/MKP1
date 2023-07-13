@@ -142,10 +142,6 @@
 "Belt status"
 "Stan paskow"
 
-#MSG_RECOVER_PRINT c=20 r=2
-"Blackout occurred. Recover print?"
-"Wykryto zanik napiecia. Kontynowac?"
-
 #
 "Calibrating home"
 "Zerowanie osi"

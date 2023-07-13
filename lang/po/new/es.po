@@ -195,11 +195,6 @@ msgstr "Base"
 msgid "Belt status"
 msgstr "Estado de correa"
 
-# MSG_RECOVER_PRINT c=20 r=2
-#: messages.c:67
-msgid "Blackout occurred. Recover print?"
-msgstr "Se fue la luz. ?Reanudar la impresion?"
-
 # 
 #: ultralcd.cpp:8706
 msgid "Calibrating home"

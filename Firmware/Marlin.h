@@ -400,11 +400,6 @@ float temp_compensation_pinda_thermistor_offset(float temperature_pinda);
 void serialecho_temperatures();
 bool check_commands();
 
-void uvlo_();
-void uvlo_tiny();
-void recover_print(uint8_t automatic); 
-void setup_uvlo_interrupt();
-
 #if defined(TACH_1) && TACH_1 >-1
 void setup_fan_interrupt();
 #endif
@@ -451,9 +446,6 @@ extern int8_t busy_state;
 
 // G-codes
 void gcode_M701();
-
-#define UVLO !(PINE & (1<<4))
-
 void proc_commands();
 
 

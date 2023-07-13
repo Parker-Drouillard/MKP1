@@ -142,10 +142,6 @@
 "Belt status"
 "Gurtstatus"
 
-#MSG_RECOVER_PRINT c=20 r=2
-"Blackout occurred. Recover print?"
-"Stromausfall! Druck wiederherstellen?"
-
 #
 "Calibrating home"
 "Kalibriere Start"

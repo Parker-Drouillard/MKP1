@@ -195,11 +195,6 @@ msgstr "Bett"
 msgid "Belt status"
 msgstr "Gurtstatus"
 
-# MSG_RECOVER_PRINT c=20 r=2
-#: messages.c:67
-msgid "Blackout occurred. Recover print?"
-msgstr "Stromausfall! Druck wiederherstellen?"
-
 # 
 #: ultralcd.cpp:8706
 msgid "Calibrating home"
