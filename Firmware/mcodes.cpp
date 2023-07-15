@@ -259,6 +259,87 @@ void M117(char *starpos){
 // ##   ##  ##   ##  ##   ##  ##   ##  
 // ##   ##   ## ##    ## ##    ## ## 
 
+	/*!
+### M600 - Initiate Filament change procedure <a href="https://reprap.org/wiki/G-code#M600:_Filament_change_pause">M600: Filament change pause</a>
+	Initiates Filament change, it is also used during Filament Runout Sensor process.
+If the `M600` is triggered under 25mm it will do a Z-lift of 25mm to prevent a filament blob.
+	#### Usage
+	
+			M600 [ X | Y | Z | E | L | AUTO ]
+		
+	- `X`    - X position, default 211
+	- `Y`    - Y position, default 0
+	- `Z`    - relative lift Z, default 2.
+	- `E`    - initial retract, default -2
+	- `L`    - later retract distance for removal, default -80
+	- `AUTO` - Automatically (only with MMU)
+	*/
+static void gcode_m600(){
+	st_synchronize();
+
+	float x_position = current_position[X_AXIS];
+	float y_position = current_position[Y_AXIS];
+	float z_shift = 0; // is it necessary to be a float?
+	float e_shift_init = 0;
+	float e_shift_late = 0;
+	bool automatic = false;
+
+	//Retract extruder
+	if(code_seen('E')) {
+		e_shift_init = code_value();
+	} else {
+#ifdef FILAMENTCHANGE_FIRSTRETRACT
+		e_shift_init = FILAMENTCHANGE_FIRSTRETRACT ;
+#endif
+	}
+
+	//currently don't work as we are using the same unload sequence as in M702, needs re-work 
+	if (code_seen('L')) {
+		e_shift_late = code_value();
+	} else {
+#ifdef FILAMENTCHANGE_FINALRETRACT
+		e_shift_late = FILAMENTCHANGE_FINALRETRACT;
+#endif	
+	}
+
+	//Lift Z
+	if(code_seen('Z')) {
+		z_shift = code_value();
+	} else {
+#ifdef FILAMENTCHANGE_ZADD
+		static_assert(Z_MAX_POS < (255 - FILAMENTCHANGE_ZADD), "Z-range too high, change the T type from uint8_t to uint16_t");
+		// avoid floating point arithmetics when not necessary - results in shorter code
+		float ztmp = ( current_position[Z_AXIS] );
+		z_shift = 0;
+		if(ztmp < 25){
+			z_shift = 25 - ztmp; // make sure to be at least 25mm above the heat bed
+		} 
+		z_shift + (FILAMENTCHANGE_ZADD); // always move above printout
+#else
+		zshift = 0;
+#endif
+	}
+	//Move XY to side
+	if(code_seen('X')) {
+		x_position = code_value();
+	} else {
+#ifdef FILAMENTCHANGE_XPOS
+		x_position = FILAMENTCHANGE_XPOS;
+#endif
+	}
+
+	if(code_seen('Y')) {
+		y_position = code_value();
+	} else {
+#ifdef FILAMENTCHANGE_YPOS
+		y_position = FILAMENTCHANGE_YPOS ;
+#endif
+	}
+
+	gcode_M600(automatic, x_position, y_position, z_shift, e_shift_init, e_shift_late);
+}
+
+
 /**
   * M600: Load filament for any config
   *
@@ -300,32 +381,6 @@ void M600_load_filament() {
 #endif //FSENSOR_QUALITY
 	lcd_update_enable(false);
 }
-
-
-//! extracted code to compute z_shift for M600 in case of filament change operation 
-//! requested from fsensors.
-//! The function ensures, that the printhead lifts to at least 25mm above the heat bed
-//! unlike the previous implementation, which was adding 25mm even when the head was
-//! printing at e.g. 24mm height.
-//! A safety margin of FILAMENTCHANGE_ZADD is added in all cases to avoid touching
-//! the printout.
-//! This function is templated to enable fast change of computation data type.
-//! @return new z_shift value
-template<typename T>
-static T gcode_M600_filament_change_z_shift() {
-#ifdef FILAMENTCHANGE_ZADD
-	static_assert(Z_MAX_POS < (255 - FILAMENTCHANGE_ZADD), "Z-range too high, change the T type from uint8_t to uint16_t");
-	// avoid floating point arithmetics when not necessary - results in shorter code
-	T ztmp = T( current_position[Z_AXIS] );
-	T z_shift = 0;
-	if(ztmp < T(25)){
-		z_shift = T(25) - ztmp; // make sure to be at least 25mm above the heat bed
-	} 
-	return z_shift + T(FILAMENTCHANGE_ZADD); // always move above printout
-#else
-	return T(0);
-#endif
-}	
 
 
 static void gcode_M600(bool automatic, float x_position, float y_position, float z_shift, float e_shift, float /*e_shift_late*/) {

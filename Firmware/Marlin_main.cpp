@@ -4455,25 +4455,9 @@ Sigma_Exit:
 
     #ifdef FILAMENTCHANGEENABLE
 
-    /*!
-	### M600 - Initiate Filament change procedure <a href="https://reprap.org/wiki/G-code#M600:_Filament_change_pause">M600: Filament change pause</a>
-    Initiates Filament change, it is also used during Filament Runout Sensor process.
-	If the `M600` is triggered under 25mm it will do a Z-lift of 25mm to prevent a filament blob.
-    #### Usage
-    
-        M600 [ X | Y | Z | E | L | AUTO ]
-      
-    - `X`    - X position, default 211
-    - `Y`    - Y position, default 0
-    - `Z`    - relative lift Z, default 2.
-    - `E`    - initial retract, default -2
-    - `L`    - later retract distance for removal, default -80
-    - `AUTO` - Automatically (only with MMU)
-    */
+
     case 600: //Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
-	{
-		
-	}
+      gcode_M600();
     break;
     #endif //FILAMENTCHANGEENABLE
 
