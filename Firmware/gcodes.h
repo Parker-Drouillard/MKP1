@@ -1,3 +1,6 @@
+#ifndef gcodes_h
+#define gcodes_h
+
 #include "Marlin.h"
 #include "gcodes.cpp"
 
@@ -17,3 +20,5 @@ extern static void gcode_G76(void); //PINDA probe temperature compensation calib
 extern static void gcode_G80(); // Mesh based Z probe
 extern static void gcode_G81(); //Mesh bed levelling status
 extern static void gcode_G92(); // G92 - Set current position to coordinates given
+
+#endif //gcodes_h

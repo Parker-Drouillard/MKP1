@@ -1,4 +1,25 @@
 #include "mcodes.h"
+#include "cmdqueue.h"
+#include "sound.h"
+#include "la10compat.h"
+
+
+void adjust_bed_reset() {
+	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_VALID, 1);
+	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_LEFT, 0);
+	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_RIGHT, 0);
+	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_FRONT, 0);
+	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_REAR, 0);
+}
+
+/**/
+void home_xy() {
+  set_destination_to_current();
+  homeaxis(X_AXIS);
+  homeaxis(Y_AXIS);
+  plan_set_position_curposXYZE();
+  endstops_hit_on_purpose();
+}
 
 
 
@@ -290,6 +311,7 @@ void M600_load_filament() {
 //! the printout.
 //! This function is templated to enable fast change of computation data type.
 //! @return new z_shift value
+template<typename T>
 static T gcode_M600_filament_change_z_shift() {
 #ifdef FILAMENTCHANGE_ZADD
 	static_assert(Z_MAX_POS < (255 - FILAMENTCHANGE_ZADD), "Z-range too high, change the T type from uint8_t to uint16_t");

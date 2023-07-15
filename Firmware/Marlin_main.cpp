@@ -1780,14 +1780,7 @@ void homeaxis(int axis, uint8_t cnt) {
   enable_endstops(endstops_enabled);
 }
 
-/**/
-void home_xy() {
-  set_destination_to_current();
-  homeaxis(X_AXIS);
-  homeaxis(Y_AXIS);
-  plan_set_position_curposXYZE();
-  endstops_hit_on_purpose();
-}
+
 
 void refresh_cmd_timeout(void) {
   previous_millis_cmd = _millis();
@@ -1857,17 +1850,6 @@ void gcode_M105(uint8_t extruder) {
   SERIAL_PROTOCOLLN("");
   KEEPALIVE_STATE(NOT_BUSY);
 }
-
-
-
-void adjust_bed_reset() {
-	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_VALID, 1);
-	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_LEFT, 0);
-	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_RIGHT, 0);
-	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_FRONT, 0);
-	eeprom_update_byte((unsigned char*)EEPROM_BED_CORRECTION_REAR, 0);
-}
-
 
 #ifdef EXTENDED_CAPABILITIES_REPORT
 
@@ -2712,43 +2694,6 @@ void process_commands() {
         lcd_diag_show_end_stops();
 		KEEPALIVE_STATE(IN_HANDLER);
         break;
-
-#if 0
-    case 48: // M48: scan the bed induction sensor points, print the sensor trigger coordinates to the serial line for visualization on the PC.
-    {
-        // Disable the default update procedure of the display. We will do a modal dialog.
-        lcd_update_enable(false);
-        // Let the planner use the uncorrected coordinates.
-        mbl.reset();
-        // Reset world2machine_rotation_and_skew and world2machine_shift, therefore
-        // the planner will not perform any adjustments in the XY plane. 
-        // Wait for the motors to stop and update the current position with the absolute values.
-        world2machine_revert_to_uncorrected();
-        // Move the print head close to the bed.
-        current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
-        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS],current_position[Z_AXIS] , current_position[E_AXIS], homing_feedrate[Z_AXIS]/40, active_extruder);
-        st_synchronize();
-        // Home in the XY plane.
-        set_destination_to_current();
-        int l_feedmultiply = setup_for_endstop_move();
-        home_xy();
-        int8_t verbosity_level = 0;
-        if (code_seen('V')) {
-            // Just 'V' without a number counts as V1.
-            char c = strchr_pointer[1];
-            verbosity_level = (c == ' ' || c == '\t' || c == 0) ? 1 : code_value_short();
-        }
-        bool success = scan_bed_induction_points(verbosity_level);
-        clean_up_after_endstop_move(l_feedmultiply);
-        // Print head up.
-        current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
-        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS],current_position[Z_AXIS] , current_position[E_AXIS], homing_feedrate[Z_AXIS]/40, active_extruder);
-        st_synchronize();
-        lcd_update_enable(true);
-        break;
-    }
-#endif
-
 
 #ifdef ENABLE_AUTO_BED_LEVELING
 #ifdef Z_PROBE_REPEATABILITY_TEST 
@@ -4527,72 +4472,7 @@ Sigma_Exit:
     */
     case 600: //Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
 	{
-		st_synchronize();
-
-		float x_position = current_position[X_AXIS];
-		float y_position = current_position[Y_AXIS];
-		float z_shift = 0; // is it necessary to be a float?
-		float e_shift_init = 0;
-		float e_shift_late = 0;
-		bool automatic = false;
 		
-        //Retract extruder
-        if(code_seen('E'))
-        {
-          e_shift_init = code_value();
-        }
-        else
-        {
-          #ifdef FILAMENTCHANGE_FIRSTRETRACT
-            e_shift_init = FILAMENTCHANGE_FIRSTRETRACT ;
-          #endif
-        }
-
-		//currently don't work as we are using the same unload sequence as in M702, needs re-work 
-		if (code_seen('L'))
-		{
-			e_shift_late = code_value();
-		}
-		else
-		{
-		  #ifdef FILAMENTCHANGE_FINALRETRACT
-			e_shift_late = FILAMENTCHANGE_FINALRETRACT;
-		  #endif	
-		}
-
-        //Lift Z
-        if(code_seen('Z'))
-        {
-          z_shift = code_value();
-        }
-        else
-        {
-			z_shift = gcode_M600_filament_change_z_shift<uint8_t>();
-        }
-		//Move XY to side
-        if(code_seen('X'))
-        {
-          x_position = code_value();
-        }
-        else
-        {
-          #ifdef FILAMENTCHANGE_XPOS
-			x_position = FILAMENTCHANGE_XPOS;
-          #endif
-        }
-        if(code_seen('Y'))
-        {
-          y_position = code_value();
-        }
-        else
-        {
-          #ifdef FILAMENTCHANGE_YPOS
-            y_position = FILAMENTCHANGE_YPOS ;
-          #endif
-        }
-
-		gcode_M600(automatic, x_position, y_position, z_shift, e_shift_init, e_shift_late);
-	
 	}
     break;
     #endif //FILAMENTCHANGEENABLE

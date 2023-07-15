@@ -21,7 +21,7 @@
 
 // Printer name
 #define CUSTOM_MENDEL_NAME "MKP1"
-#define PRINTER_NUMBER "018"
+#define PRINTER_NUMBER "029"
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO
@@ -33,7 +33,9 @@
 
 
 // Uncomment the below for the E3D PT100 temperature sensor (with or without PT100 Amplifier)
+#ifdef MKP15
 #define E3D_PT100_EXTRUDER_WITH_AMP
+#endif
 //#define E3D_PT100_EXTRUDER_NO_AMP
 //#define E3D_PT100_BED_WITH_AMP
 //#define E3D_PT100_BED_NO_AMP
@@ -232,12 +234,13 @@
 #define AMBIENT_MINTEMP -30
 
 // Maxtemps
-#if defined(E3D_PT100_EXTRUDER_WITH_AMP) || defined(E3D_PT100_EXTRUDER_NO_AMP)
+#ifdef MKP15
 #define HEATER_0_MAXTEMP 410
-#else
-#define HEATER_0_MAXTEMP 305
-#endif
 #define HEATER_1_MAXTEMP 410
+#else 
+#define HEATER_0_MAXTEMP 295
+#define HEATER_1_MAXTEMP 295
+#endif //MKP15
 #define HEATER_2_MAXTEMP 305
 #define BED_MAXTEMP 125
 #define AMBIENT_MAXTEMP 100
@@ -474,8 +477,13 @@
 // 247 is Pt100 with 4k7 pullup and PT100 Amplifier
 // 110 is Pt100 with 1k pullup (non standard)
 
+#ifdef MKP15
 #define TEMP_SENSOR_0 247
 #define TEMP_SENSOR_1 247
+#else 
+#define TEMP_SENSOR_0 1
+#define TEMP_SENSOR_1 1
+#endif //MKP15
 #define TEMP_SENSOR_2 0
 #if defined(E3D_PT100_BED_WITH_AMP)
 #define TEMP_SENSOR_BED 247

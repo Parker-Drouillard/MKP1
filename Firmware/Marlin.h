@@ -241,6 +241,7 @@ void cmdqueue_reset();
 
 void prepare_arc_move(char isclockwise);
 void clamp_to_software_endstops(float target[3]);
+extern int setup_for_endstop_move(bool enable_endstops_now = true);
 void refresh_cmd_timeout(void);
 
 // Timer counter, incremented by the 1ms Arduino timer.
@@ -273,6 +274,7 @@ extern float homing_feedrate[];
 extern uint8_t axis_relative_modes;
 extern float feedrate;
 extern int feedmultiply;
+extern void clean_up_after_endstop_move(int original_feedmultiply);
 extern int extrudemultiply; // Sets extrude multiply factor (in percent) for all extruders
 extern int extruder_multiply[EXTRUDERS]; // sets extrude multiply factor (in percent) for each extruder individually
 extern float extruder_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
