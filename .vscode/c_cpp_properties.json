@@ -3,16 +3,20 @@
     "configurations": [
         {
             "name": "Win32",
-            "compilerPath": "",
+            "compilerPath": "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr\\bin\\avr-gcc.exe",
             "compilerArgs": [],
-            "intelliSenseMode": "msvc-x64",
+            "intelliSenseMode": "clang-x64",
             "includePath": [
-                "C:\\Users\\Parker\\AppData\\Local\\Arduino15\\packages\\rambo\\hardware\\avr\\1.0.1\\**",
+                "C:\\Program Files (x86)/Arduino\\hardware\\tools\\avr\\avr\\include\\**",
+                "C:\\Users\\pepd9\\AppData\\Local\\Arduino15\\packages\\rambo\\hardware\\avr\\1.0.1\\**",
                 "C:\\Program Files (x86)\\Arduino\\tools\\**",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
                 "${workspaceFolder}/**",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr\\avr\\include\\avr\\**",
+                "C:\\Users\\pepd9\\Documents\\Arduino\\**",
                 "C:\\Program Files (x86)\\Arduino\\libraries\\**",
-                "C:\\Users\\Parker\\Documents\\Arduino\\libraries\\**"
+                "C:\\Users\\pepd9\\Documents\\Arduino\\libraries\\**",
+                "C:\\Working-Backup-Directory\\FIRMWARE\\Jul-2023\\MKP1\\**"
             ],
             "forcedInclude": [],
             "cStandard": "c17",
@@ -28,6 +32,7 @@
             "name": "Arduino",
             "compilerPath": "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr\\bin\\avr-g++",
             "compilerArgs": [
+                "-w",
                 "-std=gnu++11",
                 "-fpermissive",
                 "-fno-exceptions",
@@ -38,7 +43,7 @@
             "intelliSenseMode": "gcc-x64",
             "includePath": [
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino",
-                "C:\\Users\\Parker\\AppData\\Local\\Arduino15\\packages\\rambo\\hardware\\avr\\1.0.1\\variants\\rambo",
+                "C:\\Users\\pepd9\\AppData\\Local\\Arduino15\\packages\\rambo\\hardware\\avr\\1.0.1\\variants\\rambo",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries\\SPI\\src",
                 "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\lib\\gcc\\avr\\4.9.2\\include",
                 "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\lib\\gcc\\avr\\4.9.2\\include-fixed",

@@ -1,3 +1,6 @@
+#ifndef MESH_BED_LEVELING_H
+#define MESH_BED_LEVELING_H
+
 #include "Marlin.h"
 
 #ifdef MESH_BED_LEVELING
@@ -123,3 +126,5 @@ public:
 extern mesh_bed_leveling mbl;
 
 #endif  // MESH_BED_LEVELING
+
+#endif //MESH_BED_LEVELING_H

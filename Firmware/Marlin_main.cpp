@@ -270,22 +270,15 @@ uint8_t active_extruder = 0;
 int fanSpeed=0;
 
 #ifdef FWRETRACT
-  bool retracted[EXTRUDERS]={false
-    #if EXTRUDERS > 1
-    , false
-     #if EXTRUDERS > 2
-      , false
-     #endif
-  #endif
-  };
-  bool retracted_swap[EXTRUDERS]={false
-    #if EXTRUDERS > 1
-    , false
-     #if EXTRUDERS > 2
-      , false
-     #endif
-  #endif
-  };
+bool retracted[EXTRUDERS]={false
+#if EXTRUDERS > 1
+  , false
+#if EXTRUDERS > 2
+  , false
+#endif
+#endif
+};
+
 
   float retract_length_swap = RETRACT_LENGTH_SWAP;
   float retract_recover_length_swap = RETRACT_RECOVER_LENGTH_SWAP;
@@ -310,8 +303,7 @@ bool no_response = false;
 uint8_t important_status;
 uint8_t saved_filament_type;
 
-#define SAVED_TARGET_UNSET (X_MIN_POS-1)
-float saved_target[NUM_AXIS] = {SAVED_TARGET_UNSET, 0, 0, 0};
+
 
 // storing estimated time to end of print counted by slicer
 uint8_t print_percent_done_normal = PRINT_PERCENT_DONE_INIT;
@@ -1506,7 +1498,6 @@ static int setup_for_endstop_move(bool enable_endstops_now = true) {
     int l_feedmultiply = feedmultiply;
     feedmultiply = 100;
     previous_millis_cmd = _millis();
-    
     enable_endstops(enable_endstops_now);
     return l_feedmultiply;
 }
@@ -2166,7 +2157,7 @@ void process_commands() {
       gcode_G3(Stopped); //Counter Clockwise Arc move
     break;
     case 4: 
-      gcode_G4(0); //Dwell
+      previous_millis_cmd = gcode_G4(0); //Dwell
     break;
 #ifdef FWRETRACT
     case 10: 
@@ -2233,7 +2224,7 @@ void process_commands() {
 	All coordinates from now on are absolute relative to the origin of the machine. E axis is left intact.
     */
     case 90: {
-		axis_relative_modes &= ~(X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK);
+		  axis_relative_modes &= ~(X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK);
     }
     break;
 
@@ -2282,99 +2273,43 @@ void process_commands() {
 	  int index;
 	  for (index = 1; *(strchr_pointer + index) == ' ' || *(strchr_pointer + index) == '\t'; index++);
 	   
-	 /*for (++strchr_pointer; *strchr_pointer == ' ' || *strchr_pointer == '\t'; ++strchr_pointer);*/
 	  if (*(strchr_pointer+index) < '0' || *(strchr_pointer+index) > '9') {
 		  printf_P(PSTR("Invalid M code: %s \n"), cmdbuffer + bufindr + CMDHDRSIZE);
-
-	  } else
-	  {
+	  } else {
 	  mcode_in_progress = (int)code_value();
-//	printf_P(_N("BEGIN M-CODE=%u\n"), mcode_in_progress);
 
-    switch(mcode_in_progress)
-    {
+    switch(mcode_in_progress) {
 
     /*!
-	### M0, M1 - Stop the printer <a href="https://reprap.org/wiki/G-code#M0:_Stop_or_Unconditional_stop">M0: Stop or Unconditional stop</a>
+	  ### M0, M1 - Stop the printer <a href="https://reprap.org/wiki/G-code#M0:_Stop_or_Unconditional_stop">M0: Stop or Unconditional stop</a>
     */
     case 0: // M0 - Unconditional stop - Wait for user button press on LCD
     case 1: // M1 - Conditional stop - Wait for user button press on LCD
-    {
-      char *src = strchr_pointer + 2;
-
-      codenum = 0;
-
-      bool hasP = false, hasS = false;
-      if (code_seen('P')) {
-        codenum = code_value(); // milliseconds to wait
-        hasP = codenum > 0;
-      }
-      if (code_seen('S')) {
-        codenum = code_value() * 1000; // seconds to wait
-        hasS = codenum > 0;
-      }
-      starpos = strchr(src, '*');
-      if (starpos != NULL) *(starpos) = '\0';
-      while (*src == ' ') ++src;
-      if (!hasP && !hasS && *src != '\0') {
-        lcd_setstatus(src);
-      } else {
-        LCD_MESSAGERPGM(_i("Wait for user..."));////MSG_USERWAIT
-      }
-
-      lcd_ignore_click();				//call lcd_ignore_click aslo for else ???
-      st_synchronize();
-      previous_millis_cmd = _millis();
-      if (codenum > 0){
-        codenum += _millis();  // keep track of when we started waiting
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-        while(_millis() < codenum && !lcd_clicked()){
-          manage_heater();
-          manage_inactivity(true);
-          lcd_update(0);
-        }
-		KEEPALIVE_STATE(IN_HANDLER);
-        lcd_ignore_click(false);
-      }else{
-        marlin_wait_for_click();
-      }
-      if (IS_SD_PRINTING)
-        LCD_MESSAGERPGM(_T(MSG_RESUMING_PRINT));
-      else
-        LCD_MESSAGERPGM(_T(WELCOME_MSG));
-    }
+      previous_millis_cmd = gcode_M1(char *starpos);
     break;
 
     /*!
 	### M17 - Enable all axes <a href="https://reprap.org/wiki/G-code#M17:_Enable.2FPower_all_stepper_motors">M17: Enable/Power all stepper motors</a>
     */
     case 17:
-        LCD_MESSAGERPGM(_i("No move."));////MSG_NO_MOVE
-        enable_x();
-        enable_y();
-        enable_z();
-        enable_e0();
-        enable_e1();
-        enable_e2();
-      break;
+      gcode_M17();
+    break;
 
 #ifdef SDSUPPORT
 
     /*!
-	### M20 - SD Card file list <a href="https://reprap.org/wiki/G-code#M20:_List_SD_card">M20: List SD card</a>
+	  ### M20 - SD Card file list <a href="https://reprap.org/wiki/G-code#M20:_List_SD_card">M20: List SD card</a>
     */
     case 20:
-      SERIAL_PROTOCOLLNRPGM(_N("Begin file list"));////MSG_BEGIN_FILE_LIST
-      card.ls();
-      SERIAL_PROTOCOLLNRPGM(_N("End file list"));////MSG_END_FILE_LIST
-      break;
+      gcode_M20();
+    break;
 
     /*!
-	### M21 - Init SD card <a href="https://reprap.org/wiki/G-code#M21:_Initialize_SD_card">M21: Initialize SD card</a>
+	  ### M21 - Init SD card <a href="https://reprap.org/wiki/G-code#M21:_Initialize_SD_card">M21: Initialize SD card</a>
     */
     case 21:
       card.initsd();
-      break;
+    break;
 
     /*!
 	### M22 - Release SD card <a href="https://reprap.org/wiki/G-code#M22:_Release_SD_card">M22: Release SD card</a>
@@ -3171,28 +3106,27 @@ Sigma_Exit:
     target_direction = isHeatingBed(); // true if heating, false if cooling
 
 		KEEPALIVE_STATE(NOT_BUSY);
-        while ( (target_direction)&&(!cancel_heatup) ? (isHeatingBed()) : (isCoolingBed()&&(CooldownNoWait==false)) ) {
-          if(( _millis() - codenum) > 1000 ) { //Print Temp Reading every 1 second while heating up.
-				  float tt = degHotend(active_extruder);
-				  SERIAL_PROTOCOLPGM("T:");
-				  SERIAL_PROTOCOL(tt);
-				  SERIAL_PROTOCOLPGM(" E:");
-				  SERIAL_PROTOCOL((int)active_extruder);
-				  SERIAL_PROTOCOLPGM(" B:");
-				  SERIAL_PROTOCOL_F(degBed(), 1);
-				  SERIAL_PROTOCOLLN("");
-				  codenum = _millis();
-			  
-          }
-          manage_heater();
-          manage_inactivity();
-          lcd_update(0);
-        }
-        LCD_MESSAGERPGM(_T(MSG_BED_DONE));
+    while ( (target_direction)&&(!cancel_heatup) ? (isHeatingBed()) : (isCoolingBed()&&(CooldownNoWait==false)) ) {
+      if(( _millis() - codenum) > 1000 ) { //Print Temp Reading every 1 second while heating up.
+        float tt = degHotend(active_extruder);
+        SERIAL_PROTOCOLPGM("T:");
+        SERIAL_PROTOCOL(tt);
+        SERIAL_PROTOCOLPGM(" E:");
+        SERIAL_PROTOCOL((int)active_extruder);
+        SERIAL_PROTOCOLPGM(" B:");
+        SERIAL_PROTOCOL_F(degBed(), 1);
+        SERIAL_PROTOCOLLN("");
+        codenum = _millis();
+      }
+      manage_heater();
+      manage_inactivity();
+      lcd_update(0);
+    }
+    LCD_MESSAGERPGM(_T(MSG_BED_DONE));
 		KEEPALIVE_STATE(IN_HANDLER);
 		heating_status = 4;
 
-        previous_millis_cmd = _millis();
+    previous_millis_cmd = _millis();
     }
     #endif
         break;
@@ -3280,7 +3214,7 @@ Sigma_Exit:
     */
     case 82:
       axis_relative_modes &= ~E_AXIS_MASK;
-      break;
+    break;
 
     /*!
 	### M83 - Set E axis to relative mode <a href="https://reprap.org/wiki/G-code#M83:_Set_extruder_to_relative_mode">M83: Set extruder to relative mode</a>
@@ -3288,7 +3222,7 @@ Sigma_Exit:
     */
     case 83:
       axis_relative_modes |= E_AXIS_MASK;
-      break;
+    break;
 
     /*!
 	### M84 - Disable steppers <a href="https://reprap.org/wiki/G-code#M84:_Stop_idle_hold">M84: Stop idle hold</a>
@@ -3312,24 +3246,19 @@ Sigma_Exit:
     case 84: // M84
       if(code_seen('S')){
         stepper_inactive_time = code_value() * 1000;
-      }
-      else
-      {
+      } else {
         bool all_axis = !((code_seen(axis_codes[X_AXIS])) || (code_seen(axis_codes[Y_AXIS])) || (code_seen(axis_codes[Z_AXIS]))|| (code_seen(axis_codes[E_AXIS])));
-        if(all_axis)
-        {
+        if(all_axis) {
           st_synchronize();
           disable_e0();
           disable_e1();
           disable_e2();
           finishAndDisableSteppers();
-        }
-        else
-        {
+        } else {
           st_synchronize();
-		  if (code_seen('X')) disable_x();
-		  if (code_seen('Y')) disable_y();
-		  if (code_seen('Z')) disable_z();
+		  if (code_seen('X')) {disable_x();}
+		  if (code_seen('Y')) {disable_y();}
+		  if (code_seen('Z')) {disable_z();}
 #if ((E0_ENABLE_PIN != X_ENABLE_PIN) && (E1_ENABLE_PIN != Y_ENABLE_PIN)) // Only enable on boards that have seperate ENABLE_PINS
 		  if (code_seen('E')) {
 			  disable_e0();
@@ -4486,8 +4415,9 @@ Sigma_Exit:
 	### M602 - Resume print <a href="https://reprap.org/wiki/G-code#M602:_Resume_print">M602: Resume print</a>
     */
 	case 602: {
-	  if (isPrintPaused)
+	  if (isPrintPaused) {
           lcd_resume_print();
+        }
 	}
 	break;
 
@@ -4536,8 +4466,7 @@ Sigma_Exit:
 		}
 
 		while ( ((!is_pinda_cooling) && (!cancel_heatup) && (current_temperature_pinda < set_target_pinda)) || (is_pinda_cooling && (current_temperature_pinda > set_target_pinda)) ) {
-			if ((_millis() - codenum) > 1000) //Print Temp Reading every 1 second while waiting.
-			{
+			if ((_millis() - codenum) > 1000){ //Print Temp Reading every 1 second while waiting.
 				SERIAL_PROTOCOLPGM("P:");
 				SERIAL_PROTOCOL_F(current_temperature_pinda, 1);
 				SERIAL_PROTOCOL('/');
@@ -4549,7 +4478,6 @@ Sigma_Exit:
 			lcd_update(0);
 		}
 		LCD_MESSAGERPGM(MSG_OK);
-
 		break;
 	}
  
@@ -4828,14 +4756,9 @@ Sigma_Exit:
     }
     break;
 
-  /*!
-  ### M701 - Load filament <a href="https://reprap.org/wiki/G-code#M701:_Load_filament">M701: Load filament</a>
-  
-  */
+
 	case 701:
-	{
 		gcode_M701();
-	}
 	break;
 
     /*!
@@ -4850,9 +4773,6 @@ Sigma_Exit:
     - without any parameters unload all filaments
     */
 	case 702:
-	{
-
-	}
 	break;
 
     /*!
@@ -4871,7 +4791,6 @@ Sigma_Exit:
 	default: 
 		printf_P(PSTR("Unknown M code: %s \n"), cmdbuffer + bufindr + CMDHDRSIZE);
     }
-//	printf_P(_N("END M-CODE=%u\n"), mcode_in_progress);
 	mcode_in_progress = 0;
 	}
   }
@@ -5292,17 +5211,11 @@ void get_coordinates()
     next_feedrate = code_value();
 #ifdef MAX_SILENT_FEEDRATE
 #endif //MAX_SILENT_FEEDRATE
-    if(next_feedrate > 0.0) feedrate = next_feedrate;
-	if (!seen[0] && !seen[1] && !seen[2] && seen[3])
-	{
-//		float e_max_speed = 
-//		printf_P(PSTR("E MOVE speed %7.3f\n"), feedrate / 60)
-	}
+    if(next_feedrate > 0.0) {feedrate = next_feedrate;}
   }
 }
 
-void get_arc_coordinates()
-{
+void get_arc_coordinates() {
 #ifdef SF_ARC_FIX
    bool relative_mode_backup = relative_mode;
    relative_mode = true;
@@ -5314,14 +5227,12 @@ void get_arc_coordinates()
 
    if(code_seen('I')) {
      offset[0] = code_value();
-   }
-   else {
+   } else {
      offset[0] = 0.0;
    }
    if(code_seen('J')) {
      offset[1] = code_value();
-   }
-   else {
+   } else {
      offset[1] = 0.0;
    }
 }
@@ -5590,16 +5501,6 @@ static uint16_t nFSCheckCount=0;
 				// avoiding floating point operations, thus computing in raw
 				if( current_voltage_raw_IR > maxVolt )maxVolt = current_voltage_raw_IR;
 				if( current_voltage_raw_IR < minVolt )minVolt = current_voltage_raw_IR;
-				
-#if 0 // Start: IR Sensor debug info
-				{ // debug print
-					static uint16_t lastVolt = ~0U;
-					if( current_voltage_raw_IR != lastVolt ){
-						printf_P(PSTR("fs volt=%4.2fV (min=%4.2f max=%4.2f)\n"), Raw2Voltage(current_voltage_raw_IR), Raw2Voltage(minVolt), Raw2Voltage(maxVolt) );
-						lastVolt = current_voltage_raw_IR;
-					}
-				}
-#endif // End: IR Sensor debug info
 				//! The trouble is, I can hold the filament in the hole in such a way, that it creates the exact voltage
 				//! to be detected as the new fsensor
 				//! We can either fake it by extending the detection window to a looooong time
@@ -6687,12 +6588,10 @@ ISR(INT7_vect) {
 //!
 //! @param z_move
 //! @param e_move
-void stop_and_save_print_to_ram(float z_move, float e_move)
-{
-	if (saved_printing) return;
-#if 0
-	unsigned char nplanner_blocks;
-#endif
+void stop_and_save_print_to_ram(float z_move, float e_move) {
+	if (saved_printing) {
+    return;
+  }
 	unsigned char nlines;
 	uint16_t sdlen_planner;
 	uint16_t sdlen_cmdqueue;
@@ -6700,9 +6599,7 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
 
 	cli();
 	if (card.sdprinting) {
-#if 0
-		nplanner_blocks = number_of_blocks();
-#endif
+
 		saved_sdpos = sdpos_atomic; //atomic sd position of last command added in queue
 		sdlen_planner = planner_calc_sd_length(); //length of sd commands in planner
 		saved_sdpos -= sdlen_planner;
@@ -6710,116 +6607,24 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
 		saved_sdpos -= sdlen_cmdqueue;
 		saved_printing_type = PRINTING_TYPE_SD;
 
-	}
-	else if (is_usb_printing) { //reuse saved_sdpos for storing line number
+	} else if (is_usb_printing) { //reuse saved_sdpos for storing line number
 		 saved_sdpos = gcode_LastN; //start with line number of command added recently to cmd queue
 		 //reuse planner_calc_sd_length function for getting number of lines of commands in planner:
 		 nlines = planner_calc_sd_length(); //number of lines of commands in planner 
 		 saved_sdpos -= nlines;
 		 saved_sdpos -= buflen; //number of blocks in cmd buffer
 		 saved_printing_type = PRINTING_TYPE_USB;
-	}
-	else {
+	} else {
 		 saved_printing_type = PRINTING_TYPE_NONE;
 		 //not sd printing nor usb printing
 	}
 
-#if 0
-  SERIAL_ECHOPGM("SDPOS_ATOMIC="); MYSERIAL.println(sdpos_atomic, DEC);
-  SERIAL_ECHOPGM("SDPOS="); MYSERIAL.println(card.get_sdpos(), DEC);
-  SERIAL_ECHOPGM("SDLEN_PLAN="); MYSERIAL.println(sdlen_planner, DEC);
-  SERIAL_ECHOPGM("SDLEN_CMDQ="); MYSERIAL.println(sdlen_cmdqueue, DEC);
-  SERIAL_ECHOPGM("PLANNERBLOCKS="); MYSERIAL.println(int(nplanner_blocks), DEC);
-  SERIAL_ECHOPGM("SDSAVED="); MYSERIAL.println(saved_sdpos, DEC);
-  //SERIAL_ECHOPGM("SDFILELEN="); MYSERIAL.println(card.fileSize(), DEC);
-
-
-  {
-    card.setIndex(saved_sdpos);
-    SERIAL_ECHOLNPGM("Content of planner buffer: ");
-    for (unsigned int idx = 0; idx < sdlen_planner; ++ idx)
-      MYSERIAL.print(char(card.get()));
-    SERIAL_ECHOLNPGM("Content of command buffer: ");
-    for (unsigned int idx = 0; idx < sdlen_cmdqueue; ++ idx)
-      MYSERIAL.print(char(card.get()));
-    SERIAL_ECHOLNPGM("End of command buffer");
-  }
-  {
-    // Print the content of the planner buffer, line by line:
-    card.setIndex(saved_sdpos);
-    int8_t iline = 0;
-    for (unsigned char idx = block_buffer_tail; idx != block_buffer_head; idx = (idx + 1) & (BLOCK_BUFFER_SIZE - 1), ++ iline) {
-      SERIAL_ECHOPGM("Planner line (from file): ");
-      MYSERIAL.print(int(iline), DEC);
-      SERIAL_ECHOPGM(", length: ");
-      MYSERIAL.print(block_buffer[idx].sdlen, DEC);
-      SERIAL_ECHOPGM(", steps: (");
-      MYSERIAL.print(block_buffer[idx].steps_x, DEC);
-      SERIAL_ECHOPGM(",");
-      MYSERIAL.print(block_buffer[idx].steps_y, DEC);
-      SERIAL_ECHOPGM(",");
-      MYSERIAL.print(block_buffer[idx].steps_z, DEC);
-      SERIAL_ECHOPGM(",");
-      MYSERIAL.print(block_buffer[idx].steps_e, DEC);
-      SERIAL_ECHOPGM("), events: ");
-      MYSERIAL.println(block_buffer[idx].step_event_count, DEC);
-      for (int len = block_buffer[idx].sdlen; len > 0; -- len)
-        MYSERIAL.print(char(card.get()));
-    }
-  }
-  {
-    // Print the content of the command buffer, line by line:
-    int8_t iline = 0;
-    union {
-        struct {
-            char lo;
-            char hi;
-        } lohi;
-        uint16_t value;
-    } sdlen_single;
-    int _bufindr = bufindr;
-	for (int _buflen  = buflen; _buflen > 0; ++ iline) {
-        if (cmdbuffer[_bufindr] == CMDBUFFER_CURRENT_TYPE_SDCARD) {
-            sdlen_single.lohi.lo = cmdbuffer[_bufindr + 1];
-            sdlen_single.lohi.hi = cmdbuffer[_bufindr + 2];
-        }		 
-        SERIAL_ECHOPGM("Buffer line (from buffer): ");
-        MYSERIAL.print(int(iline), DEC);
-        SERIAL_ECHOPGM(", type: ");
-        MYSERIAL.print(int(cmdbuffer[_bufindr]), DEC);
-        SERIAL_ECHOPGM(", len: ");
-        MYSERIAL.println(sdlen_single.value, DEC);
-        // Print the content of the buffer line.
-        MYSERIAL.println(cmdbuffer + _bufindr + CMDHDRSIZE);
-
-        SERIAL_ECHOPGM("Buffer line (from file): ");
-        MYSERIAL.println(int(iline), DEC);
-        for (; sdlen_single.value > 0; -- sdlen_single.value)
-          MYSERIAL.print(char(card.get()));
-
-        if (-- _buflen == 0)
-          break;
-        // First skip the current command ID and iterate up to the end of the string.
-        for (_bufindr += CMDHDRSIZE; cmdbuffer[_bufindr] != 0; ++ _bufindr) ;
-        // Second, skip the end of string null character and iterate until a nonzero command ID is found.
-        for (++ _bufindr; _bufindr < sizeof(cmdbuffer) && cmdbuffer[_bufindr] == 0; ++ _bufindr) ;
-        // If the end of the buffer was empty,
-        if (_bufindr == sizeof(cmdbuffer)) {
-            // skip to the start and find the nonzero command.
-            for (_bufindr = 0; cmdbuffer[_bufindr] == 0; ++ _bufindr) ;
-        }
-    }
-  }
-#endif
 
   // save the global state at planning time
-  if (current_block)
-  {
+  if (current_block) {
       memcpy(saved_target, current_block->gcode_target, sizeof(saved_target));
       saved_feedrate2 = current_block->gcode_feedrate;
-  }
-  else
-  {
+  } else {
       saved_target[0] = SAVED_TARGET_UNSET;
       saved_feedrate2 = feedrate;
   }
@@ -6839,14 +6644,12 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
   st_reset_timer();
 	sei();
 	if ((z_move != 0) || (e_move != 0)) { // extruder or z move
-#if 1
     // Rather than calling plan_buffer_line directly, push the move into the command queue so that
     // the caller can continue processing. This is used during powerpanic to save the state as we
     // move away from the print.
     char buf[48];
 
-    if(e_move)
-    {
+    if(e_move) {
         // First unretract (relative extrusion)
         if(!saved_extruder_relative_mode){
             enquecommand(PSTR("M83"), true);
@@ -6871,12 +6674,7 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
     // If this call is invoked from the main Arduino loop() function, let the caller know that the command
     // in the command queue is not the original command, but a new one, so it should not be removed from the queue.
     repeatcommand_front();
-#else
-		plan_buffer_line(saved_pos[X_AXIS], saved_pos[Y_AXIS], saved_pos[Z_AXIS] + z_move, saved_pos[E_AXIS] + e_move, homing_feedrate[Z_AXIS], active_extruder);
-    st_synchronize(); //wait moving
-    memcpy(current_position, saved_pos, sizeof(saved_pos));
-    memcpy(destination, current_position, sizeof(destination));
-#endif
+
     waiting_inside_plan_buffer_line_print_aborted = true; //unroll the stack
   }
 }
@@ -7020,122 +6818,7 @@ void load_filament_final_feed() {
 	plan_buffer_line_curposXYZE(FILAMENTCHANGE_EFEED_FINAL);
 }
 
-//! @brief Wait for user to check the state
-//! @par nozzle_temp nozzle temperature to load filament
-void M600_check_state(float nozzle_temp){
-  lcd_change_fil_state = 0;
-    while (lcd_change_fil_state != 1) {
-      lcd_change_fil_state = 0;
-      KEEPALIVE_STATE(PAUSED_FOR_USER);
-      lcd_alright();
-      KEEPALIVE_STATE(IN_HANDLER);
-      switch(lcd_change_fil_state) {
-        // Filament failed to load so load it again
-        case 2:
-          current_position[E_AXIS]+= FILAMENTCHANGE_FIRSTFEED ;
-          plan_buffer_line_curposXYZE(FILAMENTCHANGE_EFEED_FIRST);
-          load_filament_final_feed();
-          lcd_loading_filament();
-          st_synchronize();
-        break;
-        // Filament loaded properly but color is not clear
-        case 3:
-          st_synchronize();
-          load_filament_final_feed();
-          lcd_loading_color();
-          st_synchronize();
-        break;
 
-        // Everything good
-        default:
-            lcd_change_success();
-          break;
-        }
-    }
-}
-
-//! @brief Wait for user action
-//!
-//! Beep, manage nozzle heater and wait for user to start unload filament
-//! If times out, active extruder temperature is set to 0.
-//!
-//! @param HotendTempBckp Temperature to be restored for active extruder, after user resolves MMU problem.
-void M600_wait_for_user(float HotendTempBckp) {
-
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-
-		int counterBeep = 0;
-		unsigned long waiting_start_time = _millis();
-		uint8_t wait_for_user_state = 0;
-		lcd_display_message_fullscreen_P(_T(MSG_PRESS_TO_UNLOAD));
-		bool bFirst=true;
-
-		while (!(wait_for_user_state == 0 && lcd_clicked())){
-			manage_heater();
-			manage_inactivity(true);
-
-			#if BEEPER > 0
-			if (counterBeep == 500) {
-				counterBeep = 0;
-			}
-			SET_OUTPUT(BEEPER);
-			if (counterBeep == 0) {
-				if((eSoundMode==e_SOUND_MODE_BLIND)|| (eSoundMode==e_SOUND_MODE_LOUD)||((eSoundMode==e_SOUND_MODE_ONCE)&&bFirst))
-				{
-					bFirst=false;
-					WRITE(BEEPER, HIGH);
-				}
-			}
-			if (counterBeep == 20) {
-				WRITE(BEEPER, LOW);
-			}
-				
-			counterBeep++;
-			#endif //BEEPER > 0
-			
-			switch (wait_for_user_state) {
-			case 0: //nozzle is hot, waiting for user to press the knob to unload filament
-				delay_keep_alive(4);
-
-				if (_millis() > waiting_start_time + (unsigned long)M600_TIMEOUT * 1000) {
-					lcd_display_message_fullscreen_P(_i("Press knob to preheat nozzle and continue."));////MSG_PRESS_TO_PREHEAT c=20 r=4
-					wait_for_user_state = 1;
-					setAllTargetHotends(0);
-					st_synchronize();
-					disable_e0();
-					disable_e1();
-					disable_e2();
-				}
-				break;
-			case 1: //nozzle target temperature is set to zero, waiting for user to start nozzle preheat
-				delay_keep_alive(4);
-		
-				if (lcd_clicked()) {
-					setTargetHotend(HotendTempBckp, active_extruder);
-					lcd_wait_for_heater();
-
-					wait_for_user_state = 2;
-				}
-				break;
-			case 2: //waiting for nozzle to reach target temperature
-
-				if (abs(degTargetHotend(active_extruder) - degHotend(active_extruder)) < 1) {
-					lcd_display_message_fullscreen_P(_T(MSG_PRESS_TO_UNLOAD));
-					waiting_start_time = _millis();
-					wait_for_user_state = 0;
-				}
-				else {
-					counterBeep = 20; //beeper will be inactive during waiting for nozzle preheat
-					lcd_set_cursor(1, 4);
-					lcd_print(ftostr3(degHotend(active_extruder)));
-				}
-				break;
-
-			}
-
-		}
-		WRITE(BEEPER, LOW);
-}
 
 
 

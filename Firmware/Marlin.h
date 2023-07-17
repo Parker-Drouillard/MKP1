@@ -27,11 +27,11 @@ extern uint8_t mbl_z_probe_nr;
 #define  HardwareSerial_h // trick to disable the standard HWserial
 #endif
 
-#if (ARDUINO >= 100)
-# include "Arduino.h"
-#else
-# include "WProgram.h"
-#endif
+// #if (ARDUINO >= 100)
+#include "Arduino.h"
+// #else
+// # include "WProgram.h"
+// #endif
 
 // Arduino < 1.0.0 does not define this, so we need to do it ourselves
 #ifndef analogInputToDigitalPin
@@ -104,6 +104,8 @@ extern const char echomagic[] PROGMEM;
 #define SERIAL_ECHOLNRPGM(x) SERIAL_PROTOCOLLNRPGM(x)
 
 #define SERIAL_ECHOPAIR(name,value) (serial_echopair_P(PSTR(name),(value)))
+
+
 
 void serial_echopair_P(const char *s_P, float v);
 void serial_echopair_P(const char *s_P, double v);
@@ -283,6 +285,8 @@ extern float destination[NUM_AXIS] ;
 extern float min_pos[3][2];
 extern float max_pos[3];
 extern bool axis_known_position[3];
+extern char axis_codes[NUM_AXIS];
+extern float saved_feedrate;
 extern int fanSpeed;
 extern int8_t lcd_change_fil_state;
 extern float default_retraction;
@@ -297,6 +301,7 @@ extern unsigned char fanSpeedSoftPwm;
 extern bool retracted[EXTRUDERS];
 extern float retract_length_swap;
 extern float retract_recover_length_swap;
+extern void retract(bool retracting, bool swapretract = false);
 #endif
 
 
@@ -443,21 +448,18 @@ extern uint8_t calc_percent_done();
 
 #define KEEPALIVE_STATE(n) do { busy_state = n;} while (0)
 extern void host_keepalive();
-//extern MarlinBusyState busy_state;
 extern int8_t busy_state;
 
 // G-codes
-void gcode_M701();
 void proc_commands();
-
-
-void M600_load_filament();
-void M600_load_filament_movements();
-void M600_wait_for_user(float HotendTempBckp);
-void M600_check_state(float nozzle_temp);
+extern void get_arc_coordinates();
 void load_filament_final_feed();
 void marlin_wait_for_click();
 void raise_z_above(float target, bool plan=true);
+
+#define SAVED_TARGET_UNSET (X_MIN_POS-1)
+
+extern float saved_target[NUM_AXIS] = {SAVED_TARGET_UNSET, 0, 0, 0};
 
 extern "C" void softReset();
 

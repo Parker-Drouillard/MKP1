@@ -49,6 +49,7 @@
 #include "la10compat.h"
 #endif
 
+#include "gcodes.h"
 
 static void lcd_sd_updir();
 static void lcd_mesh_bed_leveling_settings();

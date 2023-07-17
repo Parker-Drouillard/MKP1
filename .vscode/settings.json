@@ -1,5 +1,7 @@
 {
     "arduino.additionalUrls": "",
     "cmake.configureOnOpen": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "C_Cpp.default.compilerPath": "C:\\cygwin64\\bin\\gcc.exe",
+    "C_Cpp.errorSquiggles": "disabled"
 }

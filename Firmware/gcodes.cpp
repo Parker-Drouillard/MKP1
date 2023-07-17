@@ -1,5 +1,14 @@
 #include "Marlin.h"
 
+bool retracted_swap[EXTRUDERS]={false
+#if EXTRUDERS > 1
+  , false
+#if EXTRUDERS > 2
+  , false
+#endif
+#endif
+};
+
 //                         ## ##    ## ##             ## ##      ##    
 //                        ##   ##  ##   ##           ##   ##    ###    
 //                        ##       ##   ##           ##          ##    
@@ -222,18 +231,20 @@ G4 [ P | S ]
 - `P` - Time to wait, in milliseconds
 - `S` - Time to wait, in seconds
 */
-static void gcode_G4(unsigned long codenum){
+static unsigned long gcode_G4(unsigned long codenum){
   if(code_seen('P')) {codenum = code_value();} // milliseconds to wait
   if(code_seen('S')) {codenum = code_value() * 1000; }// seconds to wait
   if(codenum != 0) { LCD_MESSAGERPGM(_n("Sleep...")); }////MSG_DWELL
   st_synchronize();
   codenum += _millis();  // keep track of when we started waiting
-  previous_millis_cmd = _millis();
+  unsigned long previous_millis_cmd = _millis();
   while(_millis() < codenum) {
     manage_heater();
     manage_inactivity();
     lcd_update(0);
   }
+
+  return previous_millis_cmd;
 }
 
 
@@ -285,27 +296,6 @@ static void gcode_G11(){
   - `W` - Suppress mesh bed leveling if `X`, `Y` or `Z` are not provided
   - `C` - Calibrate X and Y origin (home) - Only on MK3/s
 	*/
-static void gcode_G28(){
-  long home_x_value = 0;
-  long home_y_value = 0;
-  long home_z_value = 0;
-  // Which axes should be homed?
-  bool home_x = code_seen(axis_codes[X_AXIS]);
-  home_x_value = code_value_long();
-  bool home_y = code_seen(axis_codes[Y_AXIS]);
-  home_y_value = code_value_long();
-  bool home_z = code_seen(axis_codes[Z_AXIS]);
-  home_z_value = code_value_long();
-  bool without_mbl = code_seen('W');
-  // calibrate?
-  gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, without_mbl);
-  if ((home_x || home_y || without_mbl || home_z) == false) {
-      // Push the commands to the front of the message queue in the reverse order!
-      // There shall be always enough space reserved for these commands.
-      gcode_G80();
-  }
-}
-
 static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_y_value, bool home_z_axis, long home_z_value, bool without_mbl) {
 	st_synchronize();
 	// Flag for the display update routine and to disable the print cancelation during homing.
@@ -554,6 +544,27 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
 
 static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis) {
   gcode_G28(home_x_axis, 0, home_y_axis, 0, home_z_axis, 0, true);
+}
+
+static void gcode_G28(){
+  long home_x_value = 0;
+  long home_y_value = 0;
+  long home_z_value = 0;
+  // Which axes should be homed?
+  bool home_x = code_seen(axis_codes[X_AXIS]);
+  home_x_value = code_value_long();
+  bool home_y = code_seen(axis_codes[Y_AXIS]);
+  home_y_value = code_value_long();
+  bool home_z = code_seen(axis_codes[Z_AXIS]);
+  home_z_value = code_value_long();
+  bool without_mbl = code_seen('W');
+  // calibrate?
+  gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, without_mbl);
+  if ((home_x || home_y || without_mbl || home_z) == false) {
+      // Push the commands to the front of the message queue in the reverse order!
+      // There shall be always enough space reserved for these commands.
+      gcode_G80();
+  }
 }
 
 

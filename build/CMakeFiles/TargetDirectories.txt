@@ -1,0 +1,3 @@
+C:/Working-Backup-Directory/FIRMWARE/Jul 2023/MKP1/build/CMakeFiles/tests.dir
+C:/Working-Backup-Directory/FIRMWARE/Jul 2023/MKP1/build/CMakeFiles/ALL_BUILD.dir
+C:/Working-Backup-Directory/FIRMWARE/Jul 2023/MKP1/build/CMakeFiles/ZERO_CHECK.dir
