@@ -8035,8 +8035,14 @@ Sigma_Exit:
               homeaxis(X_AXIS);
               homeaxis(Y_AXIS);
             }
+            //Set new relative positions & move toolhead to proper location
+            set_destination_to_current();
+
+            current_position[0] = current_position[0] - extruder_offset[0][active_extruder] + extruder_offset[0][tmp_extruder];
+            current_position[1] = current_position[1] - extruder_offset[1][active_extruder] + extruder_offset[1][tmp_extruder];
+            current_position[2] = current_position[2] - extruder_offset[2][active_extruder] + extruder_offset[2][tmp_extruder];
+
             // memcpy(destination, current_position, sizeof(destination));
-            // Offset extruder (only by XY)
   // for (int i = 0; i < 3; i++) {
   //   current_position[i] = current_position[i] - extruder_offset[i][active_extruder] + extruder_offset[i][tmp_extruder];
   //   if(current_position[i] < min_pos[i][active_extruder]){
