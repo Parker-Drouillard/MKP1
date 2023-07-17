@@ -7,7 +7,6 @@
 
 #define BOARD_NAME "Rambo"
 #define ELECTRONICS "Rambo 1.4"
-#define __AVR_ATmega2560__
 
 #ifndef KNOWN_BOARD
   #define KNOWN_BOARD

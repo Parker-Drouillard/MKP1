@@ -20,7 +20,7 @@
 #define DEVELOPER
 
 // Printer name
-#define CUSTOM_MENDEL_NAME "MKP15"
+#define CUSTOM_MENDEL_NAME "MKP1"
 #define PRINTER_NUMBER "027"
 
 // Electronics
@@ -33,7 +33,7 @@
 
 
 // Uncomment the below for the E3D PT100 temperature sensor (with or without PT100 Amplifier)
-#define E3D_PT100_EXTRUDER_WITH_AMP
+//#define E3D_PT100_EXTRUDER_WITH_AMP
 //#define E3D_PT100_EXTRUDER_NO_AMP
 //#define E3D_PT100_BED_WITH_AMP
 //#define E3D_PT100_BED_NO_AMP
@@ -317,7 +317,7 @@
 #if defined(E3D_PT100_EXTRUDER_WITH_AMP) || defined(E3D_PT100_EXTRUDER_NO_AMP)
 #define HEATER_0_MAXTEMP 410
 #else
-#define HEATER_0_MAXTEMP 410
+#define HEATER_0_MAXTEMP 305
 #endif
 #define HEATER_1_MAXTEMP 305
 #define HEATER_2_MAXTEMP 305
@@ -383,12 +383,12 @@
  ADDITIONAL FEATURES SETTINGS
  *------------------------------------*/
 
-// Define filament runout sensor
+// Define Prusa filament runout sensor
 #define FILAMENT_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
 #define FILAMENT_RUNOUT_SENSOR FIL_RUNOUT_PIN
-#if EXTRUDERS > 1 && defined(FIL_RUNOUT2_PIN)
+#if FIL_RUNOUT2_PIN > -1
 #define FILAMENT_RUNOUT2_SENSOR FIL_RUNOUT2_PIN
 #endif
 #endif
@@ -554,8 +554,8 @@
 // 247 is Pt100 with 4k7 pullup and PT100 Amplifier
 // 110 is Pt100 with 1k pullup (non standard)
 
-#define TEMP_SENSOR_0 247
-#define TEMP_SENSOR_1 247
+#define TEMP_SENSOR_0 1
+#define TEMP_SENSOR_1 1
 #define TEMP_SENSOR_2 0
 #if defined(E3D_PT100_BED_WITH_AMP)
 #define TEMP_SENSOR_BED 247
