@@ -54,7 +54,7 @@ unsigned long gcode_M1(char *starpos){
 
 	lcd_ignore_click();				//call lcd_ignore_click aslo for else ???
 	st_synchronize();
-	unsigned long previous_millis_cmd = _millis();
+	previous_millis_cmd = _millis();
 	if (codenum > 0){
 		codenum += _millis();  // keep track of when we started waiting
 		KEEPALIVE_STATE(PAUSED_FOR_USER);
@@ -73,7 +73,7 @@ unsigned long gcode_M1(char *starpos){
 	} else {
 		LCD_MESSAGERPGM(_T(WELCOME_MSG));
 	}
-	return previous_millis_cmd;
+	return;
 }
 
 // ### M17 - Enable all axes <a href="https://reprap.org/wiki/G-code#M17:_Enable.2FPower_all_stepper_motors">M17: Enable/Power all stepper motors</a>

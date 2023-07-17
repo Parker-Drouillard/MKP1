@@ -231,20 +231,20 @@ G4 [ P | S ]
 - `P` - Time to wait, in milliseconds
 - `S` - Time to wait, in seconds
 */
-static unsigned long gcode_G4(unsigned long codenum){
+static void gcode_G4(unsigned long codenum){
   if(code_seen('P')) {codenum = code_value();} // milliseconds to wait
   if(code_seen('S')) {codenum = code_value() * 1000; }// seconds to wait
   if(codenum != 0) { LCD_MESSAGERPGM(_n("Sleep...")); }////MSG_DWELL
   st_synchronize();
   codenum += _millis();  // keep track of when we started waiting
-  unsigned long previous_millis_cmd = _millis();
+  previous_millis_cmd = _millis();
   while(_millis() < codenum) {
     manage_heater();
     manage_inactivity();
     lcd_update(0);
   }
 
-  return previous_millis_cmd;
+  return;
 }
 
 

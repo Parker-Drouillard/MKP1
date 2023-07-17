@@ -2157,7 +2157,7 @@ void process_commands() {
       gcode_G3(Stopped); //Counter Clockwise Arc move
     break;
     case 4: 
-      previous_millis_cmd = gcode_G4(0); //Dwell
+      gcode_G4(0); //Dwell
     break;
 #ifdef FWRETRACT
     case 10: 
@@ -2285,7 +2285,7 @@ void process_commands() {
     */
     case 0: // M0 - Unconditional stop - Wait for user button press on LCD
     case 1: // M1 - Conditional stop - Wait for user button press on LCD
-      previous_millis_cmd = gcode_M1(char *starpos);
+      gcode_M1(char *starpos);
     break;
 
     /*!
