@@ -99,25 +99,18 @@ void eeprom_init()
 //!
 //! @param[in] index
 //! @param[out] sheetName
-void eeprom_default_sheet_name(uint8_t index, SheetName &sheetName)
-{
+void eeprom_default_sheet_name(uint8_t index, SheetName &sheetName) {
     static_assert(8 == sizeof(SheetName),"Default sheet name needs to be adjusted.");
 
-    if (index < 2)
-    {
+    if (index < 2) {
         strcpy_P(sheetName.c, PSTR("Smooth"));
-    }
-    else if (index < 4)
-    {
+    } else if (index < 4) {
         strcpy_P(sheetName.c, PSTR("Textur"));
-    }
-    else
-    {
+    } else {
         strcpy_P(sheetName.c, PSTR("Custom"));
     }
 
-    switch (index)
-    {
+    switch (index) {
     case 0:
         sheetName.c[6] = '1';
         break;
@@ -156,10 +149,8 @@ void eeprom_default_sheet_name(uint8_t index, SheetName &sheetName)
 //! @param sheet Current sheet
 //! @return next initialized sheet
 //! @retval -1 no sheet is initialized
-int8_t eeprom_next_initialized_sheet(int8_t sheet)
-{
-    for (int8_t i = 0; i < static_cast<int8_t>(sizeof(Sheets::s)/sizeof(Sheet)); ++i)
-    {
+int8_t eeprom_next_initialized_sheet(int8_t sheet) {
+    for (int8_t i = 0; i < static_cast<int8_t>(sizeof(Sheets::s)/sizeof(Sheet)); ++i) {
         ++sheet;
         if (sheet >= static_cast<int8_t>(sizeof(Sheets::s)/sizeof(Sheet))) sheet = 0;
         if (eeprom_is_sheet_initialized(sheet)) return sheet;
@@ -167,10 +158,9 @@ int8_t eeprom_next_initialized_sheet(int8_t sheet)
     return -1;
 }
 
-void eeprom_switch_to_next_sheet()
-{
+void eeprom_switch_to_next_sheet() {
     int8_t sheet = eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet));
 
     sheet = eeprom_next_initialized_sheet(sheet);
-    if (sheet >= 0) eeprom_update_byte(&(EEPROM_Sheets_base->active_sheet), sheet);
+    if (sheet >= 0) {eeprom_update_byte(&(EEPROM_Sheets_base->active_sheet), sheet);}
 }

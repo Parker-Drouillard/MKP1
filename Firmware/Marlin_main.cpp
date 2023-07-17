@@ -246,12 +246,13 @@ float extruder_multiplier[EXTRUDERS] = {1.0
   #endif
 };
 
-float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0 };
+float current_position[NUM_AXIS] = { 0.0, 0.0, 0.0, 0.0, 0.0};
 //shortcuts for more readable code
 #define _x current_position[X_AXIS]
 #define _y current_position[Y_AXIS]
 #define _z current_position[Z_AXIS]
 #define _e current_position[E_AXIS]
+#define _a current_position[A_AXIS]
 
 
 
@@ -2947,11 +2948,19 @@ void gcode_M701() {
 #endif //FSENSOR_QUALITY
 
   lcd_setstatuspgm(_T(MSG_LOADING_FILAMENT));
-  current_position[E_AXIS] += 40;
+  if(active_extruder == 0){
+    current_position[E_AXIS] += 40;
+  } else if (active_extruder == 1){
+    current_position[A_AXIS] += 40;
+  }
   plan_buffer_line_curposXYZE(400 / 60); //fast sequence
   st_synchronize();
   raise_z_above(MIN_Z_FOR_LOAD, false);
-  current_position[E_AXIS] += 30;
+  if(active_extruder == 0){
+    current_position[E_AXIS] += 30;
+  } else if (active_extruder == 1){
+    current_position[A_AXIS] += 30;
+  }
   plan_buffer_line_curposXYZE(400 / 60); //fast sequence
   load_filament_final_feed(); //slow sequence
   st_synchronize();
@@ -8025,22 +8034,28 @@ Sigma_Exit:
 #if EXTRUDERS > 1
         if (tmp_extruder != active_extruder) { // If a tool switch is required
           // Save current position to return to after applying extruder offset
-          if(!(axis_known_position[2])){
+          if(!(axis_known_position[0]&&axis_known_position[1]&&axis_known_position[2])){
             SERIAL_ECHO_START;
             SERIAL_ECHO('T');
             SERIAL_PROTOCOLLN((int)tmp_extruder);
-            SERIAL_ECHOLNRPGM(_n("ERROR - Z Height unknown. Home all axis first."));
+            SERIAL_ECHOLNRPGM(_n("ERROR - Position unknown. Home all axis first."));
           } else {
-            if(!(axis_known_position[0] && axis_known_position[1])){
-              homeaxis(X_AXIS);
-              homeaxis(Y_AXIS);
-            }
             //Set new relative positions & move toolhead to proper location
             set_destination_to_current();
 
             current_position[0] = current_position[0] - extruder_offset[0][active_extruder] + extruder_offset[0][tmp_extruder];
             current_position[1] = current_position[1] - extruder_offset[1][active_extruder] + extruder_offset[1][tmp_extruder];
             current_position[2] = current_position[2] - extruder_offset[2][active_extruder] + extruder_offset[2][tmp_extruder];
+
+            active_extruder = tmp_extruder;
+
+            for(int i = 0; i < 3; i++){
+              if(current_position[i] < min_pos[i][active_extruder]){
+                current_position[i] = min_pos[i][active_extruder];
+              } else if (current_position[i] > max_pos[i]){
+                current_position[i] = max_pos[i];
+              }
+            }
 
             // memcpy(destination, current_position, sizeof(destination));
   // for (int i = 0; i < 3; i++) {
@@ -8053,7 +8068,6 @@ Sigma_Exit:
   //   }
   // }
             // Set the new active extruder and position
-            active_extruder = tmp_extruder;
 
             plan_set_position_curposXYZE();
             if (Stopped == false) {

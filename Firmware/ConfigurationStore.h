@@ -10,15 +10,15 @@
 typedef struct
 {
     char version[4];
-    float axis_steps_per_unit[4];
-    float max_feedrate_normal[4];
-    unsigned long max_acceleration_units_per_sq_second_normal[4];
+    float axis_steps_per_unit[NUM_AXIS];
+    float max_feedrate_normal[NUM_AXIS];
+    unsigned long max_acceleration_units_per_sq_second_normal[NUM_AXIS];
     float acceleration; //!< Normal acceleration mm/s^2  THIS IS THE DEFAULT ACCELERATION for all moves. M204 SXXXX
     float retract_acceleration; //!< mm/s^2 filament pull-pack and push-forward while standing still in the other axis M204 TXXXX
     float minimumfeedrate;
     float mintravelfeedrate;
     unsigned long minsegmenttime;
-    float max_jerk[4]; //!< Jerk is a maximum immediate velocity change.
+    float max_jerk[NUM_AXIS]; //!< Jerk is a maximum immediate velocity change.
     float add_homing[3];
     float zprobe_zoffset;
     float Kp;
@@ -36,9 +36,9 @@ typedef struct
     float retract_recover_feedrate;
     bool volumetric_enabled;
     float filament_size[2];
-    float max_feedrate_silent[4]; //!< max speeds for silent mode
-    unsigned long max_acceleration_units_per_sq_second_silent[4];
-    unsigned char axis_ustep_resolution[4];
+    float max_feedrate_silent[NUM_AXIS]; //!< max speeds for silent mode
+    unsigned long max_acceleration_units_per_sq_second_silent[NUM_AXIS];
+    unsigned char axis_ustep_resolution[NUM_AXIS];
 } M500_conf;
 
 extern M500_conf cs;

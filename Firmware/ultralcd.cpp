@@ -2527,9 +2527,31 @@ static void lcd_move_e(){
 			menu_draw_float31(PSTR("Extruder:"), current_position[E_AXIS]);
 		}
 		if (LCD_CLICKED) menu_back();
+	} else {
+		show_preheat_nozzle_warning();
+		lcd_return_to_status();
 	}
-	else
-	{
+}
+
+static void lcd_move_a(){
+	if (degHotend1() > EXTRUDE_MINTEMP) {
+		if (lcd_encoder != 0) {
+			refresh_cmd_timeout();
+			if (! planner_queue_full()) {
+				current_position[A_AXIS] += float((int)lcd_encoder) * move_menu_scale;
+				lcd_encoder = 0;
+				plan_buffer_line_curposXYZE(manual_feedrate[A_AXIS] / 60);
+				lcd_draw_update = 1;
+			}
+		}
+		if (lcd_draw_update) {
+		    lcd_set_cursor(0, 1);
+			// Note: the colon behind the text is necessary to greatly shorten
+			// the implementation of menu_draw_float31
+			menu_draw_float31(PSTR("Extruder1:"), current_position[A_AXIS]);
+		}
+		if (LCD_CLICKED) menu_back();
+	} else {
 		show_preheat_nozzle_warning();
 		lcd_return_to_status();
 	}
@@ -3775,8 +3797,7 @@ static void prusa_stat_diameter() {
 	SERIAL_ECHO(']');
 }
 
-static void prusa_stat_temperatures()
-{
+static void prusa_stat_temperatures() {
 	SERIAL_ECHO("[ST0:");
 	SERIAL_ECHO(target_temperature[0]);
 	SERIAL_ECHO("][STB:");
@@ -3815,7 +3836,8 @@ void lcd_move_menu_axis() {
 	MENU_ITEM_SUBMENU_P(_i("Move X"), lcd_move_x);////MSG_MOVE_X
 	MENU_ITEM_SUBMENU_P(_i("Move Y"), lcd_move_y);////MSG_MOVE_Y
 	MENU_ITEM_SUBMENU_P(_i("Move Z"), lcd_move_z);////MSG_MOVE_Z
-	MENU_ITEM_SUBMENU_P(_i("Extruder"), lcd_move_e);////MSG_MOVE_E
+	MENU_ITEM_SUBMENU_P(_i("Extruder0"), lcd_move_e);////MSG_MOVE_E
+	MENU_ITEM_SUBMENU_P(_i("Extruder1"), lcd_move_a);////MSG_MOVE_E
 	MENU_END();
 }
 
@@ -5630,13 +5652,13 @@ void unload_filament()
 
 	//		extr_unload2();
 
-	current_position[E_AXIS] -= 45;
+	current_position[E_AXIS+active_extruder] -= 45;
 	plan_buffer_line_curposXYZE(5200 / 60);
 	st_synchronize();
-	current_position[E_AXIS] -= 15;
+	current_position[E_AXIS+active_extruder] -= 15;
 	plan_buffer_line_curposXYZE(1000 / 60);
 	st_synchronize();
-	current_position[E_AXIS] -= 20;
+	current_position[E_AXIS+active_extruder] -= 20;
 	plan_buffer_line_curposXYZE(1000 / 60);
 	st_synchronize();
 
@@ -6603,6 +6625,8 @@ void lcd_print_stop() {
     planner_abort_hard(); //needs to be done since plan_buffer_line resets waiting_inside_plan_buffer_line_print_aborted to false. Also copies current to destination.
     
     axis_relative_modes = E_AXIS_MASK; //XYZ absolute, E relative
+	// axis_relative_modes = A_AXIS_MASK; //XYZ absolute, E relative
+
     
     isPrintPaused = false; //clear isPrintPaused flag to allow starting next print after pause->stop scenario.
 }

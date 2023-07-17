@@ -18,8 +18,10 @@ void la10c_mode_change(LA10C_MODE mode)
     if(mode == la10c_mode) return;
 
     // always restore to the last unadjusted E-jerk value
-    if(la10c_orig_jerk)
+    if(la10c_orig_jerk){
         cs.max_jerk[E_AXIS] = la10c_orig_jerk;
+        cs.max_jerk[A_AXIS] = la10c_orig_jerk;
+    }
 
     SERIAL_ECHOPGM("LA10C: Linear Advance mode: ");
     switch(mode)
@@ -32,6 +34,7 @@ void la10c_mode_change(LA10C_MODE mode)
 
     // adjust the E-jerk if needed
     cs.max_jerk[E_AXIS] = la10c_jerk(cs.max_jerk[E_AXIS]);
+    cs.max_jerk[A_AXIS] = la10c_jerk(cs.max_jerk[A_AXIS]);
 }
 
 
@@ -69,13 +72,15 @@ float la10c_jerk(float j)
 {
     la10c_orig_jerk = j;
 
-    if(la10c_mode != LA10C_LA10)
+    if(la10c_mode != LA10C_LA10) {
         return j;
+    }
 
     // check for a compatible range of values prior to convert (be sure that
     // a higher E-jerk would still be compatible wrt the E accell range)
-    if(j < 4.5 && cs.max_acceleration_units_per_sq_second_normal[E_AXIS] < 2000)
+    if(j < 4.5 && cs.max_acceleration_units_per_sq_second_normal[E_AXIS] < 2000){
         return j;
+    }
 
     // bring low E-jerk values into equivalent LA 1.5 values by
     // flattening the response in the (0.3-4.5) range using a piecewise

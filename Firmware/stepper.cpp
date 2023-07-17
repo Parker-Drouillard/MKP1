@@ -348,7 +348,7 @@ FORCE_INLINE void stepper_next_block() {
 #endif
 
     if (current_block->flag & BLOCK_FLAG_E_RESET) {
-        count_position[E_AXIS] = 0;
+        count_position[E_AXIS+active_extruder] = 0;
     }
 
     if (current_block->flag & BLOCK_FLAG_DDA_LOWRES) {
@@ -393,7 +393,7 @@ FORCE_INLINE void stepper_next_block() {
       WRITE_NC(Z_DIR_PIN,!INVERT_Z_DIR);
       count_direction[Z_AXIS]=1;
     }
-    if ((out_bits & (1 << E_AXIS)) != 0) { // -direction
+    if ((out_bits & (1 << E_AXIS+active_extruder)) != 0) { // -direction
 #ifndef LIN_ADVANCE
       WRITE(E0_DIR_PIN, 
   #ifdef SNMM
@@ -401,7 +401,7 @@ FORCE_INLINE void stepper_next_block() {
   #endif // SNMM
         INVERT_E0_DIR);
 #endif /* LIN_ADVANCE */
-      count_direction[E_AXIS] = -1;
+      count_direction[E_AXIS+active_extruder] = -1;
     } else { // +direction
 #ifndef LIN_ADVANCE
       WRITE(E0_DIR_PIN,
@@ -410,10 +410,10 @@ FORCE_INLINE void stepper_next_block() {
   #endif // SNMM
         !INVERT_E0_DIR);
 #endif /* LIN_ADVANCE */
-      count_direction[E_AXIS] = 1;
+      count_direction[E_AXIS+active_extruder] = 1;
     }
 #if defined(FILAMENT_SENSOR) && defined(PAT9125)
-    fsensor_st_block_begin(count_direction[E_AXIS] < 0);
+    fsensor_st_block_begin(count_direction[E_AXIS+active_extruder] < 0);
 #endif //FILAMENT_SENSOR
   }
   else {
@@ -634,12 +634,12 @@ FORCE_INLINE void stepper_tick_lowres()
       WRITE(E0_STEP_PIN, !INVERT_E_STEP_PIN);
 #endif /* LIN_ADVANCE */
       counter_e.lo -= current_block->step_event_count.lo;
-      count_position[E_AXIS] += count_direction[E_AXIS];
+      count_position[E_AXIS+active_extruder] += count_direction[E_AXIS+active_extruder];
 #ifdef LIN_ADVANCE
-      e_steps += count_direction[E_AXIS];
+      e_steps += count_direction[E_AXIS+active_extruder];
 #else
 	#ifdef FILAMENT_SENSOR
-	  fsensor_counter += count_direction[E_AXIS];
+	  fsensor_counter += count_direction[E_AXIS+active_extruder];
 	#endif //FILAMENT_SENSOR
       WRITE(E0_STEP_PIN, INVERT_E_STEP_PIN);
 #endif
@@ -696,12 +696,12 @@ FORCE_INLINE void stepper_tick_highres()
       WRITE(E0_STEP_PIN, !INVERT_E_STEP_PIN);
 #endif /* LIN_ADVANCE */
       counter_e.wide -= current_block->step_event_count.wide;
-      count_position[E_AXIS]+=count_direction[E_AXIS];
+      count_position[E_AXIS+active_extruder]+=count_direction[E_AXIS+active_extruder];
 #ifdef LIN_ADVANCE
-      e_steps += count_direction[E_AXIS];
+      e_steps += count_direction[E_AXIS+active_extruder];
 #else
     #ifdef FILAMENT_SENSOR
-      fsensor_counter += count_direction[E_AXIS];
+      fsensor_counter += count_direction[E_AXIS+active_extruder];
     #endif //FILAMENT_SENSOR
       WRITE(E0_STEP_PIN, INVERT_E_STEP_PIN);
 #endif
@@ -770,6 +770,7 @@ FORCE_INLINE void isr() {
 
 #ifdef LIN_ADVANCE
     if (e_steps) WRITE_NC(E0_DIR_PIN, e_steps < 0? INVERT_E0_DIR: !INVERT_E0_DIR);
+    if (e_steps) WRITE_NC(E1_DIR_PIN, e_steps < 0? INVERT_E1_DIR: !INVERT_E1_DIR);
     uint8_t la_state = 0;
 #endif
 
@@ -935,6 +936,7 @@ FORCE_INLINE void advance_isr() {
         }
         e_steps -= e_step_loops;
         if (e_steps) WRITE_NC(E0_DIR_PIN, e_steps < 0? INVERT_E0_DIR: !INVERT_E0_DIR);
+        if (e_steps) WRITE_NC(E1_DIR_PIN, e_steps < 0? INVERT_E1_DIR: !INVERT_E1_DIR);
         current_adv_steps -= e_step_loops;
     }
     else if (current_adv_steps < target_adv_steps) {
@@ -946,6 +948,7 @@ FORCE_INLINE void advance_isr() {
         }
         e_steps += e_step_loops;
         if (e_steps) WRITE_NC(E0_DIR_PIN, e_steps < 0? INVERT_E0_DIR: !INVERT_E0_DIR);
+        if (e_steps) WRITE_NC(E1_DIR_PIN, e_steps < 0? INVERT_E1_DIR: !INVERT_E1_DIR);
         current_adv_steps += e_step_loops;
     }
 
@@ -1328,14 +1331,14 @@ void st_set_position(const long &x, const long &y, const long &z, const long &e)
   count_position[X_AXIS] = x;
   count_position[Y_AXIS] = y;
   count_position[Z_AXIS] = z;
-  count_position[E_AXIS] = e;
+  count_position[E_AXIS+active_extruder] = e;
   CRITICAL_SECTION_END;
 }
 
 void st_set_e_position(const long &e)
 {
   CRITICAL_SECTION_START;
-  count_position[E_AXIS] = e;
+  count_position[E_AXIS+active_extruder] = e;
   CRITICAL_SECTION_END;
 }
 
