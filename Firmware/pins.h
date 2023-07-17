@@ -42,13 +42,6 @@
   #define _E2_PINS
 #endif
 
-#ifdef FILAMENT_RUNOUT_SUPPORT
-  #define FR_SENS FIL_RUNOUT_PIN
-#if EXTRUDERS > 1
-  #define FR2_SENS FIL_RUNOUT2_PIN
-#endif
-#endif
-
 #ifdef X_STOP_PIN
   #if X_HOME_DIR < 0
     #define X_MIN_PIN X_STOP_PIN

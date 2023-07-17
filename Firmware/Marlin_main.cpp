@@ -8014,7 +8014,7 @@ Sigma_Exit:
         tmp_extruder = code_value();
       }
       st_synchronize();
-      snmm_filaments_used |= (1 << tmp_extruder); //for stop print
+      // snmm_filaments_used |= (1 << tmp_extruder); //for stop print
 
       if (tmp_extruder >= EXTRUDERS) {
         SERIAL_ECHO_START;
@@ -8035,19 +8035,17 @@ Sigma_Exit:
               homeaxis(X_AXIS);
               homeaxis(Y_AXIS);
             }
-            memcpy(destination, current_position, sizeof(destination));
+            // memcpy(destination, current_position, sizeof(destination));
             // Offset extruder (only by XY)
-            for (int i = 0; i < 3; i++) {
-              current_position[i] = current_position[i] -
-              extruder_offset[i][active_extruder] +
-              extruder_offset[i][tmp_extruder];
-              if(current_position[i] < min_pos[i][active_extruder]){
-                current_position[i] = min_pos[i][active_extruder];
-              }
-              if(current_position[i] > max_pos[i]){
-                current_position[i] = max_pos[i];
-              }
-            }
+  // for (int i = 0; i < 3; i++) {
+  //   current_position[i] = current_position[i] - extruder_offset[i][active_extruder] + extruder_offset[i][tmp_extruder];
+  //   if(current_position[i] < min_pos[i][active_extruder]){
+  //     current_position[i] = min_pos[i][active_extruder];
+  //   }
+  //   if(current_position[i] > max_pos[i]){
+  //     current_position[i] = max_pos[i];
+  //   }
+  // }
             // Set the new active extruder and position
             active_extruder = tmp_extruder;
 

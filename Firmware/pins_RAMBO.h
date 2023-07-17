@@ -1,9 +1,13 @@
+#ifndef RAMBO_H
+#define RAMBO_H
+
 #include "macros.h"
 
 // RAMBO PIN ASSIGNMENTS
 
 #define BOARD_NAME "Rambo"
 #define ELECTRONICS "Rambo 1.4"
+#define __AVR_ATmega2560__
 
 #ifndef KNOWN_BOARD
   #define KNOWN_BOARD
@@ -229,3 +233,6 @@
 // 98 - AREF                  - Analog Reference
 // 99 - GND                   - GND                         - GND
 //100 - AVCC                  - VCC                         -VCC
+
+
+#endif
