@@ -7636,22 +7636,15 @@ Sigma_Exit:
 			}
 
 #else //TMC2130
-      // #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-      //   for(int i=0;i<NUM_AXIS;i++) {
-      //     if(code_seen(axis_codes[i])) st_current_set(i,code_value());
-      //   }
-      //   if(code_seen('B')) st_current_set(4,code_value());
-      //   if(code_seen('S')) for(int i=0;i<=4;i++) st_current_set(i,code_value());
-      // #endif
-      // #ifdef MOTOR_CURRENT_PWM_XY_PIN
-      //   if(code_seen('X')) st_current_set(0, code_value());
-      // #endif
-      // #ifdef MOTOR_CURRENT_PWM_Z_PIN
-      //   if(code_seen('Z')) st_current_set(1, code_value());
-      // #endif
-      // #ifdef MOTOR_CURRENT_PWM_E_PIN
-      //   if(code_seen('E')) st_current_set(2, code_value());
-      // #endif
+// for(int i=0;i<NUM_AXIS;i++) {
+        //   if(code_seen(axis_codes[i])) st_current_set(digipotChannels[i],code_value());
+        // }
+        if(code_seen('S')) { for(int i=0;i<NUM_AXIS;i++) st_current_set(digipotChannels[i],code_value()); }
+        if(code_seen('X')) { st_current_set(digipotChannels[X_AXIS], code_value()); }
+        if(code_seen('Y')) { st_current_set(digipotChannels[Y_AXIS], code_value()); }
+        if(code_seen('Z')) { st_current_set(digipotChannels[Z_AXIS], code_value()); }
+        if(code_seen('E')) { st_current_set(digipotChannels[E_AXIS], code_value()); }
+        if(code_seen('A')) { st_current_set(digipotChannels[A_AXIS], code_value()); }
 #endif //TMC2130
     }
     break;
@@ -8034,39 +8027,33 @@ Sigma_Exit:
 #if EXTRUDERS > 1
         if (tmp_extruder != active_extruder) { // If a tool switch is required
           // Save current position to return to after applying extruder offset
-          if(!(axis_known_position[0]&&axis_known_position[1]&&axis_known_position[2])){
+          if(!(axis_known_position[2])){
             SERIAL_ECHO_START;
             SERIAL_ECHO('T');
             SERIAL_PROTOCOLLN((int)tmp_extruder);
             SERIAL_ECHOLNRPGM(_n("ERROR - Position unknown. Home all axis first."));
           } else {
-            //Set new relative positions & move toolhead to proper location
-            set_destination_to_current();
+            if(!(axis_known_position[1] && axis_known_position[0])){
+              active_extruder = tmp_extruder;
+            } else {
+              //Set new relative positions & move toolhead to proper location
+              set_destination_to_current();
 
-            current_position[0] = current_position[0] - extruder_offset[0][active_extruder] + extruder_offset[0][tmp_extruder];
-            current_position[1] = current_position[1] - extruder_offset[1][active_extruder] + extruder_offset[1][tmp_extruder];
-            current_position[2] = current_position[2] - extruder_offset[2][active_extruder] + extruder_offset[2][tmp_extruder];
+              current_position[0] = current_position[0] - extruder_offset[0][active_extruder] + extruder_offset[0][tmp_extruder];
+              current_position[1] = current_position[1] - extruder_offset[1][active_extruder] + extruder_offset[1][tmp_extruder];
+              current_position[2] = current_position[2] - extruder_offset[2][active_extruder] + extruder_offset[2][tmp_extruder];
 
-            active_extruder = tmp_extruder;
+              active_extruder = tmp_extruder;
 
-            for(int i = 0; i < 3; i++){
-              if(current_position[i] < min_pos[i][active_extruder]){
-                current_position[i] = min_pos[i][active_extruder];
-              } else if (current_position[i] > max_pos[i]){
-                current_position[i] = max_pos[i];
+              for(int i = 0; i < 3; i++){
+                if(current_position[i] < min_pos[i][active_extruder]){
+                  current_position[i] = min_pos[i][active_extruder];
+                } else if (current_position[i] > max_pos[i]){
+                  current_position[i] = max_pos[i];
+                }
               }
             }
-
             // memcpy(destination, current_position, sizeof(destination));
-  // for (int i = 0; i < 3; i++) {
-  //   current_position[i] = current_position[i] - extruder_offset[i][active_extruder] + extruder_offset[i][tmp_extruder];
-  //   if(current_position[i] < min_pos[i][active_extruder]){
-  //     current_position[i] = min_pos[i][active_extruder];
-  //   }
-  //   if(current_position[i] > max_pos[i]){
-  //     current_position[i] = max_pos[i];
-  //   }
-  // }
             // Set the new active extruder and position
 
             plan_set_position_curposXYZE();
