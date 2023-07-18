@@ -71,7 +71,7 @@
 #define X_MIN_POS -51.85
 #define Y_MAX_POS 285
 #define Y_MIN_POS 2.85 //orig -4
-#define Z_MAX_POS 215
+#define Z_MAX_POS 235
 #define Z_MIN_POS 0.15
 
 
@@ -319,7 +319,7 @@
 #else
 #define HEATER_0_MAXTEMP 305
 #endif
-#define HEATER_1_MAXTEMP 305
+#define HEATER_1_MAXTEMP 410
 #define HEATER_2_MAXTEMP 305
 #define BED_MAXTEMP 125
 #define AMBIENT_MAXTEMP 100

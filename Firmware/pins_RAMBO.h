@@ -118,39 +118,39 @@
 #define BTN_EN1         76            // 8 - BTN_EN1       PJ5
 // #define SCK_PIN         52            // 9 - SCK_PIN       PB1 - Already declared elsewhere
 #define MISO_PIN        50            //10 - MISO_PIN     PB3
-// #define EBOARD_SS       53           //Extruder Breakout Board Slave Select
+#define EBOARD_SS       4           //Extruder Breakout Board Slave Select
 
 #define SDPOWER  -1
 
 #define SWI2C_SDA  20
 #define SWI2C_SCL  21
 
-#define SUICIDE_PIN -1
+#define SUICIDE_PIN 80
 
 
 //LIST OF RAMBO 1.4 PINS AND THEIR ASSIGNMENTS FOR REFERENCE
 
 //  #   Pin Name                Arduino Pin Name              Current Use
 //  ======================================================================================
-//  1 - PG5 (OC0B)            - Digital Pin 4 (PWM)         - Unused
+//  1 - PG5 (OC0B)            - Digital Pin 4 (PWM)         - ExtruderBoard SS
 //  2 - PE0 (RXD0/PCINT8)     - Digital Pin 0 (PWM) (RX0)   - USB Serial Comms, SER0 3
 //  3 - PE1 (TXD0)            - Digital Pin 1 (PWM) (TX0)   - USB Serial Comms, SER0 4
-//  4 - PE2 (XCK0/AIN0)       - RamboDigital Pin 78         - Unused
+//  4 - PE2 (XCK0/AIN0)       - RamboDigital Pin 78         - LCD_BTN_ENCODER
 //  5 - PE3 (OC3A/AIN1)       - Digital Pin 5 (PWM)         - Unused
 //  6 - PE4 (OC3B/INT4)       - Digital Pin 2 (PWM)         - Unused
 //  7 - PE5 (OC3C/INT5)       - Digital Pin 3 (PWM)         - Bed Heater
-//  8 - PE6 (T3/INT6)         - RamboDigital Pin 79         - Unused
-//  9 - PE7 (T3/INT6)         - RamboDigital Pin 80         - Unused
+//  8 - PE6 (T3/INT6)         - RamboDigital Pin 79         - LCD BEEPER
+//  9 - PE7 (T3/INT6)         - RamboDigital Pin 80         - RESET PIN
 // 10 - VCC                   - VCC                         - VCC
 // 11 - GND                   - GND                         - GND
 // 12 - PH0 (RXD2)            - Digital Pin 17 (PWM)(RX2)   - Serial 7
 // 13 - PH1 (TXD2)            - Digital Pin 16 (PWM)(TX2)   - Serial 8
-// 14 - PH2 (XCK2)            - Rambo Digital Pin 84        - Unused
+// 14 - PH2 (XCK2)            - Rambo Digital Pin 84        - LCD_LED
 // 15 - PH3 (OC4A)            - Digital Pin 6 (PWM)         - Unused
 // 16 - PH4 (OC4B)            - Digital Pin 7 (PWM)         - Heat 1
 // 17 - PH5 (OC4C)            - Digital Pin 8 (PWM)         - Unused
 // 18 - PH6 (OC2B)            - Digital Pin 9 (PWM)         - Heat 0
-// 19 - PB0 (SS/PCINT0)       - Digital Pin 53 (PWM)(SPI-SS)- SPI-Ext SS 6
+// 19 - PB0 (SS/PCINT0)       - Digital Pin 53 (PWM)(SPI-SS)- SPI-Ext SDSS 6
 // 20 - PB1 (SCK/PCINT1)      - Digital Pin 52 (PWM)(SCK)   - SPI-Ext SCK 5
 // 21 - PB2 (MOSI/PCINT2)     - Digital Pin 51 (PWM)(MOSI)  - SPI-Ext MOSI 4
 // 22 - PB3 (MISO/PCINT3)     - Digital Pin 50 (MISO)       - SPI-Ext MISO 3
@@ -159,8 +159,8 @@
 // 25 - PB6 (OC1B/PCINT6)     - Digital Pin 12 (PWM)        - X Min Endstop
 // 26 - PB7 (OC0A/OC1C/PCINT7)- Digital Pin 13 (PWM)        - LED, PWM-Ext 3
 // 27 - PH7 (T4)              - RamboDigital Pin 85         - Ext2 6
-// 28 - PG3 (TOSC2)           - RamboDigital Pin 71         - Ext3 7
-// 29 - PG4 (TOSC1)           - RamboDigital Pin 70         - Ext3 5
+// 28 - PG3 (TOSC2)           - RamboDigital Pin 71         - Ext3 7/LCD_PIN_EN
+// 29 - PG4 (TOSC1)           - RamboDigital Pin 70         - Ext3 5/LCD_PIN_RS
 // 30 - RESET                 - RESET                       - RESET
 // 31 - VCC                   - VCC                         - VCC
 // 32 - GND                   - GND                         - GND
@@ -178,7 +178,7 @@
 // 44 - PD1 (SDA/INT1)        - Digital Pin 20 (SDA)        - I2C SDA
 // 45 - PD2 (RXDI/INT1)       - Digital Pin 19 (RX1)        - Serial 5
 // 46 - PD3 (TXD1/INT3)       - Digital Pin 18 (TX1)        - Serial 6
-// 47 - PD4 (ICP1)            - RamboDigital Pin 81         - Ext2 14
+// 47 - PD4 (ICP1)            - RamboDigital Pin 81         - Ext2 14/SDCARDDETECT
 // 48 - PD5 (XCK1)            - RamboDigital Pin 82         - EXT2 12
 // 49 - PD6 (T1)              - RamboDigital Pin 83         - Ext2 10
 // 50 - PD7 (T0)              - Digital Pin 38              - Digipot SS
@@ -196,11 +196,11 @@
 // 62 - GND                   - GND                         - GND
 // 63 - PJ0 (RXD3/PCINT9)     - Digital Pin 15 (RX3)        - Serial 9
 // 64 - PJ1 (TXD3/PCINT10)    - Digital Pin 14 (TX3)        - Serial 10
-// 65 - PJ2 (XCK3/PCINT11)    - RamboDigital Pin 72         - Ext2 9
-// 66 - PJ3 (PCINT 12)        - RamboDigital Pin 73         - Ext2 11
-// 67 - PJ4 (PCInt 13)        - RamboDigital Pin 75         - Ext2 15
-// 68 - PJ5 (PCInt 14)        - RamboDigital Pin 76         - Ext2 17
-// 69 - PJ6 (PCInt 15)        - RamboDigital Pin 77         - Ext2 19
+// 65 - PJ2 (XCK3/PCINT11)    - RamboDigital Pin 72         - Ext2 9/LCD_PIN_D1
+// 66 - PJ3 (PCINT 12)        - RamboDigital Pin 73         - Ext2 11/LCD_PIN_D5
+// 67 - PJ4 (PCInt 13)        - RamboDigital Pin 75         - Ext2 15/LCD_PIN_D7
+// 68 - PJ5 (PCInt 14)        - RamboDigital Pin 76         - Ext2 17/LCD_BTN_EN1
+// 69 - PJ6 (PCInt 15)        - RamboDigital Pin 77         - Ext2 19/LCD_BTN_EN2
 // 70 - PG2 (ALE)             - Digital Pin 39              - Y Microstep2
 // 71 - PA7 (AD7)             - Digital Pin 29              - X Enable
 // 72 - PA6 (AD6)             - Digital Pin 28              - Y Enable
@@ -210,7 +210,7 @@
 // 76 - PA2 (AD2)             - Digital Pin 24              - X Max, MX3-3 Enable
 // 77 - PA1 (AD1)             - Digital Pin 23              - Y Max, MX2-3 Enable
 // 78 - PA0 (AD0)             - Digital Pin 22              - MX1-3 Enable
-// 79 - PJ7                   - RamboDigital Pin 74         - Ext2 19
+// 79 - PJ7                   - RamboDigital Pin 74         - Ext2 19/LCD_PIN_D6
 // 80 - VCC                   - VCC                         - VCC
 // 81 - GND                   - GND                         - GND
 // 82 - PK7 (ADC15/PCINT23)   - Analog Pin 15               - Y Microstep1

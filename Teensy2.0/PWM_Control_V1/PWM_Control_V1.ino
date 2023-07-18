@@ -7,14 +7,14 @@
 double dutyCycle = 0.5;           // interval at which to blink (milliseconds)
 
 const word PWM_FREQ_HZ = 25000; //Adjust this value to adjust the frequency
-const int fanDeathSampleCount = 50; //Sample count required to determine a fan is bad/dead
+const int fanDeathSampleCount = 1500; //Sample count required to determine a fan is bad/dead
 const long fanSampleInterval = 5; //Sample interval in ms to check fans
-const long changeTime = 500;
-const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFanFront_pin, E1BlowerFanRear_pin, E2AxialFan_pin, E2BlowerFanFront_pin, E2BlowerFanRear_pin};
-const int tachPins[NUMFANS] = {tach0_pin, tach1_pin, tach2_pin, tach3_pin, tach4_pin, tach5_pin};
+const long changeTime = 150;
+// const int fanPins[NUMFANS] = {E1AxialFan_pin, E1BlowerFanFront_pin, E1BlowerFanRear_pin, E2AxialFan_pin, E2BlowerFanFront_pin, E2BlowerFanRear_pin};
+// const int tachPins[NUMFANS] = {tach0_pin, tach1_pin, tach2_pin, tach3_pin, tach4_pin, tach5_pin};
 
 int ledState = HIGH; // ledState used to set the LED
-int fanStates[NUMFANS] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH}; //State of each fan, default ON.
+int fanStates[NUMFANS] = {HIGH, LOW, LOW, HIGH, LOW, LOW}; //State of each fan, default ON.
 int fanHealthSamples[NUMFANS] = {0, 0, 0, 0, 0, 0}; //Array used to count the number of bad samples from a fan to determine it is dead.
 int fanHealth[NUMFANS] = {1, 1, 1, 1, 1, 1}; //Health of all fans. Default GOOD, if bad, set to 0 for error handling
 
@@ -24,25 +24,63 @@ unsigned long previousMillis = 0;        // will store last time LED was updated
 unsigned long changeMillis = 0;
 unsigned long fanMillis = 0;
 
+//SPI stuff
+char commandBuffer [128]; //data buffer
+volatile byte pos;
+volatile boolean process_it;
+// what to do with incoming data
+volatile byte command = 0;
+
+bool solenoidHomed = false;
+
+// struct pwmFan{
+//   int pwmPin;
+//   int tachPin;
+// };
+
+// struct extruder{
+//   pwmFan heatsinkFan;
+//   pwmFan blowerFans[2];
+// };
+
+
+#define SS SS_pin
+#define MISO MISO_pin
+#define MOSI MOSI_pin
+#define SCK SCK_pin
+
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////         SETUP                    /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup() {
+  Serial.begin(9600);
+
+  pinMode(MISO, OUTPUT);
+
+  // SPCR |= _BV(SPE);
+  pos = 0;
+  process_it = false;
+  // SPI.attachInterrupt();
+
   // put your setup code here, to run once:
   for(int i = 0; i < NUMFANS; i++){
-    pinMode(fanPins[i], OUTPUT);
+    pinMode(fanPWMPins[i], OUTPUT);
   }
   pinMode(ledPin,OUTPUT);
   pinMode(solenoidForward,OUTPUT);
   pinMode(solenoidReverse,OUTPUT);
   pinMode(motorForwardEnable, OUTPUT);
   pinMode(motorReverseEnable, OUTPUT);
-  Serial.begin(9600);
+  T2spiInit();
   Serial.print("PWM output begin.");
   digitalWrite(ledPin, ledState);
   updateAllFanStates(); //DigitalWrite all fan states
 
-  delay(10);
+  delay(100);
+
+  // fanConnectionTest();
 
   homeSolenoid();
   resetAllFanHealth();
@@ -55,10 +93,29 @@ void setup() {
 void loop() {
   //Blinking light to show life
   blinkLED();
+  if(process_it){
+    commandBuffer [pos] = 0;
+    Serial.println(commandBuffer);
+    // handleCommands();
+    if(strcmp(commandBuffer, "o")){
+      for(int i = 0; i < NUMFANS; i++){
+        fanStates[i] = HIGH;
+      }
+    }
+
+    pos = 0;
+    process_it = false;
+  }
+
+  // if SPI not active, clear current command
+  if (digitalRead (SS) == HIGH) {
+    command = 0;
+  }
+
 
   sampleHealthOfAllFans();
-
   updateAllFanStates(); //DigitalWrite all fan states
+  // logHealthOfAllFans();
  }
 
  
@@ -66,6 +123,57 @@ void loop() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////         FUNCTIONS                /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Validation Functions
+void fanConnectionTest() {
+  Serial.println("\nBeginning fan test.");
+  for(int i = 0; i < 6; i++){
+    fanStates[i] = 0; //Shut off all fans prior to testing
+  }
+  updateAllFanStates();
+  delay(1000);
+
+  //Loop for testing through all 6 fans
+  for(int i = 0; i < 6; i++) {
+    Serial.println(String("Testing fan ") + String(i));
+    unsigned long testDuration = 6000; //Test each fan for 6 seconds
+    unsigned long prevTestMillis = millis();
+    fanStates[i] = 1; //Turn fan on to begin test.
+    updateAllFanStates();
+    delay(1000);
+
+    while(true){
+      unsigned long currentMillis = millis();
+      if(currentMillis - prevTestMillis >= testDuration){ //Test for this fan has been concluded.
+        //End test, cleanup, and move on to next.
+
+        fanStates[i] = 0; //Shut fan off
+        updateAllFanStates();
+        break;
+      }
+      // prevTestMillis = currentMillis;
+      
+      unsigned long currentTachReading = analogRead(tachPins[i])/4*60;
+      // Serial.println(i + String("   Value: ") + currentTachReading + String("    Samples: ") + fanHealthSamples[i] + String("     Status: ") + fanStates[i]);
+      if(currentTachReading >= 10000 || currentTachReading < 4000) {
+        fanHealthSamples[i] = fanHealthSamples[i]+1; //Increase counter if improper tach values sensed.
+      } else {
+        fanHealthSamples[i] = 0; //Reset counter if a nominal value was read
+      }
+
+      if(fanHealthSamples[i] >= fanDeathSampleCount){
+        fanHealth[i] = 0;
+        fanStates[i] = -1;
+      }
+      // blinkLED();
+      updateAllFanStates();
+    }
+  }
+  logHealthOfAllFans();
+}
+
+
+
 
 //============ SOLENOID STUFF ==================================
 
@@ -91,13 +199,21 @@ void homeSolenoid(){
   delay(100);
 }
 
+void toggleSolenoid(){
+  if(!solenoidHomed){
+    return;
+  }
+
+}
+
+
 //============ FAN STUFF ==================================
 
 //Writes to each fan pin the current state determined by the global fanStates array.
 void updateAllFanStates(){
   for(int i = 0; i < NUMFANS; i++){
     // if(fanHealth[i]){
-      digitalWrite(fanPins[i],fanStates[i] > 0 ? HIGH : LOW);
+      digitalWrite(fanPWMPins[i],fanStates[i] > 0 ? HIGH : LOW);
     // } else {
       // digitalWrite(fanPins[i],0); //If fan is unhealthy, do not turn it on. Health must first be reset.
     // }
@@ -143,11 +259,11 @@ void logHealthOfAllFans(){
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(fanStates[i])+String(" : "));
   }
-  Serial.print("Samples: ");
+  Serial.print("\tBad Samples: ");
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(fanHealthSamples[i]+String(" : ")));
   }
-  Serial.println();
+  Serial.print("\tValues: ");
   for(int i = 0; i < NUMFANS; i++){
     Serial.print(String(analogRead(tachPins[i])/4*60)+String(" : "));
   }
@@ -197,6 +313,9 @@ int checkFanHealth(int fanToCheck){
   }
 }
 
+void returnFanStatus(){
+
+}
 
 
 //============ LED STUFF ==================================
@@ -205,6 +324,7 @@ int checkFanHealth(int fanToCheck){
 void blinkLED(){
   unsigned long currentMillis = millis();
   if(currentMillis - previousMillis >= changeTime){
+    // Serial.println("Blink");
     previousMillis = currentMillis;
     if(ledState == LOW){
       ledState = HIGH;
@@ -212,7 +332,80 @@ void blinkLED(){
       ledState = LOW;
     }
     digitalWrite(ledPin, ledState);
-    logHealthOfAllFans();
+    // logHealthOfAllFans();
+//    Serial.println(analogRead(11));
   }
 }
 
+///  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SPI STUFF ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+///~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void T2spiInit(){
+  DDRB = (1<<MISO);
+  SPCR |= _BV(SPE);
+  // SPCR |= _BV(SPIE);
+  SPI.attachInterrupt();
+
+  Serial.println("SPI INIT");
+
+  // pinMode(SS_pin, INPUT);
+  // pinMode(SCK_pin, INPUT);
+  // pinMode(MOSI_pin, INPUT);
+  // pinMode(MISO_pin, OUTPUT);
+}
+
+
+// void SPI_SlaveReceive(void){
+//   while(!(SPSR & (1<<SPIF)));
+//   return SPDR;
+// }
+
+//http://www.gammon.com.au/forum/?id=10892&reply=1#reply1
+ISR (SPI_STC_vect) { // SPI interrupt routine
+  Serial.println("SPI COMMAND RECEIVED");
+  byte c = SPDR;
+  
+  if (pos < sizeof commandBuffer) {
+    commandBuffer [pos++] = c;
+    // Serial.println(commandBuffer);
+  }
+  
+  return;
+} // end of interrupt routine SPI_STC_vect
+
+
+
+
+
+
+void handleCommands(){
+
+  // switch(command){
+
+  //   case "M382": //Solenoid Up
+  //     if(!solenoidHomed){
+  //       homeSolenoid();
+  //     }
+  //     digitalWrite(solenoidForward,HIGH);
+  //     digitalWrite(solenoidReverse,LOW);
+  //     delay(40);
+  //     digitalWrite(solenoidForward,LOW);
+  //   break;
+
+  //   case "M383": //Solenoid Down
+  //     if(!solenoidHomed){
+  //       homeSolenoid();
+  //     }
+  //     digitalWrite(solenoidReverse,HIGH);
+  //     digitalWrite(solenoidForward,LOW);
+  //     delay(40);
+  //     digitalWrite(solenoidReverse,LOW);
+  //   break;
+    
+
+  //   default:
+  //   break;
+  // }
+
+  return;
+}
