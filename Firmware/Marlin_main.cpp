@@ -7639,12 +7639,18 @@ Sigma_Exit:
 // for(int i=0;i<NUM_AXIS;i++) {
         //   if(code_seen(axis_codes[i])) st_current_set(digipotChannels[i],code_value());
         // }
-        if(code_seen('S')) { for(int i=0;i<NUM_AXIS;i++) st_current_set(digipotChannels[i],code_value()); }
-        if(code_seen('X')) { st_current_set(digipotChannels[X_AXIS], code_value()); }
-        if(code_seen('Y')) { st_current_set(digipotChannels[Y_AXIS], code_value()); }
-        if(code_seen('Z')) { st_current_set(digipotChannels[Z_AXIS], code_value()); }
-        if(code_seen('E')) { st_current_set(digipotChannels[E_AXIS], code_value()); }
-        if(code_seen('A')) { st_current_set(digipotChannels[A_AXIS], code_value()); }
+        if(code_seen('S')) {
+          st_current_set(int(4),code_value());
+          st_current_set(int(5),code_value());
+          st_current_set(int(3),code_value());
+          st_current_set(int(0),code_value());
+          st_current_set(int(1),code_value());
+        }
+        if(code_seen('X')) { st_current_set(int(4),code_value()); }
+        if(code_seen('Y')) { st_current_set(int(5),code_value()); }
+        if(code_seen('Z')) { st_current_set(int(3),code_value()); }
+        if(code_seen('E')) { st_current_set(int(0),code_value()); }
+        if(code_seen('A')) { st_current_set(int(1),code_value()); }
 #endif //TMC2130
     }
     break;
