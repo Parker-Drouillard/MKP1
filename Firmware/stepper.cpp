@@ -1513,16 +1513,9 @@ void st_current_init(){ //Initialize Digipot Motor Current
     //Set timer5 to 31khz so the PWM of the motor power is as constant as possible. (removes a buzzing noise)
     TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
 #elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-  pinMode(DIGIPOTSS_PIN,OUTPUT);
-  // for(int i = 0; i < 5; i++){
-  //   digitalPotWrite(DIGIPOT_CHANNELS[i],DIGIPOT_MOTOR_CURRENT[i]);
-  // }
-  digitalPotWrite(4, 135);
-  digitalPotWrite(5, 135);
-  digitalPotWrite(3, 135);
-  digitalPotWrite(0, 135);
-  digitalPotWrite(1, 135);
-
+  for(int i = 0; i < 5; i++){
+    digitalPotWrite(digipotChannels[i],motorCurrents[i]);
+  }
 #endif
 }
 
@@ -1536,7 +1529,6 @@ void st_current_set(uint8_t driver, int current) {
 }
 #else //MOTOR_CURRENT_PWM_XY_PIN
 void st_current_set(int driver, int current) {
-  // digitalPotWrite(DIGIPOT_CHANNELS[driver],current);
 }
 #endif //MOTOR_CURRENT_PWM_XY_PIN
 
