@@ -333,8 +333,8 @@ uint16_t print_time_remaining_silent = PRINT_TIME_REMAINING_INIT; //estimated re
 //===========================================================================
 #define MSG_BED_LEVELING_FAILED_TIMEOUT 30
 
-const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E'};
-float destination[NUM_AXIS] = {  0.0, 0.0, 0.0, 0.0};
+const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E', 'A'};
+float destination[NUM_AXIS] = {  0.0, 0.0, 0.0, 0.0, 0.0};
 
 // For tracing an arc
 static float offset[3] = {0.0, 0.0, 0.0};
@@ -2654,11 +2654,10 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level) {
 	plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 40);
 	st_synchronize();
 
-	// Let the user move the Z axes up to the end stoppers.
 #ifdef TMC2130
 	if (calibrate_z_auto()) {
 #else //TMC2130
-	if (lcd_calibrate_z_end_stop_manual(onlyZ)) {
+	if (lcd_calibrate_z_end_stop_manual(onlyZ)) { 	// Let the user move the Z axes up to the end stoppers.
 #endif //TMC2130
 		lcd_show_fullscreen_message_and_wait_P(_T(MSG_CONFIRM_NOZZLE_CLEAN));
 		if(onlyZ){
@@ -6064,6 +6063,7 @@ Sigma_Exit:
 	  - `Y` - Y axis
 	  - `Z` - Z axis
 	  - `E` - Exruder
+    - `A` - Extruder2
 
 	### M18 - Disable steppers <a href="https://reprap.org/wiki/G-code#M18:_Disable_all_stepper_motors">M18: Disable all stepper motors</a>
 	Equal to M84 (compatibility)
@@ -6072,30 +6072,27 @@ Sigma_Exit:
     case 84: // M84
       if(code_seen('S')){
         stepper_inactive_time = code_value() * 1000;
-      }
-      else
-      {
-        bool all_axis = !((code_seen(axis_codes[X_AXIS])) || (code_seen(axis_codes[Y_AXIS])) || (code_seen(axis_codes[Z_AXIS]))|| (code_seen(axis_codes[E_AXIS])));
-        if(all_axis)
-        {
+      } else {
+        bool all_axis = !((code_seen(axis_codes[X_AXIS])) || (code_seen(axis_codes[Y_AXIS])) || (code_seen(axis_codes[Z_AXIS]))|| (code_seen(axis_codes[E_AXIS])) || (code_seen(axis_codes[A_AXIS])));
+        if(all_axis) {
           st_synchronize();
           disable_e0();
           disable_e1();
           disable_e2();
           finishAndDisableSteppers();
-        }
-        else
-        {
+        } else {
           st_synchronize();
-		  if (code_seen('X')) disable_x();
-		  if (code_seen('Y')) disable_y();
-		  if (code_seen('Z')) disable_z();
+          if (code_seen('X')) {disable_x();}
+          if (code_seen('Y')) {disable_y();}
+          if (code_seen('Z')) {disable_z();}
 #if ((E0_ENABLE_PIN != X_ENABLE_PIN) && (E1_ENABLE_PIN != Y_ENABLE_PIN)) // Only enable on boards that have seperate ENABLE_PINS
-		  if (code_seen('E')) {
-			  disable_e0();
-			  disable_e1();
-			  disable_e2();
-            }
+          if (code_seen('E')) {
+            disable_e0();
+            disable_e2();
+          }
+          if (code_seen('A')) {
+            disable_e1();
+          }
           #endif
         }
       }
@@ -6150,17 +6147,16 @@ Sigma_Exit:
 	- `Y` - Steps per unit for the Y drive
 	- `Z` - Steps per unit for the Z drive
 	- `E` - Steps per unit for the extruder drive
+  - `A` - Steps per unit for the second extruder drive
     */
     case 92:
-      for(int8_t i=0; i < NUM_AXIS; i++)
-      {
-        if(code_seen(axis_codes[i]))
-        {
-          if(i == E_AXIS) { // E
+      for(int8_t i=0; i < NUM_AXIS; i++) {
+        if(code_seen(axis_codes[i])) {
+          if(i == E_AXIS || i == A_AXIS) { // E
             float value = code_value();
             if(value < 20.0) {
               float factor = cs.axis_steps_per_unit[i] / value; // increase e constants if M92 E14 is given for netfab.
-              cs.max_jerk[E_AXIS] *= factor;
+              cs.max_jerk[i == E_AXIS ? E_AXIS : A_AXIS] *= factor;
               max_feedrate[i] *= factor;
               axis_steps_per_sqr_second[i] *= factor;
             }
@@ -6168,8 +6164,7 @@ Sigma_Exit:
 #if defined(FILAMENT_SENSOR) && defined(PAT9125)
             fsensor_set_axis_steps_per_unit(value);
 #endif
-          }
-          else {
+          } else {
             cs.axis_steps_per_unit[i] = code_value();
           }
         }
@@ -6446,19 +6441,18 @@ Sigma_Exit:
     For each axis individually.
     */
     case 201:
-		for (int8_t i = 0; i < NUM_AXIS; i++)
-		{
-			if (code_seen(axis_codes[i]))
-			{
+		for (int8_t i = 0; i < NUM_AXIS; i++) {
+			if (code_seen(axis_codes[i])) {
 				unsigned long val = code_value();
 #ifdef TMC2130
 				unsigned long val_silent = val;
-				if ((i == X_AXIS) || (i == Y_AXIS))
-				{
-					if (val > NORMAL_MAX_ACCEL_XY)
+				if ((i == X_AXIS) || (i == Y_AXIS)) {
+					if (val > NORMAL_MAX_ACCEL_XY){
 						val = NORMAL_MAX_ACCEL_XY;
-					if (val_silent > SILENT_MAX_ACCEL_XY)
+          }
+					if (val_silent > SILENT_MAX_ACCEL_XY) {
 						val_silent = SILENT_MAX_ACCEL_XY;
+          }
 				}
 				cs.max_acceleration_units_per_sq_second_normal[i] = val;
 				cs.max_acceleration_units_per_sq_second_silent[i] = val_silent;
@@ -6470,28 +6464,18 @@ Sigma_Exit:
 		// steps per sq second need to be updated to agree with the units per sq second (as they are what is used in the planner)
 		reset_acceleration_rates();
 		break;
-    #if 0 // Not used for Sprinter/grbl gen6
-    case 202: // M202
-      for(int8_t i=0; i < NUM_AXIS; i++) {
-        if(code_seen(axis_codes[i])) axis_travel_steps_per_sqr_second[i] = code_value() * cs.axis_steps_per_unit[i];
-      }
-      break;
-    #endif
 
     /*!
 	### M203 - Set Max Feedrate <a href="https://reprap.org/wiki/G-code#M203:_Set_maximum_feedrate">M203: Set maximum feedrate</a>
     For each axis individually.
     */
     case 203: // M203 max feedrate mm/sec
-		for (int8_t i = 0; i < NUM_AXIS; i++)
-		{
-			if (code_seen(axis_codes[i]))
-			{
+		for (int8_t i = 0; i < NUM_AXIS; i++) {
+			if (code_seen(axis_codes[i])) {
 				float val = code_value();
 #ifdef TMC2130
 				float val_silent = val;
-				if ((i == X_AXIS) || (i == Y_AXIS))
-				{
+				if ((i == X_AXIS) || (i == Y_AXIS)) {
 					if (val > NORMAL_MAX_FEEDRATE_XY)
 						val = NORMAL_MAX_FEEDRATE_XY;
 					if (val_silent > SILENT_MAX_FEEDRATE_XY)
@@ -6604,9 +6588,10 @@ Sigma_Exit:
     - `Z` - Z axis offset
 	*/
     case 206:
-      for(int8_t i=0; i < 3; i++)
-      {
-        if(code_seen(axis_codes[i])) cs.add_homing[i] = code_value();
+      for(int8_t i=0; i < 3; i++) {
+        if(code_seen(axis_codes[i])) {
+          cs.add_homing[i] = code_value();
+        }
       }
       break;
     #ifdef FWRETRACT
@@ -7648,7 +7633,7 @@ Sigma_Exit:
     - `Y` - Y motor driver
     - `Z` - Z motor driver
     - `E` - Extruder motor driver
-    - `B` - Second Extruder motor driver
+    - `A` - Second Extruder motor driver
     - `S` - All motors
     */
     case 907:
@@ -7668,12 +7653,12 @@ Sigma_Exit:
 // for(int i=0;i<NUM_AXIS;i++) {
         //   if(code_seen(axis_codes[i])) st_current_set(digipotChannels[i],code_value());
         // }
-        if(code_seen('S')) { for(int i=0;i<NUM_AXIS;i++) st_current_set(digipotChannels[i],code_value()); }
-        if(code_seen('X')) { st_current_set(digipotChannels[0], code_value()); }
-        if(code_seen('Y')) { st_current_set(digipotChannels[1], code_value()); }
-        if(code_seen('Z')) { st_current_set(digipotChannels[2], code_value()); }
-        if(code_seen('E')) { st_current_set(digipotChannels[3], code_value()); }
-        if(code_seen('B')) { st_current_set(digipotChannels[4], code_value()); }
+        if(code_seen('S')) { for(int i=0;i<NUM_AXIS;i++) digitalPotWrite(digipotChannels[i],code_value()); }
+        if(code_seen('X')) { digitalPotWrite(digipotChannels[0], code_value()); }
+        if(code_seen('Y')) { digitalPotWrite(digipotChannels[1], code_value()); }
+        if(code_seen('Z')) { digitalPotWrite(digipotChannels[2], code_value()); }
+        if(code_seen('E')) { digitalPotWrite(digipotChannels[3], code_value()); }
+        if(code_seen('A')) { digitalPotWrite(digipotChannels[4], code_value()); }
 
 #endif //TMC2130
     }
@@ -7693,10 +7678,14 @@ Sigma_Exit:
     case 908:
     {
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-        uint8_t channel,current;
-        if(code_seen('P')) channel=code_value();
-        if(code_seen('S')) current=code_value();
-        digitalPotWrite(channel, current);
+      uint8_t channel,current;
+      if(code_seen('P')) { 
+        channel=code_value();
+        if(code_seen('S')) {
+          current=code_value();
+          digitalPotWrite(channel, current);
+        }
+      }
 #endif
     }
     break;
@@ -7884,8 +7873,7 @@ Sigma_Exit:
     case 350: 
     {
 	#ifdef TMC2130
-		for (int i=0; i<NUM_AXIS; i++) 
-		{
+		for (int i=0; i<NUM_AXIS; i++)  {
 			if(code_seen(axis_codes[i]))
 			{
 				uint16_t res_new = code_value();
@@ -7921,7 +7909,7 @@ Sigma_Exit:
       #if defined(X_MS1_PIN) && X_MS1_PIN > -1
         if(code_seen('S')) for(int i=0;i<=4;i++) microstep_mode(i,code_value());
         for(int i=0;i<NUM_AXIS;i++) if(code_seen(axis_codes[i])) microstep_mode(i,(uint8_t)code_value());
-        if(code_seen('B')) microstep_mode(4,code_value());
+        if(code_seen('A')) microstep_mode(4,code_value());
         microstep_readings();
       #endif
 	#endif //TMC2130
@@ -8445,58 +8433,17 @@ void FlushSerialRequestResend() {
 
 // Confirm the execution of a command, if sent from a serial line.
 // Execution of a command from a SD card will not be confirmed.
-void ClearToSend()
-{
+void ClearToSend() {
     previous_millis_cmd = _millis();
 	if ((CMDBUFFER_CURRENT_TYPE == CMDBUFFER_CURRENT_TYPE_USB) || (CMDBUFFER_CURRENT_TYPE == CMDBUFFER_CURRENT_TYPE_USB_WITH_LINENR)) 
 		SERIAL_PROTOCOLLNRPGM(MSG_OK);
 }
 
-#if MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3 
-void update_currents() {
-	float current_high[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
-	float current_low[3] = DEFAULT_PWM_MOTOR_CURRENT;
-	float tmp_motor[3];
-	
-	//SERIAL_ECHOLNPGM("Currents updated: ");
 
-	if (destination[Z_AXIS] < Z_SILENT) {
-		//SERIAL_ECHOLNPGM("LOW");
-		for (uint8_t i = 0; i < 3; i++) {
-			// st_current_set(i, current_low[i]);		
-			/*MYSERIAL.print(int(i));
-			SERIAL_ECHOPGM(": ");
-			MYSERIAL.println(current_low[i]);*/
-		}		
-	}	else if (destination[Z_AXIS] > Z_HIGH_POWER) {
-		//SERIAL_ECHOLNPGM("HIGH");
-		for (uint8_t i = 0; i < 3; i++) {
-			// st_current_set(i, current_high[i]);
-			/*MYSERIAL.print(int(i));
-			SERIAL_ECHOPGM(": ");
-			MYSERIAL.println(current_high[i]);*/
-		}		
-	}	else if {
-
-  }else {
-		for (uint8_t i = 0; i < 3; i++) {
-			float q = current_low[i] - Z_SILENT*((current_high[i] - current_low[i]) / (Z_HIGH_POWER - Z_SILENT));
-			tmp_motor[i] = ((current_high[i] - current_low[i]) / (Z_HIGH_POWER - Z_SILENT))*destination[Z_AXIS] + q;
-			// st_current_set(i, tmp_motor[i]);			
-			/*MYSERIAL.print(int(i));
-			SERIAL_ECHOPGM(": ");
-			MYSERIAL.println(tmp_motor[i]);*/
-		}
-	}
-}
-#endif //MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
-
-void get_coordinates()
-{
+void get_coordinates() {
   bool seen[4]={false,false,false,false};
   for(int8_t i=0; i < NUM_AXIS; i++) {
-    if(code_seen(axis_codes[i]))
-    {
+    if(code_seen(axis_codes[i])) {
       bool relative = axis_relative_modes & (1 << i);
       destination[i] = (float)code_value();
       if (i == E_AXIS) {
@@ -8509,14 +8456,13 @@ void get_coordinates()
           destination[i] *= emult;
         }
       }
-      if (relative)
+      if (relative) {
         destination[i] += current_position[i];
+      }
       seen[i]=true;
-#if MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
-	  if (i == Z_AXIS && SilentModeMenu == SILENT_MODE_AUTO) update_currents();
-#endif //MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
+    } else {
+      destination[i] = current_position[i]; //Are these else lines really needed?
     }
-    else destination[i] = current_position[i]; //Are these else lines really needed?
   }
   if(code_seen('F')) {
     next_feedrate = code_value();

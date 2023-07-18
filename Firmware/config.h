@@ -17,7 +17,7 @@
 //#define SWI2C_SCL         21 //SCL on P3
 #define SWI2C_A8
 #define SWI2C_DEL         20 //2us clock delay
-#define SWI2C_TMO         2048 //2048 cycles timeouta
+#define SWI2C_TMO         2048 //2048 cycles timeout
 
 //SM4 configuration
 #define SM4_DEFDELAY      500       //default step delay [us]

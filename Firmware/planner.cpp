@@ -852,7 +852,7 @@ block->steps_y.wide = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-p
     block->direction_bits |= (1<<Z_AXIS); 
   }
   if (target[E_AXIS] < position[E_AXIS]) {
-    block->direction_bits |= (1<<E_AXIS+active_extruder); 
+    block->direction_bits |= (1<<(E_AXIS+active_extruder)); 
   }
 
   block->active_extruder = extruder;
@@ -1059,7 +1059,7 @@ Having the real displacement of the head, we can calculate the total movement le
     if(((float)block->acceleration_st * (float)block->steps_e.wide / (float)block->step_event_count.wide) > axis_steps_per_sqr_second[E_AXIS])
 	{  block->acceleration_st = axis_steps_per_sqr_second[E_AXIS]; maxlimit_status |= (Z_AXIS_MASK << 4); }
     if(((float)block->acceleration_st * (float)block->steps_z.wide / (float)block->step_event_count.wide ) > axis_steps_per_sqr_second[Z_AXIS+active_extruder])
-	{  block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS+active_extruder]; maxlimit_status |= (E_AXIS_MASK+active_extruder << 4); }
+	{  block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS+active_extruder]; maxlimit_status |= ((E_AXIS_MASK+active_extruder) << 4); }
   }
   // Acceleration of the segment, in mm/sec^2
   block->acceleration = block->acceleration_st / steps_per_mm;

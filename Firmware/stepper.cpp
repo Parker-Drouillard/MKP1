@@ -393,7 +393,7 @@ FORCE_INLINE void stepper_next_block() {
       WRITE_NC(Z_DIR_PIN,!INVERT_Z_DIR);
       count_direction[Z_AXIS]=1;
     }
-    if ((out_bits & (1 << E_AXIS+active_extruder)) != 0) { // -direction
+    if ((out_bits & (1 << (E_AXIS+active_extruder))) != 0) { // -direction
 #ifndef LIN_ADVANCE
       WRITE(E0_DIR_PIN, 
   #ifdef SNMM
