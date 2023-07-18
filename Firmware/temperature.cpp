@@ -660,8 +660,8 @@ void manage_heater() {
   // ADC values need to be converted before checking: converted values are later used in MINTEMP
   updateTemperaturesFromRawValues();
 
-  // check_max_temp();
-  // check_min_temp();
+  check_max_temp();
+  check_min_temp();
 
 #ifdef TEMP_RUNAWAY_BED_HYSTERESIS
   temp_runaway_check(0, target_temperature_bed, current_temperature_bed, (int)soft_pwm_bed, true);
@@ -1368,10 +1368,10 @@ void disable_heater() {
   #if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
     target_temperature_bed=0;
     soft_pwm_bed=0;
-	timer02_set_pwm0(soft_pwm_bed << 1);
-	bedPWMDisabled = 0;
+    timer02_set_pwm0(soft_pwm_bed << 1);
+    bedPWMDisabled = 0;
     #if defined(HEATER_BED_PIN) && HEATER_BED_PIN > -1
-      //WRITE(HEATER_BED_PIN,LOW);
+      // WRITE(HEATER_BED_PIN,LOW);
     #endif
   #endif 
 }
@@ -1602,9 +1602,12 @@ void adc_ready(void) { //callback from adc when sampling finished
 
 } // extern "C"
 
-FORCE_INLINE static void temperature_isr()
-{
-	if (!temp_meas_ready) adc_cycle();
+#if HEATER_BED_PIN > -1
+  static unsigned char soft_pwm_b;
+#endif
+
+FORCE_INLINE static void temperature_isr() {
+	if (!temp_meas_ready) {adc_cycle();}
 	lcd_buttons_update();
 
   static uint8_t pwm_count = (1 << SOFT_PWM_SCALE);
@@ -1651,7 +1654,9 @@ FORCE_INLINE static void temperature_isr()
 #ifdef HEATERS_PARALLEL
       WRITE(HEATER_1_PIN,1);
 #endif
-    } else{ WRITE(HEATER_0_PIN,0);}
+    } else { 
+      WRITE(HEATER_0_PIN,0);
+    }
 #if EXTRUDERS > 1
     soft_pwm_1 = soft_pwm[1];
     if(soft_pwm_1 > 0) {WRITE(HEATER_1_PIN,1);} else {WRITE(HEATER_1_PIN,0);}
@@ -1662,34 +1667,22 @@ FORCE_INLINE static void temperature_isr()
 #endif
   }
 #if defined(HEATER_BED_PIN) && HEATER_BED_PIN > -1
-  
-#if 0  // @@DR vypnuto pro hw pwm bedu
-  // tuhle prasarnu bude potreba poustet ve stanovenych intervalech, jinak nemam moc sanci zareagovat
-  // teoreticky by se tato cast uz vubec nemusela poustet
-  if ((pwm_count & ((1 << HEATER_BED_SOFT_PWM_BITS) - 1)) == 0)
-  {
-    soft_pwm_b = soft_pwm_bed >> (7 - HEATER_BED_SOFT_PWM_BITS);
-#  ifndef SYSTEM_TIMER_2
-	// tady budu krokovat pomalou frekvenci na automatu - tohle je rizeni spinani a rozepinani
-	// jako ridici frekvenci mam 2khz, jako vystupni frekvenci mam 30hz
-	// 2kHz jsou ovsem ve slysitelnem pasmu, mozna bude potreba jit s frekvenci nahoru (a tomu taky prizpusobit ostatni veci)
-	// Teoreticky bych mohl stahnout OCR0B citac na 6, cimz bych se dostal nekam ke 40khz a tady potom honit PWM rychleji nebo i pomaleji
-	// to nicemu nevadi. Soft PWM scale by se 20x zvetsilo (no dobre, 16x), cimz by se to posunulo k puvodnimu 30Hz PWM
-	//if(soft_pwm_b > 0) WRITE(HEATER_BED_PIN,1); else WRITE(HEATER_BED_PIN,0);
-#  endif //SYSTEM_TIMER_2
+  soft_pwm_b = soft_pwm_bed;
+  if(soft_pwm_b > 0) {
+    WRITE(HEATER_BED_PIN,1);
+  } else {
+    WRITE(HEATER_BED_PIN,0);
   }
 #endif
-#endif
+
   
 #ifdef FAN_SOFT_PWM
-  if ((pwm_count & ((1 << FAN_SOFT_PWM_BITS) - 1)) == 0)
-  {
+  if ((pwm_count & ((1 << FAN_SOFT_PWM_BITS) - 1)) == 0) {
     soft_pwm_fan = fanSpeedSoftPwm / (1 << (8 - FAN_SOFT_PWM_BITS));
-    if(soft_pwm_fan > 0) WRITE(FAN_PIN,1); else WRITE(FAN_PIN,0);
+    if(soft_pwm_fan > 0) {WRITE(FAN_PIN,1); } else {WRITE(FAN_PIN,0);}
   }
 #endif
-  if(soft_pwm_0 < pwm_count)
-  { 
+  if(soft_pwm_0 < pwm_count) {
     WRITE(HEATER_0_PIN,0);
 #ifdef HEATERS_PARALLEL
     WRITE(HEATER_1_PIN,0);
@@ -2101,16 +2094,11 @@ void check_min_temp_heater(){
 
 void check_min_temp_bed() {
 #if HEATER_BED_RAW_LO_TEMP > HEATER_BED_RAW_HI_TEMP
-	if (current_temperature_bed_raw >= bed_minttemp_raw) {
+	if (current_temperature_bed_raw >= bed_minttemp_raw - 100) {
 #else
 	if (current_temperature_bed_raw <= bed_minttemp_raw) {
 #endif
-		menu_set_serious_error(SERIOUS_ERR_MINTEMP_BED);
-		bed_min_temp_error();
-	} else if( menu_is_serious_error(SERIOUS_ERR_MINTEMP_BED) ){
-		// no recovery, just force the user to restart the printer
-		// which is a safer variant than just continuing printing
-		alert_automaton_bed.step(current_temperature_bed, BED_MINTEMP + TEMP_HYSTERESIS);
+    bed_min_temp_error();
 	}
 }
 

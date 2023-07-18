@@ -178,21 +178,6 @@ void manage_inactivity(bool ignore_stepper_queue=false);
     #define disable_z() disable_force_z()
 #endif // PSU_Delta
 
-
-//#if defined(Z_ENABLE_PIN) && Z_ENABLE_PIN > -1
-//#ifdef Z_DUAL_STEPPER_DRIVERS
-//#define  enable_z() { WRITE(Z_ENABLE_PIN, Z_ENABLE_ON); WRITE(Z2_ENABLE_PIN, Z_ENABLE_ON); }
-//#define disable_z() { WRITE(Z_ENABLE_PIN,!Z_ENABLE_ON); WRITE(Z2_ENABLE_PIN,!Z_ENABLE_ON); axis_known_position[Z_AXIS] = false; }
-//#else
-//#define  enable_z() WRITE(Z_ENABLE_PIN, Z_ENABLE_ON)
-//#define disable_z() { WRITE(Z_ENABLE_PIN,!Z_ENABLE_ON); axis_known_position[Z_AXIS] = false; }
-//#endif
-//#else
-//#define enable_z() ;
-//#define disable_z() ;
-//#endif
-
-
 #if defined(E0_ENABLE_PIN) && (E0_ENABLE_PIN > -1)
   #define enable_e0() WRITE(E0_ENABLE_PIN, E_ENABLE_ON)
   #define disable_e0() WRITE(E0_ENABLE_PIN,!E_ENABLE_ON)
@@ -297,7 +282,7 @@ extern int extruder_multiply[EXTRUDERS]; // sets extrude multiply factor (in per
 extern float extruder_multiplier[EXTRUDERS]; // reciprocal of cross-sectional area of filament (in square millimeters), stored this way to reduce computational burden in planner
 extern float current_position[NUM_AXIS] ;
 extern float destination[NUM_AXIS] ;
-extern float min_pos[3];
+extern float min_pos[3][2];
 extern float max_pos[3];
 extern bool axis_known_position[3];
 extern int fanSpeed;

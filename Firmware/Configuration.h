@@ -16,12 +16,12 @@ extern uint16_t nPrinterType;
 extern PGM_P sPrinterName;
 
 // Firmware version
-#define FW_VERSION "3.9.1"
+#define FW_VERSION "22.9.28.1"
 #define FW_COMMIT_NR 3518
 // FW_VERSION_UNKNOWN means this is an unofficial build.
 // The firmware should only be checked into github with this symbol.
 #define FW_DEV_VERSION FW_VERSION_UNKNOWN
-#define FW_REPOSITORY "Unknown"
+#define FW_REPOSITORY "https://github.com/Parker-Drouillard/MKP1/tree/pindaTester"
 #define FW_VERSION_FULL FW_VERSION "-" STR(FW_COMMIT_NR)
 
 // G-code language level
@@ -414,11 +414,6 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // For deltabots this means top and center of the Cartesian print volume.
 
 
-// Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
-// The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
-// For the other hotends it is their distance from the extruder 0 hotend.
-#define EXTRUDER_OFFSET_X {0.0, 47} // (in mm) for each extruder, offset of the hotend on the X axis
-#define EXTRUDER_OFFSET_Y {0.0, 0}  // (in mm) for each extruder, offset of the hotend on the Y axis
 
 // The speed change that does not require acceleration (i.e. the software might assume it can be done instantaneously)
 #define DEFAULT_XJERK                10       // (mm/sec)
@@ -447,6 +442,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 //define this to enable EEPROM support
 //#define EEPROM_SETTINGS
 //to disable EEPROM Serial responses and decrease program space by ~1700 byte: comment this out:
+
 // please keep turned on if you can.
 //#define EEPROM_CHITCHAT
 

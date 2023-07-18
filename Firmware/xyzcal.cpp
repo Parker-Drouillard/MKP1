@@ -312,18 +312,13 @@ void xyzcal_scan_pixels_32x32(int16_t cx, int16_t cy, int16_t min_z, int16_t max
 //						DBG(_n("!0 x=%d z=%d\n"), c*64+i, z-24);
 //				}
 				sm4_set_dir(Z_AXIS, !pinda);
-				if (!pinda)
-				{
-					if (z > min_z)
-					{
+				if (!pinda) {
+					if (z > min_z) {
 						sm4_do_step(Z_AXIS_MASK);
 						z--;
 					}
-				}
-				else
-				{
-					if (z < max_z)
-					{
+				} else {
+					if (z < max_z) {
 						sm4_do_step(Z_AXIS_MASK);
 						z++;
 					}

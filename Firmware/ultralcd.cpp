@@ -672,6 +672,24 @@ void lcdui_print_status_screen(void) {
 	lcd_print(LCD_STR_DEGREE " ");
 	lcd_print("          ");
 	#endif
+#ifdef FIL_RUNOUT_SUPPORT
+	lcd_set_cursor(LCD_WIDTH - 7, 1); //Line 2 7 from right
+	lcd_print("0:");
+	if(READ(FILAMENT_RUNOUT_SENSOR)){
+		lcd_print("L");
+	} else {
+		lcd_print("N");
+	}
+	#if EXTRUDERS == 2
+		lcd_print(" 1:");
+		if(READ(FILAMENT_RUNOUT2_SENSOR)){
+			lcd_print("L");
+		} else {
+			lcd_print("N");
+		}
+#endif //FIL_RUNOUT_SUPPORT
+	#endif
+
     lcd_set_cursor(0, 2); //line 3
 
 	//Print the Bed temperature (9 chars total)
@@ -1788,9 +1806,9 @@ static void lcd_support_menu()
       MENU_ITEM_BACK_P(PSTR("FW - " FW_version));
   }*/
       
-  MENU_ITEM_BACK_P(_i("prusa3d.com"));////MSG_PRUSA3D
-  MENU_ITEM_BACK_P(_i("forum.prusa3d.com"));////MSG_PRUSA3D_FORUM
-  MENU_ITEM_BACK_P(_i("howto.prusa3d.com"));////MSG_PRUSA3D_HOWTO
+  MENU_ITEM_BACK_P(_i("pepcorp.ca"));////MSG_PRUSA3D
+  MENU_ITEM_BACK_P(_i("Property of Pep Corp."));////MSG_PRUSA3D_FORUM
+  MENU_ITEM_BACK_P(_i("info@pepcorp.ca"));////MSG_PRUSA3D_HOWTO
   MENU_ITEM_BACK_P(STR_SEPARATOR);
   MENU_ITEM_BACK_P(PSTR(FILAMENT_SIZE));
   MENU_ITEM_BACK_P(PSTR(ELECTRONICS));
@@ -1951,8 +1969,7 @@ if(lcd_clicked())
      }
 }
 
-void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
-{
+void mFilamentItem(uint16_t nTemp, uint16_t nTempBed) {
     static int nTargetOld;
     static int nTargetBedOld;
     uint8_t nLevel;
@@ -1980,26 +1997,24 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
 
     lcd_timeoutToStatus.stop();
 
-    if (current_temperature[0] > (target_temperature[0] * 0.95))
-    {
+    if (current_temperature[0] > (target_temperature[0] * 0.95)) {
         switch (eFilamentAction)
         {
         case FilamentAction::Load:
         case FilamentAction::AutoLoad:
         case FilamentAction::UnLoad:
-            if (bFilamentWaitingFlag) menu_submenu(mFilamentPrompt);
-            else
-            {
+            if (bFilamentWaitingFlag) {menu_submenu(mFilamentPrompt);
+			} else {
                 nLevel = bFilamentPreheatState ? 1 : 2;
                 menu_back(nLevel);
-                if ((eFilamentAction == FilamentAction::Load) || (eFilamentAction == FilamentAction::AutoLoad))
-                {
+                if ((eFilamentAction == FilamentAction::Load) || (eFilamentAction == FilamentAction::AutoLoad)) {
                     loading_flag = true;
                     enquecommand_P(PSTR("M701")); // load filament
                     if (eFilamentAction == FilamentAction::AutoLoad) eFilamentAction = FilamentAction::None; // i.e. non-autoLoad
                 }
-                if (eFilamentAction == FilamentAction::UnLoad)
-                enquecommand_P(PSTR("M702")); // unload filament
+                if (eFilamentAction == FilamentAction::UnLoad) {
+                	enquecommand_P(PSTR("M702")); 
+				}// unload filament
             }
             break;
 #ifdef MMU_HAS_CUTTER
@@ -2017,15 +2032,12 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
         }
         if (bFilamentWaitingFlag) Sound_MakeSound(e_SOUND_TYPE_StandardPrompt);
         bFilamentWaitingFlag = false;
-    }
-    else
-    {
+    } else {
         bFilamentWaitingFlag = true;
         lcd_set_cursor(0, 0);
         lcdui_print_temp(LCD_STR_THERMOMETER[0], (int) degHotend(0), (int) degTargetHotend(0));
         lcd_set_cursor(0, 1);
-        switch (eFilamentAction)
-        {
+        switch (eFilamentAction) {
         case FilamentAction::Load:
         case FilamentAction::AutoLoad:
         case FilamentAction::MmuLoad:
@@ -2048,17 +2060,13 @@ void mFilamentItem(uint16_t nTemp, uint16_t nTempBed)
         }
         lcd_set_cursor(0, 3);
         lcd_puts_P(_i(">Cancel"));                   ////MSG_ c=20 r=1
-        if (lcd_clicked())
-        {
+        if (lcd_clicked()) {
             bFilamentWaitingFlag = false;
-            if (!bFilamentPreheatState)
-            {
+            if (!bFilamentPreheatState) {
                 setTargetHotend0(0.0);
                 setTargetBed(0.0);
                 menu_back();
-            }
-            else
-            {
+            } else {
                 setTargetHotend0((float )nTargetOld);
                 setTargetBed((float) nTargetBedOld);
             }
@@ -7383,7 +7391,7 @@ static bool lcd_selfcheck_pulleys(int axis)
 	for (i = 0; i < 5; i++) {
 		refresh_cmd_timeout();
 		current_position[axis] = current_position[axis] + move;
-		st_current_set(0, 850); //set motor current higher
+		// st_current_set(0, 850); //set motor current higher
 		plan_buffer_line_curposXYZE(200);
 		st_synchronize();
         //   if (SilentModeMenu != SILENT_MODE_OFF) st_current_set(0, tmp_motor[0]); //set back to normal operation currents
@@ -7409,13 +7417,11 @@ static bool lcd_selfcheck_pulleys(int axis)
 				plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 				st_synchronize();
 				return(true);
-			}
-			else {
+			} else {
 				lcd_selftest_error(TestError::Pulley, (axis == 0) ? "X" : "Y", "");
 				return(false);
 			}
-		}
-		else {
+		} else {
 			current_position[axis] -= 1;
 			plan_buffer_line_curposXYZE(manual_feedrate[0] / 60);
 			st_synchronize();
@@ -7430,8 +7436,7 @@ static bool lcd_selfcheck_pulleys(int axis)
 #endif //not defined TMC2130
 
 
-static bool lcd_selfcheck_endstops()
-{
+static bool lcd_selfcheck_endstops() {
 	bool _result = true;
 
 	if (

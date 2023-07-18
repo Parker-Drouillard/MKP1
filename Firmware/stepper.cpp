@@ -1509,38 +1509,44 @@ void st_current_init(){ //Initialize Digipot Motor Current
     st_current_set(2, motor_current_setting[2]);
     //Set timer5 to 31khz so the PWM of the motor power is as constant as possible. (removes a buzzing noise)
     TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
-#else
+#elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+  pinMode(DIGIPOTSS_PIN,OUTPUT);
+  // for(int i = 0; i < 5; i++){
+  //   digitalPotWrite(DIGIPOT_CHANNELS[i],DIGIPOT_MOTOR_CURRENT[i]);
+  // }
+  digitalPotWrite(4, 135);
+  digitalPotWrite(5, 135);
+  digitalPotWrite(3, 135);
+  digitalPotWrite(0, 135);
+  digitalPotWrite(1, 135);
 
-  for(int i = 0; i < 5; i++){
-    digitalPotWrite(digipotChannels[i],motorCurrents[i]);
-  }
 #endif
 }
 
 
 
 #ifdef MOTOR_CURRENT_PWM_XY_PIN
-void st_current_set(uint8_t driver, int current)
-{
+void st_current_set(uint8_t driver, int current) {
   if (driver == 0) analogWrite(MOTOR_CURRENT_PWM_XY_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
   if (driver == 1) analogWrite(MOTOR_CURRENT_PWM_Z_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
   if (driver == 2) analogWrite(MOTOR_CURRENT_PWM_E_PIN, (long)current * 255L / (long)MOTOR_CURRENT_PWM_RANGE);
 }
 #else //MOTOR_CURRENT_PWM_XY_PIN
-void st_current_set(uint8_t address, int value){
-    digitalWrite(DIGIPOTSS_PIN,LOW); // take the SS pin low to select the chip
-    SPI.transfer(address); //  send in the address and value via SPI:
-    SPI.transfer(value);
-    digitalWrite(DIGIPOTSS_PIN,HIGH); // take the SS pin high to de-select the chip:
+void st_current_set(int driver, int current) {
+  // digitalPotWrite(DIGIPOT_CHANNELS[driver],current);
 }
 #endif //MOTOR_CURRENT_PWM_XY_PIN
 
 void microstep_init() {
 
-#if defined(E1_MS1_PIN) && E1_MS1_PIN > -1 //if second extruder exists
-  pinMode(E1_MS1_PIN,OUTPUT);
-  pinMode(E1_MS2_PIN,OUTPUT); 
-#endif //if second extruder exists
+  #if defined(E1_MS1_PIN) && E1_MS1_PIN > -1
+    pinMode(E1_MS1_PIN,OUTPUT);
+    pinMode(E1_MS2_PIN,OUTPUT); 
+  #endif
+  #if defined(E2_MS1_PIN) && E2_MS1_PIN > -1
+    pinMode(E2_MS1_PIN,OUTPUT);
+    pinMode(E2_MS2_PIN,OUTPUT);
+  #endif
 
 #if defined(X_MS1_PIN) && X_MS1_PIN > -1 //assumes XYZ & one E by default
   const uint8_t microstep_modes[] = MICROSTEP_MODES;

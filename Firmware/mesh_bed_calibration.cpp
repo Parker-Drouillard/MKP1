@@ -121,8 +121,7 @@ static inline bool point_on_1st_row(const uint8_t i)
 // The first row of points may not be fully reachable
 // and the y values may be shortened a bit by the bed carriage
 // pulling the belt up.
-static inline float point_weight_x(const uint8_t i, const float &y)
-{
+static inline float point_weight_x(const uint8_t i, const float &y) {
     float w = 1.f;
     if (point_on_1st_row(i)) {
 		if (y >= Y_MIN_POS_CALIBRATION_POINT_ACCURATE) {
@@ -143,8 +142,7 @@ static inline float point_weight_x(const uint8_t i, const float &y)
 // The first row of points may not be fully reachable
 // and the y values may be shortened a bit by the bed carriage
 // pulling the belt up.
-static inline float point_weight_y(const uint8_t i, const float &y)
-{
+static inline float point_weight_y(const uint8_t i, const float &y) {
     float w = 1.f;
     if (point_on_1st_row(i)) {
         if (y >= Y_MIN_POS_CALIBRATION_POINT_ACCURATE) {
@@ -187,8 +185,7 @@ BedSkewOffsetDetectionResultType calculate_machine_skew_and_offset_LS(
 #ifdef SUPPORT_VERBOSITY
     verbosity_level
 #endif //SUPPORT_VERBOSITY
-    )
-{
+    ) {
 	float angleDiff;
 	#ifdef SUPPORT_VERBOSITY
     if (verbosity_level >= 10) {
