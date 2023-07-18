@@ -602,16 +602,16 @@ void fanSpeedError(unsigned char _fan) {
 	if (card.sdprinting || is_usb_printing) {
 		if (heating_status != 0) {
 			lcd_print_stop();
-		}
-		else {
+		} else {
 			fan_check_error = EFCE_DETECTED; //plans error for next processed command
 		}
-	}
-	else {
+	} else {
 		// SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_PAUSED); //Why pause octoprint? is_usb_printing would be true in that case, so there is no need for this.
 		setTargetHotend0(0);
-        heating_status = 0;
-        fan_check_error = EFCE_REPORTED;
+    setTargetHotend1(0);
+    setTargetHotend2(0);
+    heating_status = 0;
+    fan_check_error = EFCE_REPORTED;
 	}
 	switch (_fan) {
 	case 0:	// extracting the same code from case 0 and case 1 into a function saves 72B

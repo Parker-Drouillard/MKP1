@@ -654,8 +654,8 @@ void lcdui_print_status_screen(void) {
 	lcd_print('/');
 	lcd_print(itostr3left(degTargetHotend(0)+0.5));
 	lcd_print(LCD_STR_DEGREE " ");
-	lcd_space(2);
-	lcd_print("P#: ");
+	lcd_set_cursor(LCD_WIDTH-7,0);
+	lcd_print("P# ");
 	lcd_print(PRINTER_NUMBER);
 	// lcd_printPGM(PSTR(" "));
 

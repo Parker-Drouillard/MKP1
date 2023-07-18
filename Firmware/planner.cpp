@@ -696,8 +696,7 @@ float junction_deviation = 0.1;
 // Add a new linear movement to the buffer. steps_x, _y and _z is the absolute position in 
 // mm. Microseconds specify how many microseconds the move should take to perform. To aid acceleration
 // calculation the caller must also provide the physical length of the line in millimeters.
-void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, uint8_t extruder, const float* gcode_target)
-{
+void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, uint8_t extruder, const float* gcode_target) {
     // Calculate the buffer head after we push this byte
   int next_buffer_head = next_block_index(block_buffer_head);
 
@@ -705,20 +704,20 @@ void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate
   // Rest here until there is room in the buffer.
   waiting_inside_plan_buffer_line_print_aborted = false;
   if (block_buffer_tail == next_buffer_head) {
-      do {
-          manage_heater(); 
-          // Vojtech: Don't disable motors inside the planner!
-          manage_inactivity(false); 
-          lcd_update(0);
-      } while (block_buffer_tail == next_buffer_head);
-      if (waiting_inside_plan_buffer_line_print_aborted) {
-          // Inside the lcd_update(0) routine the print has been aborted.
-          // Cancel the print, do not plan the current line this routine is waiting on.
+    do {
+      manage_heater(); 
+      // Vojtech: Don't disable motors inside the planner!
+      manage_inactivity(false); 
+      lcd_update(0);
+    } while (block_buffer_tail == next_buffer_head);
+    if (waiting_inside_plan_buffer_line_print_aborted) {
+      // Inside the lcd_update(0) routine the print has been aborted.
+      // Cancel the print, do not plan the current line this routine is waiting on.
 #ifdef PLANNER_DIAGNOSTICS
-          planner_update_queue_min_counter();
+      planner_update_queue_min_counter();
 #endif /* PLANNER_DIAGNOSTICS */
-          return;
-      }
+      return;
+    }
   }
 #ifdef PLANNER_DIAGNOSTICS
   planner_update_queue_min_counter();
@@ -734,80 +733,37 @@ void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate
   block->sdlen = 0;
 
   // Save original destination of the move
-  if (gcode_target)
+  if (gcode_target) {
       memcpy(block->gcode_target, gcode_target, sizeof(block_t::gcode_target));
-  else
-  {
-      block->gcode_target[X_AXIS] = x;
-      block->gcode_target[Y_AXIS] = y;
-      block->gcode_target[Z_AXIS] = z;
-      block->gcode_target[E_AXIS] = e;
+  } else {
+    block->gcode_target[X_AXIS] = x;
+    block->gcode_target[Y_AXIS] = y;
+    block->gcode_target[Z_AXIS] = z;
+    block->gcode_target[E_AXIS] = e;
   }
 
   // Save the global feedrate at scheduling time
   block->gcode_feedrate = feedrate;
 
   // Reset the starting E position when requested
-  if (plan_reset_next_e_queue)
-  {
-      position[E_AXIS] = 0;
+  if (plan_reset_next_e_queue) {
+    position[E_AXIS] = 0;
 #ifdef LIN_ADVANCE
-      position_float[E_AXIS] = 0;
+    position_float[E_AXIS] = 0;
 #endif
 
-      // the block might still be discarded later, but we need to ensure the lower-level
-      // count_position is also reset correctly for consistent results!
-      plan_reset_next_e_queue = false;
-      plan_reset_next_e_sched = true;
+    // the block might still be discarded later, but we need to ensure the lower-level
+    // count_position is also reset correctly for consistent results!
+    plan_reset_next_e_queue = false;
+    plan_reset_next_e_sched = true;
   }
 
 #ifdef ENABLE_AUTO_BED_LEVELING
   apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
 #endif // ENABLE_AUTO_BED_LEVELING
 
-    // Apply the machine correction matrix.
-    {
-      #if 0
-        SERIAL_ECHOPGM("Planner, current position - servos: ");
-        MYSERIAL.print(st_get_position_mm(X_AXIS), 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(st_get_position_mm(Y_AXIS), 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(st_get_position_mm(Z_AXIS), 5);
-        SERIAL_ECHOLNPGM("");
-
-        SERIAL_ECHOPGM("Planner, target position, initial: ");
-        MYSERIAL.print(x, 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(y, 5);
-        SERIAL_ECHOLNPGM("");
-
-        SERIAL_ECHOPGM("Planner, world2machine: ");
-        MYSERIAL.print(world2machine_rotation_and_skew[0][0], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_rotation_and_skew[0][1], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_rotation_and_skew[1][0], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_rotation_and_skew[1][1], 5);
-        SERIAL_ECHOLNPGM("");
-        SERIAL_ECHOPGM("Planner, offset: ");
-        MYSERIAL.print(world2machine_shift[0], 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(world2machine_shift[1], 5);
-        SERIAL_ECHOLNPGM("");
-      #endif
-
-        world2machine(x, y);
-
-      #if 0
-        SERIAL_ECHOPGM("Planner, target position, corrected: ");
-        MYSERIAL.print(x, 5);
-        SERIAL_ECHOPGM(", ");
-        MYSERIAL.print(y, 5);
-        SERIAL_ECHOLNPGM("");
-      #endif
-    }
+  // Apply the machine correction matrix.
+  world2machine(x, y);
 
   // The target position of the tool in absolute steps
   // Calculate target position in absolute steps
@@ -817,39 +773,38 @@ void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate
   target[Y_AXIS] = lround(y*cs.axis_steps_per_unit[Y_AXIS]);
 #ifdef MESH_BED_LEVELING
     if (mbl.active){
-        target[Z_AXIS] = lround((z+mbl.get_z(x, y))*cs.axis_steps_per_unit[Z_AXIS]);
+      target[Z_AXIS] = lround((z+mbl.get_z(x, y))*cs.axis_steps_per_unit[Z_AXIS]);
     }else{
-        target[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
+      target[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
     }
 #else
     target[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
 #endif // ENABLE_MESH_BED_LEVELING
-  target[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS]);
+  target[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS+active_extruder]);
   
   #ifdef PREVENT_DANGEROUS_EXTRUDE
   if(target[E_AXIS]!=position[E_AXIS]) {
     if(degHotend(active_extruder)<extrude_min_temp) {
       position[E_AXIS]=target[E_AXIS]; //behave as if the move really took place, but ignore E part
-      #ifdef LIN_ADVANCE
+#ifdef LIN_ADVANCE
       position_float[E_AXIS] = e;
-      #endif
+#endif
       SERIAL_ECHO_START;
       SERIAL_ECHOLNRPGM(_n(" cold extrusion prevented"));////MSG_ERR_COLD_EXTRUDE_STOP
     }
     
-    #ifdef PREVENT_LENGTHY_EXTRUDE
-    if(labs(target[E_AXIS]-position[E_AXIS])>cs.axis_steps_per_unit[E_AXIS]*EXTRUDE_MAXLENGTH)
-    {
+#ifdef PREVENT_LENGTHY_EXTRUDE
+    if(labs(target[E_AXIS]-position[E_AXIS])>cs.axis_steps_per_unit[E_AXIS+active_extruder]*EXTRUDE_MAXLENGTH) {
       position[E_AXIS]=target[E_AXIS]; //behave as if the move really took place, but ignore E part
-      #ifdef LIN_ADVANCE
+#ifdef LIN_ADVANCE
       position_float[E_AXIS] = e;
-      #endif
+#endif
       SERIAL_ECHO_START;
       SERIAL_ECHOLNRPGM(_n(" too long extrusion prevented"));////MSG_ERR_LONG_EXTRUDE_STOP
     }
-    #endif
+#endif
   }
-  #endif
+#endif
 
   // Number of steps for each axis
 #ifndef COREXY
@@ -867,8 +822,7 @@ block->steps_y.wide = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-p
   block->step_event_count.wide = max(block->steps_x.wide, max(block->steps_y.wide, max(block->steps_z.wide, block->steps_e.wide)));
 
   // Bail if this is a zero-length block
-  if (block->step_event_count.wide <= dropsegments)
-  { 
+  if (block->step_event_count.wide <= dropsegments) { 
 #ifdef PLANNER_DIAGNOSTICS
     planner_update_queue_min_counter();
 #endif /* PLANNER_DIAGNOSTICS */
@@ -880,39 +834,32 @@ block->steps_y.wide = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-p
   // Compute direction bits for this block 
   block->direction_bits = 0;
 #ifndef COREXY
-  if (target[X_AXIS] < position[X_AXIS])
-  {
+  if (target[X_AXIS] < position[X_AXIS]) {
     block->direction_bits |= (1<<X_AXIS); 
   }
-  if (target[Y_AXIS] < position[Y_AXIS])
-  {
+  if (target[Y_AXIS] < position[Y_AXIS]) {
     block->direction_bits |= (1<<Y_AXIS); 
   }
 #else
-  if ((target[X_AXIS]-position[X_AXIS]) + (target[Y_AXIS]-position[Y_AXIS]) < 0)
-  {
+  if ((target[X_AXIS]-position[X_AXIS]) + (target[Y_AXIS]-position[Y_AXIS]) < 0) {
     block->direction_bits |= (1<<X_AXIS); 
   }
-  if ((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-position[Y_AXIS]) < 0)
-  {
+  if ((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-position[Y_AXIS]) < 0) {
     block->direction_bits |= (1<<Y_AXIS); 
   }
 #endif
-  if (target[Z_AXIS] < position[Z_AXIS])
-  {
+  if (target[Z_AXIS] < position[Z_AXIS]) {
     block->direction_bits |= (1<<Z_AXIS); 
   }
-  if (target[E_AXIS] < position[E_AXIS])
-  {
-    block->direction_bits |= (1<<E_AXIS); 
+  if (target[E_AXIS] < position[E_AXIS]) {
+    block->direction_bits |= (1<<E_AXIS+active_extruder); 
   }
 
   block->active_extruder = extruder;
 
   //enable active axes
   #ifdef COREXY
-  if((block->steps_x.wide != 0) || (block->steps_y.wide != 0))
-  {
+  if((block->steps_x.wide != 0) || (block->steps_y.wide != 0)) {
     enable_x();
     enable_y();
   }
@@ -923,17 +870,14 @@ block->steps_y.wide = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-p
   if(block->steps_z.wide != 0) enable_z();
 
   // Enable extruder(s)
-  if(block->steps_e.wide != 0)
-  {
-    if (DISABLE_INACTIVE_EXTRUDER) //enable only selected extruder
-    {
+  if(block->steps_e.wide != 0) {
+    if (DISABLE_INACTIVE_EXTRUDER) { //enable only selected extruder
 
       if(g_uc_extruder_last_move[0] > 0) g_uc_extruder_last_move[0]--;
       if(g_uc_extruder_last_move[1] > 0) g_uc_extruder_last_move[1]--;
       if(g_uc_extruder_last_move[2] > 0) g_uc_extruder_last_move[2]--;
       
-      switch(extruder)
-      {
+      switch(extruder) {
         case 0: 
           enable_e0(); 
           g_uc_extruder_last_move[0] = BLOCK_BUFFER_SIZE*2;
@@ -956,21 +900,16 @@ block->steps_y.wide = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-p
           if(g_uc_extruder_last_move[1] == 0) {disable_e1();}
         break;        
       }
-    }
-    else //enable all
-    {
+    } else {//enable all
       enable_e0();
       enable_e1();
       enable_e2(); 
     }
   }
 
-  if (block->steps_e.wide == 0)
-  {
-    if(feed_rate<cs.mintravelfeedrate) feed_rate=cs.mintravelfeedrate;
-  }
-  else
-  {
+  if (block->steps_e.wide == 0) {
+    if(feed_rate<cs.mintravelfeedrate) {feed_rate=cs.mintravelfeedrate;}
+  } else {
     if(feed_rate<cs.minimumfeedrate) feed_rate=cs.minimumfeedrate;
   } 
 
@@ -993,18 +932,15 @@ Having the real displacement of the head, we can calculate the total movement le
     delta_mm[Y_AXIS] = ((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-position[Y_AXIS]))/cs.axis_steps_per_unit[Y_AXIS];
   #endif
   delta_mm[Z_AXIS] = (target[Z_AXIS]-position[Z_AXIS])/cs.axis_steps_per_unit[Z_AXIS];
-  delta_mm[E_AXIS] = (target[E_AXIS]-position[E_AXIS])/cs.axis_steps_per_unit[E_AXIS];
-  if ( block->steps_x.wide <=dropsegments && block->steps_y.wide <=dropsegments && block->steps_z.wide <=dropsegments )
-  {
+  delta_mm[E_AXIS] = (target[E_AXIS]-position[E_AXIS])/cs.axis_steps_per_unit[E_AXIS+active_extruder];
+  if ( block->steps_x.wide <=dropsegments && block->steps_y.wide <=dropsegments && block->steps_z.wide <=dropsegments ) {
     block->millimeters = fabs(delta_mm[E_AXIS]);
-  } 
-  else
-  {
-    #ifndef COREXY
+  } else {
+#ifndef COREXY
       block->millimeters = sqrt(square(delta_mm[X_AXIS]) + square(delta_mm[Y_AXIS]) + square(delta_mm[Z_AXIS]));
-	#else
+#else
 	  block->millimeters = sqrt(square(delta_mm[X_HEAD]) + square(delta_mm[Y_HEAD]) + square(delta_mm[Z_AXIS]));
-    #endif	
+#endif	
   }
   float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple divides 
 
@@ -1018,11 +954,12 @@ Having the real displacement of the head, we can calculate the total movement le
   //FIXME Vojtech: Why moves_queued > 1? Why not >=1?
   // Can we somehow differentiate the filling of the buffer at the start of a g-code from a buffer draining situation?
   if (moves_queued > 1 && moves_queued < (BLOCK_BUFFER_SIZE >> 1)) {
-      // segment time in micro seconds
-      unsigned long segment_time = lround(1000000.0/inverse_second);
-      if (segment_time < cs.minsegmenttime)
-          // buffer is draining, add extra time.  The amount of time added increases if the buffer is still emptied more.
-          inverse_second=1000000.0/(segment_time+lround(2*(cs.minsegmenttime-segment_time)/moves_queued));
+    // segment time in micro seconds
+    unsigned long segment_time = lround(1000000.0/inverse_second);
+    if (segment_time < cs.minsegmenttime) {
+      // buffer is draining, add extra time.  The amount of time added increases if the buffer is still emptied more.
+      inverse_second=1000000.0/(segment_time+lround(2*(cs.minsegmenttime-segment_time)/moves_queued));
+    }
   }
 #endif // SLOWDOWN
 
@@ -1033,21 +970,23 @@ Having the real displacement of the head, we can calculate the total movement le
   float current_speed[4];
   float speed_factor = 1.0; //factor <=1 do decrease speed
 //  maxlimit_status &= ~0xf;
-  for(int i=0; i < 4; i++)
-  {
+  for(int i=0; i < 3; i++) {
     current_speed[i] = delta_mm[i] * inverse_second;
-	if(fabs(current_speed[i]) > max_feedrate[i])
-	{
+    if(fabs(current_speed[i]) > max_feedrate[i]) {
       speed_factor = min(speed_factor, max_feedrate[i] / fabs(current_speed[i]));
-	  maxlimit_status |= (1 << i);
-	}
+      maxlimit_status |= (1 << i);
+    }
+  }
+  //Specific case depending on which extruder is active (In case their max feeds are different)
+  current_speed[3] = delta_mm[3] * inverse_second;
+  if(fabs(current_speed[3]) > max_feedrate[3+active_extruder]) {
+    speed_factor = min(speed_factor, max_feedrate[3+active_extruder] / fabs(current_speed[3]));
+    maxlimit_status |= (1 << 3);
   }
 
   // Correct the speed  
-  if( speed_factor < 1.0)
-  {
-    for(unsigned char i=0; i < 4; i++)
-    {
+  if( speed_factor < 1.0) {
+    for(unsigned char i=0; i < 4; i++) {
       current_speed[i] *= speed_factor;
     }
     block->nominal_speed *= speed_factor;
@@ -1061,18 +1000,16 @@ Having the real displacement of the head, we can calculate the total movement le
   // block->step_event_count ... event count of the fastest axis
   // block->millimeters ... Euclidian length of the XYZ movement or the E length, if no XYZ movement.
   float steps_per_mm = block->step_event_count.wide/block->millimeters;
-  if(block->steps_x.wide == 0 && block->steps_y.wide == 0 && block->steps_z.wide == 0)
-  {
+  if(block->steps_x.wide == 0 && block->steps_y.wide == 0 && block->steps_z.wide == 0) {
     block->acceleration_st = ceil(cs.retract_acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
-    #ifdef LIN_ADVANCE
+#ifdef LIN_ADVANCE
     block->use_advance_lead = false;
-    #endif
-  }
-  else
-  {
+#endif
+
+  } else {
     block->acceleration_st = ceil(cs.acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
 
-    #ifdef LIN_ADVANCE
+#ifdef LIN_ADVANCE
     /**
      * Use LIN_ADVANCE within this block if all these are true:
      *
@@ -1080,40 +1017,36 @@ Having the real displacement of the head, we can calculate the total movement le
      * delta_mm[E_AXIS] >= 0    : Extruding or traveling, but _not_ retracting.
      * |delta_mm[Z_AXIS]| < 0.5 : Z is only moved for leveling (_not_ for priming)
      */
-    block->use_advance_lead = extruder_advance_K > 0
-                              && delta_mm[E_AXIS] >= 0
-                              && abs(delta_mm[Z_AXIS]) < 0.5;
+    block->use_advance_lead = extruder_advance_K > 0  && delta_mm[E_AXIS] >= 0 && abs(delta_mm[Z_AXIS]) < 0.5;
     if (block->use_advance_lead) {
 #ifdef LA_FLOWADJ
-        // M221/FLOW should change uniformly the extrusion thickness
-        float delta_e = (e - position_float[E_AXIS]) / extruder_multiplier[extruder];
+      // M221/FLOW should change uniformly the extrusion thickness
+      float delta_e = (e - position_float[E_AXIS]) / extruder_multiplier[extruder+active_extruder];
 #else
-        // M221/FLOW only adjusts for an incorrect source diameter
-        float delta_e = (e - position_float[E_AXIS]);
+      // M221/FLOW only adjusts for an incorrect source diameter
+      float delta_e = (e - position_float[E_AXIS]);
 #endif
-        float delta_D = sqrt(sq(x - position_float[X_AXIS])
-                             + sq(y - position_float[Y_AXIS])
-                             + sq(z - position_float[Z_AXIS]));
+      float delta_D = sqrt(sq(x - position_float[X_AXIS])  + sq(y - position_float[Y_AXIS]) + sq(z - position_float[Z_AXIS]));
 
-        // all extrusion moves with LA require a compression which is proportional to the
-        // extrusion_length to distance ratio (e/D)
-        e_D_ratio = delta_e / delta_D;
+      // all extrusion moves with LA require a compression which is proportional to the
+      // extrusion_length to distance ratio (e/D)
+      e_D_ratio = delta_e / delta_D;
 
-        // Check for unusual high e_D ratio to detect if a retract move was combined with the last
-        // print move due to min. steps per segment. Never execute this with advance! This assumes
-        // no one will use a retract length of 0mm < retr_length < ~0.2mm and no one will print
-        // 100mm wide lines using 3mm filament or 35mm wide lines using 1.75mm filament.
-        if (e_D_ratio > 3.0)
-            block->use_advance_lead = false;
-        else if (e_D_ratio > 0) {
-            const float max_accel_per_s2 = cs.max_jerk[E_AXIS] / (extruder_advance_K * e_D_ratio);
-            if (cs.acceleration > max_accel_per_s2) {
-                block->acceleration_st = ceil(max_accel_per_s2 * steps_per_mm);
-                #ifdef LA_DEBUG
-                SERIAL_ECHOLNPGM("LA: Block acceleration limited due to max E-jerk");
-                #endif
-            }
+      // Check for unusual high e_D ratio to detect if a retract move was combined with the last
+      // print move due to min. steps per segment. Never execute this with advance! This assumes
+      // no one will use a retract length of 0mm < retr_length < ~0.2mm and no one will print
+      // 100mm wide lines using 3mm filament or 35mm wide lines using 1.75mm filament.
+      if (e_D_ratio > 3.0) {
+        block->use_advance_lead = false;
+      } else if (e_D_ratio > 0) {
+        const float max_accel_per_s2 = cs.max_jerk[E_AXIS+active_extruder] / (extruder_advance_K * e_D_ratio);
+        if (cs.acceleration > max_accel_per_s2) {
+          block->acceleration_st = ceil(max_accel_per_s2 * steps_per_mm);
+#ifdef LA_DEBUG
+          SERIAL_ECHOLNPGM("LA: Block acceleration limited due to max E-jerk");
+#endif
         }
+      }
     }
     #endif
 
@@ -1125,27 +1058,11 @@ Having the real displacement of the head, we can calculate the total movement le
 	{  block->acceleration_st = axis_steps_per_sqr_second[Y_AXIS]; maxlimit_status |= (Y_AXIS_MASK << 4); }
     if(((float)block->acceleration_st * (float)block->steps_e.wide / (float)block->step_event_count.wide) > axis_steps_per_sqr_second[E_AXIS])
 	{  block->acceleration_st = axis_steps_per_sqr_second[E_AXIS]; maxlimit_status |= (Z_AXIS_MASK << 4); }
-    if(((float)block->acceleration_st * (float)block->steps_z.wide / (float)block->step_event_count.wide ) > axis_steps_per_sqr_second[Z_AXIS])
-	{  block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS]; maxlimit_status |= (E_AXIS_MASK << 4); }
+    if(((float)block->acceleration_st * (float)block->steps_z.wide / (float)block->step_event_count.wide ) > axis_steps_per_sqr_second[Z_AXIS+active_extruder])
+	{  block->acceleration_st = axis_steps_per_sqr_second[Z_AXIS+active_extruder]; maxlimit_status |= (E_AXIS_MASK+active_extruder << 4); }
   }
   // Acceleration of the segment, in mm/sec^2
   block->acceleration = block->acceleration_st / steps_per_mm;
-
-#if 0
-  // Oversample diagonal movements by a power of 2 up to 8x
-  // to achieve more accurate diagonal movements.
-  uint8_t bresenham_oversample = 1;
-  for (uint8_t i = 0; i < 3; ++ i) {
-    if (block->nominal_rate >= 5000) // 5kHz
-      break;
-    block->nominal_rate << 1;
-    bresenham_oversample << 1;
-    block->step_event_count << 1;
-  }
-  if (bresenham_oversample > 1)
-    // Lower the acceleration steps/sec^2 to account for the oversampling.
-    block->acceleration_st = (block->acceleration_st + (bresenham_oversample >> 1)) / bresenham_oversample;
-#endif
 
   block->acceleration_rate = ((float)block->acceleration_st * (16777216.0 / (F_CPU / 8.0)));
 
@@ -1154,34 +1071,34 @@ Having the real displacement of the head, we can calculate the total movement le
   float safe_speed = block->nominal_speed;
   bool  limited = false;
   for (uint8_t axis = 0; axis < 4; ++ axis) {
-      float jerk = fabs(current_speed[axis]);
-      if (jerk > cs.max_jerk[axis]) {
-          // The actual jerk is lower, if it has been limited by the XY jerk.
-          if (limited) {
-              // Spare one division by a following gymnastics:
-              // Instead of jerk *= safe_speed / block->nominal_speed,
-              // multiply max_jerk[axis] by the divisor.
-              jerk *= safe_speed;
-              float mjerk = cs.max_jerk[axis] * block->nominal_speed;
-              if (jerk > mjerk) {
-                  safe_speed *= mjerk / jerk;
-                  limited = true;
-              }
-          } else {
-              safe_speed = cs.max_jerk[axis];
-              limited = true;
-          }
+    float jerk = fabs(current_speed[axis]);
+    axis = axis == 3 ? axis+active_extruder : axis; //Allows independing extruder specific jerk values
+    if (jerk > cs.max_jerk[axis]) {
+      // The actual jerk is lower, if it has been limited by the XY jerk.
+      if (limited) {
+        // Spare one division by a following gymnastics:
+        // Instead of jerk *= safe_speed / block->nominal_speed,
+        // multiply max_jerk[axis] by the divisor.
+        jerk *= safe_speed;
+        float mjerk = cs.max_jerk[axis] * block->nominal_speed;
+        if (jerk > mjerk) {
+          safe_speed *= mjerk / jerk;
+          limited = true;
+        }
+      } else {
+          safe_speed = cs.max_jerk[axis];
+          limited = true;
       }
+    }
   }
 
   // Reset the block flag.
   block->flag = 0;
 
-  if (plan_reset_next_e_sched)
-  {
-      // finally propagate a pending reset
-      block->flag |= BLOCK_FLAG_E_RESET;
-      plan_reset_next_e_sched = false;
+  if (plan_reset_next_e_sched) {
+    // finally propagate a pending reset
+    block->flag |= BLOCK_FLAG_E_RESET;
+    plan_reset_next_e_sched = false;
   }
 
   // Initial limit on the segment entry velocity.
@@ -1191,62 +1108,65 @@ Having the real displacement of the head, we can calculate the total movement le
   // Is it because we don't want to tinker with the first buffer line, which
   // is likely to be executed by the stepper interrupt routine soon?
   if (moves_queued > 1 && previous_nominal_speed > 0.0001f) {
-      // Estimate a maximum velocity allowed at a joint of two successive segments.
-      // If this maximum velocity allowed is lower than the minimum of the entry / exit safe velocities,
-      // then the machine is not coasting anymore and the safe entry / exit velocities shall be used.
+    // Estimate a maximum velocity allowed at a joint of two successive segments.
+    // If this maximum velocity allowed is lower than the minimum of the entry / exit safe velocities,
+    // then the machine is not coasting anymore and the safe entry / exit velocities shall be used.
 
-      // The junction velocity will be shared between successive segments. Limit the junction velocity to their minimum.
-      bool prev_speed_larger = previous_nominal_speed > block->nominal_speed;
-      float smaller_speed_factor = prev_speed_larger ? (block->nominal_speed / previous_nominal_speed) : (previous_nominal_speed / block->nominal_speed);
-      // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
-      vmax_junction = prev_speed_larger ? block->nominal_speed : previous_nominal_speed;
-      // Factor to multiply the previous / current nominal velocities to get componentwise limited velocities.
-      float v_factor = 1.f;
-      limited = false;
-      // Now limit the jerk in all axes.
-      for (uint8_t axis = 0; axis < 4; ++ axis) {
-          // Limit an axis. We have to differentiate coasting from the reversal of an axis movement, or a full stop.
-          float v_exit  = previous_speed[axis];
-          float v_entry = current_speed [axis];
-          if (prev_speed_larger)
-              v_exit *= smaller_speed_factor;
-          if (limited) {
-              v_exit  *= v_factor;
-              v_entry *= v_factor;
-          }
-          // Calculate the jerk depending on whether the axis is coasting in the same direction or reversing a direction.
-          float jerk = 
-              (v_exit > v_entry) ?
-                  ((v_entry > 0.f || v_exit < 0.f) ?
-                      // coasting
-                      (v_exit - v_entry) : 
-                      // axis reversal
-                      max(v_exit, - v_entry)) :
-                  // v_exit <= v_entry
-                  ((v_entry < 0.f || v_exit > 0.f) ?
-                      // coasting
-                      (v_entry - v_exit) :
-                      // axis reversal
-                      max(- v_exit, v_entry));
-          if (jerk > cs.max_jerk[axis]) {
-              v_factor *= cs.max_jerk[axis] / jerk;
-              limited = true;
-          }
+    // The junction velocity will be shared between successive segments. Limit the junction velocity to their minimum.
+    bool prev_speed_larger = previous_nominal_speed > block->nominal_speed;
+    float smaller_speed_factor = prev_speed_larger ? (block->nominal_speed / previous_nominal_speed) : (previous_nominal_speed / block->nominal_speed);
+    // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
+    vmax_junction = prev_speed_larger ? block->nominal_speed : previous_nominal_speed;
+    // Factor to multiply the previous / current nominal velocities to get componentwise limited velocities.
+    float v_factor = 1.f;
+    limited = false;
+    // Now limit the jerk in all axes.
+    for (uint8_t axis = 0; axis < 4; ++ axis) {
+      axis = axis == 3 ? axis + active_extruder : axis; //Ensure proper extruder settings
+      // Limit an axis. We have to differentiate coasting from the reversal of an axis movement, or a full stop.
+      float v_exit  = previous_speed[axis];
+      float v_entry = current_speed [axis];
+      if (prev_speed_larger) {
+        v_exit *= smaller_speed_factor;
       }
-      if (limited)
-          vmax_junction *= v_factor;
-      // Now the transition velocity is known, which maximizes the shared exit / entry velocity while
-      // respecting the jerk factors, it may be possible, that applying separate safe exit / entry velocities will achieve faster prints.
-      float vmax_junction_threshold = vmax_junction * 0.99f;
-      if (previous_safe_speed > vmax_junction_threshold && safe_speed > vmax_junction_threshold) {
-          // Not coasting. The machine will stop and start the movements anyway,
-          // better to start the segment from start.
-          block->flag |= BLOCK_FLAG_START_FROM_FULL_HALT;
-          vmax_junction = safe_speed;
+      if (limited) {
+        v_exit  *= v_factor;
+        v_entry *= v_factor;
       }
-  } else {
+      // Calculate the jerk depending on whether the axis is coasting in the same direction or reversing a direction.
+      float jerk = 
+          (v_exit > v_entry) ?
+              ((v_entry > 0.f || v_exit < 0.f) ?
+                  // coasting
+                  (v_exit - v_entry) : 
+                  // axis reversal
+                  max(v_exit, - v_entry)) :
+              // v_exit <= v_entry
+              ((v_entry < 0.f || v_exit > 0.f) ?
+                  // coasting
+                  (v_entry - v_exit) :
+                  // axis reversal
+                  max(- v_exit, v_entry));
+      if (jerk > cs.max_jerk[axis]) {
+        v_factor *= cs.max_jerk[axis] / jerk;
+        limited = true;
+      }
+    }
+    if (limited) {
+      vmax_junction *= v_factor;
+    }
+    // Now the transition velocity is known, which maximizes the shared exit / entry velocity while
+    // respecting the jerk factors, it may be possible, that applying separate safe exit / entry velocities will achieve faster prints.
+    float vmax_junction_threshold = vmax_junction * 0.99f;
+    if (previous_safe_speed > vmax_junction_threshold && safe_speed > vmax_junction_threshold) {
+      // Not coasting. The machine will stop and start the movements anyway,
+      // better to start the segment from start.
       block->flag |= BLOCK_FLAG_START_FROM_FULL_HALT;
       vmax_junction = safe_speed;
+    }
+  } else {
+    block->flag |= BLOCK_FLAG_START_FROM_FULL_HALT;
+    vmax_junction = safe_speed;
   }
 
   // Max entry speed of this block equals the max exit speed of the previous block.
@@ -1277,54 +1197,53 @@ Having the real displacement of the head, we can calculate the total movement le
 
 #ifdef LIN_ADVANCE
   if (block->use_advance_lead) {
-      // calculate the compression ratio for the segment (the required advance steps are computed
-      // during trapezoid planning)
-      float adv_comp = extruder_advance_K * e_D_ratio * cs.axis_steps_per_unit[E_AXIS]; // (step/(mm/s))
-      block->adv_comp = adv_comp / block->speed_factor; // step/(step/min)
+    // calculate the compression ratio for the segment (the required advance steps are computed
+    // during trapezoid planning)
+    float adv_comp = extruder_advance_K * e_D_ratio * cs.axis_steps_per_unit[E_AXIS+active_extruder]; // (step/(mm/s))
+    block->adv_comp = adv_comp / block->speed_factor; // step/(step/min)
 
-      float advance_speed;
-      if (e_D_ratio > 0)
-          advance_speed = (extruder_advance_K * e_D_ratio * block->acceleration * cs.axis_steps_per_unit[E_AXIS]);
-      else
-          advance_speed = cs.max_jerk[E_AXIS] * cs.axis_steps_per_unit[E_AXIS];
+    float advance_speed;
+    if (e_D_ratio > 0) {
+      advance_speed = (extruder_advance_K * e_D_ratio * block->acceleration * cs.axis_steps_per_unit[E_AXIS]);
+    } else {
+      advance_speed = cs.max_jerk[E_AXIS+active_extruder] * cs.axis_steps_per_unit[E_AXIS+active_extruder];
+    }
+    // to save more space we avoid another copy of calc_timer and go through slow division, but we
+    // still need to replicate the *exact* same step grouping policy (see below)
+    if (advance_speed > MAX_STEP_FREQUENCY) advance_speed = MAX_STEP_FREQUENCY;
+    float advance_rate = (F_CPU / 8.0) / advance_speed;
+    if (advance_speed > 20000) {
+      block->advance_rate = advance_rate * 4;
+      block->advance_step_loops = 4;
+    } else if (advance_speed > 10000) {
+      block->advance_rate = advance_rate * 2;
+      block->advance_step_loops = 2;
+    } else {
+      // never overflow the internal accumulator with very low rates
+      if (advance_rate < UINT16_MAX) {
+        block->advance_rate = advance_rate;
+      } else {
+        block->advance_rate = UINT16_MAX;
+      }
+      block->advance_step_loops = 1;
+    }
 
-      // to save more space we avoid another copy of calc_timer and go through slow division, but we
-      // still need to replicate the *exact* same step grouping policy (see below)
-      if (advance_speed > MAX_STEP_FREQUENCY) advance_speed = MAX_STEP_FREQUENCY;
-      float advance_rate = (F_CPU / 8.0) / advance_speed;
-      if (advance_speed > 20000) {
-          block->advance_rate = advance_rate * 4;
-          block->advance_step_loops = 4;
-      }
-      else if (advance_speed > 10000) {
-          block->advance_rate = advance_rate * 2;
-          block->advance_step_loops = 2;
-      }
-      else
-      {
-          // never overflow the internal accumulator with very low rates
-          if (advance_rate < UINT16_MAX)
-              block->advance_rate = advance_rate;
-          else
-              block->advance_rate = UINT16_MAX;
-          block->advance_step_loops = 1;
-      }
-
-      #ifdef LA_DEBUG
-      if (block->advance_step_loops > 2)
-          // @wavexx: we should really check for the difference between step_loops and
-          //          advance_step_loops instead. A difference of more than 1 will lead
-          //          to uneven speed and *should* be adjusted here by furthermore
-          //          reducing the speed.
-          SERIAL_ECHOLNPGM("LA: More than 2 steps per eISR loop executed.");
-      #endif
+#ifdef LA_DEBUG
+    if (block->advance_step_loops > 2)
+      // @wavexx: we should really check for the difference between step_loops and
+      //          advance_step_loops instead. A difference of more than 1 will lead
+      //          to uneven speed and *should* be adjusted here by furthermore
+      //          reducing the speed.
+      SERIAL_ECHOLNPGM("LA: More than 2 steps per eISR loop executed.");
+#endif //LA_DEBUG
   }
-#endif
+#endif //LIN_ADVANCE
 
   calculate_trapezoid_for_block(block, block->entry_speed, safe_speed);
 
-  if (block->step_event_count.wide <= 32767)
+  if (block->step_event_count.wide <= 32767) {
     block->flag |= BLOCK_FLAG_DDA_LOWRES;
+  }
 
   // Move the buffer head. From now the block may be picked up by the stepper interrupt controller.
   block_buffer_head = next_buffer_head;
@@ -1332,22 +1251,18 @@ Having the real displacement of the head, we can calculate the total movement le
   // Update position
   memcpy(position, target, sizeof(target)); // position[] = target[]
 
-  #ifdef LIN_ADVANCE
+#ifdef LIN_ADVANCE
   position_float[X_AXIS] = x;
   position_float[Y_AXIS] = y;
   position_float[Z_AXIS] = z;
   position_float[E_AXIS] = e;
-  #endif
+#endif //LIN_ADVANCE
     
   // Recalculate the trapezoids to maximize speed at the segment transitions while respecting
   // the machine limits (maximum acceleration and maximum jerk).
   // This runs asynchronously with the stepper interrupt controller, which may
   // interfere with the process.
   planner_recalculate(safe_speed);
-
-//  SERIAL_ECHOPGM("Q");
-//  SERIAL_ECHO(int(moves_planned()));
-//  SERIAL_ECHOLNPGM("");
 
 #ifdef PLANNER_DIAGNOSTICS
   planner_update_queue_min_counter();
@@ -1375,13 +1290,12 @@ vector_3 plan_get_position() {
 }
 #endif // ENABLE_AUTO_BED_LEVELING
 
-void plan_set_position(float x, float y, float z, const float &e)
-{
+void plan_set_position(float x, float y, float z, const float &e) {
 #ifdef ENABLE_AUTO_BED_LEVELING
     apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
 #endif // ENABLE_AUTO_BED_LEVELING
 
-    world2machine(x, y);
+  world2machine(x, y);
 
   position[X_AXIS] = lround(x*cs.axis_steps_per_unit[X_AXIS]);
   position[Y_AXIS] = lround(y*cs.axis_steps_per_unit[Y_AXIS]);
@@ -1392,33 +1306,32 @@ void plan_set_position(float x, float y, float z, const float &e)
 #else
   position[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
 #endif // ENABLE_MESH_BED_LEVELING
-  position[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS]);
+  position[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS+active_extruder]);
   #ifdef LIN_ADVANCE
   position_float[X_AXIS] = x;
   position_float[Y_AXIS] = y;
   position_float[Z_AXIS] = z;
   position_float[E_AXIS] = e;
   #endif
-  st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS]);
+  st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS+active_extruder]);
   previous_nominal_speed = 0.0; // Resets planner junction speeds. Assumes start from rest.
   previous_speed[0] = 0.0;
   previous_speed[1] = 0.0;
   previous_speed[2] = 0.0;
   previous_speed[3] = 0.0;
+  previous_speed[4] = 0.0;
 }
 
 // Only useful in the bed leveling routine, when the mesh bed leveling is off.
-void plan_set_z_position(const float &z)
-{
+void plan_set_z_position(const float &z) {
   #ifdef LIN_ADVANCE
   position_float[Z_AXIS] = z;
   #endif
   position[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
-  st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS]);
+  st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS+active_extruder]);
 }
 
-void plan_set_e_position(const float &e)
-{
+void plan_set_e_position(const float &e) {
   #ifdef LIN_ADVANCE
   position_float[E_AXIS] = e;
   #endif
@@ -1426,35 +1339,29 @@ void plan_set_e_position(const float &e)
   st_set_e_position(position[E_AXIS]);
 }
 
-void plan_reset_next_e()
-{
+void plan_reset_next_e() {
     plan_reset_next_e_queue = true;
 }
 
 #ifdef PREVENT_DANGEROUS_EXTRUDE
-void set_extrude_min_temp(float temp)
-{
+void set_extrude_min_temp(float temp) {
   extrude_min_temp=temp;
 }
 #endif
 
 // Calculate the steps/s^2 acceleration rates, based on the mm/s^s
-void reset_acceleration_rates()
-{
-	for(int8_t i=0; i < NUM_AXIS; i++)
-        axis_steps_per_sqr_second[i] = max_acceleration_units_per_sq_second[i] * cs.axis_steps_per_unit[i];
+void reset_acceleration_rates() {
+	for(int8_t i=0; i < NUM_AXIS; i++) {
+    axis_steps_per_sqr_second[i] = max_acceleration_units_per_sq_second[i] * cs.axis_steps_per_unit[i];
+  }
 }
 
 #ifdef TMC2130
-void update_mode_profile()
-{
-	if (tmc2130_mode == TMC2130_MODE_NORMAL)
-	{
+void update_mode_profile() {
+	if (tmc2130_mode == TMC2130_MODE_NORMAL) {
 		max_feedrate = cs.max_feedrate_normal;
 		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_normal;
-	}
-	else if (tmc2130_mode == TMC2130_MODE_SILENT)
-	{
+	} else if (tmc2130_mode == TMC2130_MODE_SILENT) {
 		max_feedrate = cs.max_feedrate_silent;
 		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_silent;
 	}
@@ -1462,24 +1369,20 @@ void update_mode_profile()
 }
 #endif //TMC2130
 
-unsigned char number_of_blocks()
-{
+unsigned char number_of_blocks() {
 	return (block_buffer_head + BLOCK_BUFFER_SIZE - block_buffer_tail) & (BLOCK_BUFFER_SIZE - 1);
 }
 #ifdef PLANNER_DIAGNOSTICS
-uint8_t planner_queue_min()
-{
+uint8_t planner_queue_min() {
   return g_cntr_planner_queue_min;
 }
 
-void planner_queue_min_reset()
-{
+void planner_queue_min_reset() {
   g_cntr_planner_queue_min = moves_planned();
 }
 #endif /* PLANNER_DIAGNOSTICS */
 
-void planner_add_sd_length(uint16_t sdlen)
-{
+void planner_add_sd_length(uint16_t sdlen) {
   if (block_buffer_head != block_buffer_tail) {
     // The planner buffer is not empty. Get the index of the last buffer line entered,
     // which is (block_buffer_head - 1) modulo BLOCK_BUFFER_SIZE.
@@ -1490,13 +1393,11 @@ void planner_add_sd_length(uint16_t sdlen)
   }
 }
 
-uint16_t planner_calc_sd_length()
-{
+uint16_t planner_calc_sd_length() {
 	unsigned char _block_buffer_head = block_buffer_head;
 	unsigned char _block_buffer_tail = block_buffer_tail;
 	uint16_t sdlen = 0;
-	while (_block_buffer_head != _block_buffer_tail)
-	{
+	while (_block_buffer_head != _block_buffer_tail) {
 		sdlen += block_buffer[_block_buffer_tail].sdlen;
 	    _block_buffer_tail = (_block_buffer_tail + 1) & (BLOCK_BUFFER_SIZE - 1);  
 	}

@@ -79,8 +79,8 @@
 // Offset of the extruders (uncomment if using more than one and relying on firmware to position when changing).
 // The offset has to be X=0, Y=0 for the extruder 0 hotend (default extruder).
 // For the other hotends it is their distance from the extruder 0 hotend.
-#define EXTRUDER_OFFSET_X {0.0, 47} // (in mm) for each extruder, offset of the hotend on the X axis
-#define EXTRUDER_OFFSET_Y {0.0, 0.0}  // (in mm) for each extruder, offset of the hotend on the Y axis
+#define EXTRUDER_OFFSET_X {0.0, 46.83} // (in mm) for each extruder, offset of the hotend on the X axis
+#define EXTRUDER_OFFSET_Y {0.0, 11.8}  // (in mm) for each extruder, offset of the hotend on the Y axis
 #define EXTRUDER_OFFSET_Z {0.0, -2}
 
 // Canceled home position
@@ -385,6 +385,7 @@
 
 // Define Prusa filament runout sensor
 #define FILAMENT_RUNOUT_SUPPORT
+#define FIL_RUNOUT_SUPPORT
 
 #ifdef FILAMENT_RUNOUT_SUPPORT
 #define FILAMENT_RUNOUT_SENSOR FIL_RUNOUT_PIN

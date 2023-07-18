@@ -131,10 +131,10 @@
 // On a RAMPS (or other 5 driver) motherboard, using this feature will limit you to using 1 extruder.
 //#define Z_DUAL_STEPPER_DRIVERS
 
-#ifdef Z_DUAL_STEPPER_DRIVERS
-  #undef EXTRUDERS
-  #define EXTRUDERS 1
-#endif
+// #ifdef Z_DUAL_STEPPER_DRIVERS
+//   #undef EXTRUDERS
+//   #define EXTRUDERS 1
+// #endif
 
 // Same again but for Y Axis.
 //#define Y_DUAL_STEPPER_DRIVERS
@@ -142,10 +142,10 @@
 // Define if the two Y drives need to rotate in opposite directions
 #define INVERT_Y2_VS_Y_DIR 1
 
-#ifdef Y_DUAL_STEPPER_DRIVERS
-  #undef EXTRUDERS
-  #define EXTRUDERS 1
-#endif
+// #ifdef Y_DUAL_STEPPER_DRIVERS
+//   #undef EXTRUDERS
+//   #define EXTRUDERS 1
+// #endif
 
 #if defined (Z_DUAL_STEPPER_DRIVERS) && defined (Y_DUAL_STEPPER_DRIVERS)
   #error "You cannot have dual drivers for both Y and Z"
