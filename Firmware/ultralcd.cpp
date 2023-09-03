@@ -680,7 +680,7 @@ void lcdui_print_status_screen(void) {
 	} else {
 		lcd_print("N");
 	}
-	#if EXTRUDERS == 2
+#if EXTRUDERS == 2
 		lcd_print(" 1:");
 		if(READ(FILAMENT_RUNOUT2_SENSOR)){
 			lcd_print("L");
@@ -688,7 +688,7 @@ void lcdui_print_status_screen(void) {
 			lcd_print("N");
 		}
 #endif //FIL_RUNOUT_SUPPORT
-	#endif
+#endif
 
     lcd_set_cursor(0, 2); //line 3
 

@@ -20,8 +20,8 @@
 #define DEVELOPER
 
 // Printer name
-#define CUSTOM_MENDEL_NAME "MKP1"
-#define PRINTER_NUMBER "027"
+#define CUSTOM_MENDEL_NAME "MKP15"
+#define PRINTER_NUMBER "018"
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO
@@ -33,7 +33,7 @@
 
 
 // Uncomment the below for the E3D PT100 temperature sensor (with or without PT100 Amplifier)
-//#define E3D_PT100_EXTRUDER_WITH_AMP
+// #define E3D_PT100_EXTRUDER_WITH_AMP
 //#define E3D_PT100_EXTRUDER_NO_AMP
 //#define E3D_PT100_BED_WITH_AMP
 //#define E3D_PT100_BED_NO_AMP
@@ -438,8 +438,8 @@
 #define MESH_HOME_Z_CALIB 0.2
 #define MESH_HOME_Z_SEARCH 5.0f           // Z lift for homing, mesh bed leveling etc.
 
-#define X_PROBE_OFFSET_FROM_EXTRUDER 22     // Z probe to nozzle X offset: -left  +right
-#define Y_PROBE_OFFSET_FROM_EXTRUDER 1     // Z probe to nozzle Y offset: -front +behind
+#define X_PROBE_OFFSET_FROM_EXTRUDER 20.5    // Z probe to nozzle X offset: -left  +right
+#define Y_PROBE_OFFSET_FROM_EXTRUDER 2     // Z probe to nozzle Y offset: -front +behind
 #define Z_PROBE_OFFSET_FROM_EXTRUDER -0.5  // Z probe to nozzle Z offset: -below (always!)
 #endif
 

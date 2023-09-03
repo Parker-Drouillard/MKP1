@@ -98,6 +98,7 @@ extern PGM_P sPrinterName;
 
 // This defines the number of extruders
 #define EXTRUDERS 2
+#define FIL_RUNOUT_SUPPORT
 
 //// The following define selects which power supply you have. Please choose the one that matches your setup
 // 1 = ATX

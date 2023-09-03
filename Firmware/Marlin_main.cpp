@@ -128,7 +128,7 @@
 
 #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
 #include <SPI.h>
-static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS; //X Y Z E1 E0 Channel Addresses
+// static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS; //X Y Z E1 E0 Channel Addresses
 #endif
 
 #define VERSION_STRING  "1.0.2"
@@ -7660,12 +7660,12 @@ Sigma_Exit:
     */
     case 908:
     {
-#if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
-        uint8_t channel,current;
-        if(code_seen('P')) channel=code_value();
-        if(code_seen('S')) current=code_value();
-        digitalPotWrite(channel, current);
-#endif
+// #if defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
+//         uint8_t channel,current;
+//         if(code_seen('P')) channel=code_value();
+//         if(code_seen('S')) current=code_value();
+//         digitalPotWrite(channel, current);
+// #endif
     }
     break;
 

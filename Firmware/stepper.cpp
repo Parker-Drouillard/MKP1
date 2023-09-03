@@ -145,7 +145,7 @@ extern uint16_t stepper_timer_overflow_last;
 #endif /* DEBUG_STEPPER_TIMER_MISSED */
 
 #ifdef DIGIPOT_CHANNELS
-  static uint8_t digipotChannels[5] = DIGIPOT_CHANNELS ; //X Y Z E1 E0 Channel Addresses
+  static int digipotChannels[5] = DIGIPOT_CHANNELS ; //X Y Z E1 E0 Channel Addresses
   int motorCurrents[5] = DIGIPOT_MOTOR_CURRENT ;
 #endif
 
@@ -1511,14 +1511,14 @@ void st_current_init(){ //Initialize Digipot Motor Current
     TCCR5B = (TCCR5B & ~(_BV(CS50) | _BV(CS51) | _BV(CS52))) | _BV(CS50);
 #elif defined(DIGIPOTSS_PIN) && DIGIPOTSS_PIN > -1
   pinMode(DIGIPOTSS_PIN,OUTPUT);
-  // for(int i = 0; i < 5; i++){
-  //   digitalPotWrite(DIGIPOT_CHANNELS[i],DIGIPOT_MOTOR_CURRENT[i]);
-  // }
-  digitalPotWrite(4, 135);
-  digitalPotWrite(5, 135);
-  digitalPotWrite(3, 135);
-  digitalPotWrite(0, 135);
-  digitalPotWrite(1, 135);
+  for(int i = 0; i < 5; i++){
+    digitalPotWrite(digipotChannels[i],motorCurrents[i]);
+  }
+  // digitalPotWrite(4, 135);
+  // digitalPotWrite(5, 135);
+  // digitalPotWrite(3, 135);
+  // digitalPotWrite(0, 135);
+  // digitalPotWrite(1, 135);
 
 #endif
 }
