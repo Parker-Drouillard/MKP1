@@ -315,9 +315,9 @@
 
 // Maxtemps
 #if defined(E3D_PT100_EXTRUDER_WITH_AMP) || defined(E3D_PT100_EXTRUDER_NO_AMP)
-#define HEATER_0_MAXTEMP 410
+#define HEATER_0_MAXTEMP 490
 #else
-#define HEATER_0_MAXTEMP 305
+#define HEATER_0_MAXTEMP 490
 #endif
 #define HEATER_1_MAXTEMP 305
 #define HEATER_2_MAXTEMP 305
@@ -556,9 +556,9 @@
 // 247 is Pt100 with 4k7 pullup and PT100 Amplifier
 // 110 is Pt100 with 1k pullup (non standard)
 
-#define TEMP_SENSOR_0 1
-#define TEMP_SENSOR_1 1
-#define TEMP_SENSOR_2 0
+#define TEMP_SENSOR_0 1047
+#define TEMP_SENSOR_1 1047
+#define TEMP_SENSOR_2 1047
 #if defined(E3D_PT100_BED_WITH_AMP)
 #define TEMP_SENSOR_BED 247
 #elif defined(E3D_PT100_BED_NO_AMP)
