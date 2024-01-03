@@ -2838,7 +2838,7 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
   float lastpos[4];
 
   if (farm_mode) {
-      prusa_statistics(22);
+    prusa_statistics(22);
   }
 
   //First backup current position and settings
@@ -7245,63 +7245,58 @@ Sigma_Exit:
 		float e_shift_late = 0;
 		bool automatic = false;
 		
-        //Retract extruder
-        if(code_seen('E'))
-        {
-          e_shift_init = code_value();
-        }
-        else
-        {
-          #ifdef FILAMENTCHANGE_FIRSTRETRACT
-            e_shift_init = FILAMENTCHANGE_FIRSTRETRACT ;
-          #endif
-        }
+    //Retract extruder
+    if(code_seen('E')) {
+      e_shift_init = code_value();
+    } else {
+      #ifdef FILAMENTCHANGE_FIRSTRETRACT
+        e_shift_init = FILAMENTCHANGE_FIRSTRETRACT ;
+      #endif
+    }
 
 		//currently don't work as we are using the same unload sequence as in M702, needs re-work 
-		if (code_seen('L'))
-		{
+		if (code_seen('L')) {
 			e_shift_late = code_value();
-		}
-		else
-		{
+		} else {
 		  #ifdef FILAMENTCHANGE_FINALRETRACT
-			e_shift_late = FILAMENTCHANGE_FINALRETRACT;
+			  e_shift_late = FILAMENTCHANGE_FINALRETRACT;
 		  #endif	
 		}
+    //Lift Z
+    z_shift = gcode_M600_filament_change_z_shift<uint8_t>();
+    
+    //Move XY to side
+    //#ifdef FILAMENTCHANGE_XPOS
+    x_position = FILAMENTCHANGE_XPOS;
+    //#endif
 
-        //Lift Z
-        if(code_seen('Z'))
-        {
-          z_shift = code_value();
-        }
-        else
-        {
-			z_shift = gcode_M600_filament_change_z_shift<uint8_t>();
-        }
-		//Move XY to side
-        if(code_seen('X'))
-        {
-          x_position = code_value();
-        }
-        else
-        {
-          #ifdef FILAMENTCHANGE_XPOS
-			x_position = FILAMENTCHANGE_XPOS;
-          #endif
-        }
-        if(code_seen('Y'))
-        {
-          y_position = code_value();
-        }
-        else
-        {
-          #ifdef FILAMENTCHANGE_YPOS
-            y_position = FILAMENTCHANGE_YPOS ;
-          #endif
-        }
+    //#ifdef FILAMENTCHANGE_YPOS
+    y_position = FILAMENTCHANGE_YPOS;
+    //endif
+
+    // //Lift Z
+    // if(code_seen('Z')) {
+    //   z_shift = code_value();
+    // } else {
+		// 	z_shift = gcode_M600_filament_change_z_shift<uint8_t>();
+    // }
+		// //Move XY to side
+    // if(code_seen('X')) {
+    //   x_position = code_value();
+    // } else {
+    //   #ifdef FILAMENTCHANGE_XPOS
+		// 	  x_position = FILAMENTCHANGE_XPOS;
+    //   #endif
+    // }
+    // if(code_seen('Y')) {
+    //   y_position = code_value();
+    // } else {
+    //   #ifdef FILAMENTCHANGE_YPOS
+    //     y_position = FILAMENTCHANGE_YPOS ;
+    //   #endif
+    // }
 
 		gcode_M600(automatic, x_position, y_position, z_shift, e_shift_init, e_shift_late);
-	
 	}
     break;
     #endif //FILAMENTCHANGEENABLE
@@ -7623,7 +7618,8 @@ Sigma_Exit:
 				uint8_t val = tmc2130_cur2val(cur_mA);
 				tmc2130_set_current_h(i, val);
 				tmc2130_set_current_r(i, val);
-				//if (i == E_AXIS) printf_P(PSTR("E-axis current=%ldmA\n"), cur_mA);
+				//if (i == E_AXIS) printf_P(PSTR("E-axis current=%ldmA\n"), cur_mA);M600
+
 			}
 
 #else //TMC2130
